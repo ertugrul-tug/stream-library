@@ -10,8 +10,9 @@ Kaptan Qedy'nin (Twitch/YouTube/Kick) geri dönüş planı ve yayın kütüphane
 ```
 docs/
 ├── index.html                  Halka açık iniş sayfası — hero, haftalık ritim, platformlar, animasyonlu
-├── assets/                     Landing page için marka görselleri
-└── captain-on-the-bridge/      Detaylı plan/checklist sayfası (eski Seyir Defteri)
+├── assets/                     Landing page için marka görselleri + steam-library.json (servable kopya)
+├── captain-on-the-bridge/      Detaylı plan/checklist sayfası (eski Seyir Defteri)
+└── kutuphane/                  624 oyunluk Steam kütüphanesi, aranabilir/taranabilir
 planning/   Comeback planı ve haftalık metrik takip dosyaları (.md kaynağı)
 data/       Steam kütüphanesi (JSON) ve marka logoları (kaynak çözünürlük)
 ```

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kaptan Qedy</title>
 <meta name="description" content="Kaptan Qedy — Twitch, YouTube ve Kick'te geri dönüyor. Pazartesi'den Cuma'ya her akşam 20:30, yeni bir tema.">
+<meta name="view-transition" content="same-origin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
@@ -57,7 +58,7 @@
   }
   .nav-inner{display:flex;align-items:center;justify-content:space-between;padding-block:12px;}
   .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
-  .nav-brand img{width:32px;height:32px;border-radius:50%;flex:none;}
+  .nav-brand img{width:32px;height:32px;border-radius:50%;flex:none;view-transition-name:kaptan-logo;}
   .nav-brand span{font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:.02em;}
   .nav-links{display:flex;align-items:center;gap:22px;}
   .nav-links a{font-size:13px;font-weight:600;color:var(--ink-dim);text-decoration:none;}
@@ -126,7 +127,9 @@
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);
     background:var(--surface);padding:16px 0;overflow:hidden;white-space:nowrap;
   }
-  .marquee-track{display:inline-flex;animation:scroll-left 28s linear infinite;}
+  .marquee-track{display:inline-flex;will-change:transform;animation:scroll-left 28s linear infinite;}
+  .scrub .marquee-track{animation:none;}
+  @media (prefers-reduced-motion:reduce){ .marquee-track{animation:none;} }
   .marquee-track span{
     font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.03em;
     padding:0 28px;color:var(--ink-dim);
@@ -146,6 +149,22 @@
   .js .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);}
   .js .reveal.in{opacity:1;transform:translateY(0);}
   @media (prefers-reduced-motion:reduce){ .js .reveal{opacity:1;transform:none;transition:none;} }
+
+  /* staggered children — each child of a .stagger container fades in on its own beat */
+  .stagger{perspective:900px;}
+  .js .stagger > *{
+    opacity:0;transform:translateY(22px) rotateX(10deg);transform-origin:bottom center;
+    transition:opacity .55s cubic-bezier(.2,.7,.2,1), transform .55s cubic-bezier(.2,.7,.2,1);
+  }
+  .js .stagger.in > *{opacity:1;transform:none;}
+  .stagger > *:nth-child(1){transition-delay:0ms}
+  .stagger > *:nth-child(2){transition-delay:60ms}
+  .stagger > *:nth-child(3){transition-delay:120ms}
+  .stagger > *:nth-child(4){transition-delay:180ms}
+  .stagger > *:nth-child(5){transition-delay:240ms}
+  .stagger > *:nth-child(6){transition-delay:300ms}
+  .stagger > *:nth-child(7){transition-delay:360ms}
+  @media (prefers-reduced-motion:reduce){ .js .stagger > *{opacity:1;transform:none;transition:none;} }
 
   /* about */
   .about-grid{display:grid;grid-template-columns:260px 1fr;gap:56px;align-items:center;}
@@ -185,7 +204,7 @@
     display:flex;flex-direction:column;gap:10px;min-height:168px;flex:1 1 150px;min-width:150px;
     transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
-  .day:hover{transform:translateY(-5px);border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
+  .day:hover{transform:translateY(-5px) perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
   .day .dd{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
   .day .dt{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c);}
   .day .de{font-size:12.5px;color:var(--ink-dim);flex:1;}
@@ -228,7 +247,7 @@
     background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 26px;
     overflow:hidden;transition:transform .25s ease, border-color .25s ease;
   }
-  .plat-card:hover{transform:translateY(-6px);border-color:var(--c,var(--blue));}
+  .plat-card:hover{transform:translateY(-6px) perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--c,var(--blue));}
   .plat-card::before{
     content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s ease;
     background:radial-gradient(220px 140px at 85% -10%, var(--c-soft,var(--blue-soft)), transparent 70%);
@@ -282,6 +301,7 @@
       <a href="#program">Program</a>
       <a href="#murettebat">Mürettebat</a>
       <a href="#limanlar">Limanlar</a>
+      <a href="kutuphane/">Kütüphane</a>
       <a href="captain-on-the-bridge/">Seyir Defteri</a>
     </nav>
     <a class="btn primary" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Canlı İzle</a>
@@ -309,7 +329,18 @@
   </section>
 
   <div class="marquee-band" aria-hidden="true">
-    <div class="marquee-track" id="marquee"></div>
+    <div class="marquee-track" id="marquee">
+      <span>PAZARTESİ <b>SERBEST</b></span><span class="sep">⚓</span>
+      <span>SALI <b>HİKAYELİ</b></span><span class="sep">⚓</span>
+      <span>ÇARŞAMBA <b>COMPETITIVE</b></span><span class="sep">⚓</span>
+      <span>PERŞEMBE <b>SURVIVAL</b></span><span class="sep">⚓</span>
+      <span>CUMA <b>TOPLU EKİP</b></span><span class="sep">⚓</span>
+      <span>PAZARTESİ <b>SERBEST</b></span><span class="sep">⚓</span>
+      <span>SALI <b>HİKAYELİ</b></span><span class="sep">⚓</span>
+      <span>ÇARŞAMBA <b>COMPETITIVE</b></span><span class="sep">⚓</span>
+      <span>PERŞEMBE <b>SURVIVAL</b></span><span class="sep">⚓</span>
+      <span>CUMA <b>TOPLU EKİP</b></span><span class="sep">⚓</span>
+    </div>
   </div>
 
   <section id="murettebat">
@@ -320,7 +351,7 @@
           <div class="eyebrow">Mürettebat Dosyası</div>
           <h3>Perdenin arkasında biri var</h3>
           <p>Ertuğrul — sahnede Kaptan Qedy. Kocaeli Üniversitesi'nde okuyor; resim çiziyor, müzik yapıyor, kod yazıyor, şiir yazıyor, fotoğraf çekiyor. Ekranın öbür tarafında bunların hepsi bir arada — yayın da bu karışımın bir parçası, sadece oyun oynamak değil.</p>
-          <div class="chips">
+          <div class="chips stagger">
             <span class="chip">Öğrenci</span>
             <span class="chip">Ressam</span>
             <span class="chip">Müzisyen</span>
@@ -343,7 +374,7 @@
     </div>
     <div class="week-scrub">
       <div class="week-stage" id="weekStage">
-        <div class="week-track" id="weekTrack">
+        <div class="week-track stagger" id="weekTrack">
           <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
           <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
           <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
@@ -363,7 +394,7 @@
         <h2>Nerede rahatsan orada</h2>
         <p>Aynı yayın, iki güverte. Nerede izlersen izle, mürettebat aynı.</p>
       </div>
-      <div class="plat-grid two reveal">
+      <div class="plat-grid two stagger">
         <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener" style="--c:#9146FF;--c-soft:rgba(145,70,255,.14);--tagc:#9146FF;--tagc-glow:rgba(145,70,255,.55)">
           <div class="plat-tag live"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Twitch</span><span class="plat-arrow">↗</span></div>
@@ -405,7 +436,7 @@
         <div class="eyebrow">Sinyal Gönder</div>
         <h2>Mürettebata katıl</h2>
       </div>
-      <div class="comm-row reveal">
+      <div class="comm-row stagger">
         <a class="comm-pill" href="https://discord.gg/cpB6phwYUs" target="_blank" rel="noopener" style="--c:#22aef0"><span class="dot"></span>Discord</a>
         <a class="comm-pill" href="https://www.instagram.com/kaptan_qedy" target="_blank" rel="noopener" style="--c:#ff5d73"><span class="dot"></span>Instagram</a>
         <a class="comm-pill" href="https://twitter.com/yaramasa_adam" target="_blank" rel="noopener" style="--c:#ffce54"><span class="dot"></span>X / Twitter</a>
@@ -419,6 +450,7 @@
   <div class="wrap foot-inner">
     <div class="foot-brand"><img src="assets/logo_cat.png" alt="">⚓ Kaptan Qedy — 2026</div>
     <div class="foot-links">
+      <a href="kutuphane/">Kütüphane</a>
       <a href="captain-on-the-bridge/">Captain on the Bridge</a>
       <a href="https://github.com/ertugrul-tug/stream-library" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -481,16 +513,16 @@
   window.addEventListener('resize', onScroll);
   updateProgress(); updateHero(); updateWeek();
 
-  // reveal on scroll
+  // reveal on scroll (.reveal = whole block fades; .stagger = children fade in one by one)
   if('IntersectionObserver' in window && !reduced){
     var io = new IntersectionObserver(function(entries){
       entries.forEach(function(e){
         if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, {threshold:0.15, rootMargin:'0px 0px -8% 0px'});
-    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+    document.querySelectorAll('.reveal, .stagger').forEach(function(el){ io.observe(el); });
   } else {
-    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+    document.querySelectorAll('.reveal, .stagger').forEach(function(el){ el.classList.add('in'); });
   }
 
   // hero cursor glow (pointer devices only — no-op on the phones most viewers use)
@@ -500,16 +532,42 @@
       heroStage.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
       heroStage.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
     });
+
+    // subtle tilt on harbor / day cards, following the pointer
+    document.querySelectorAll('.plat-card, .day').forEach(function(card){
+      card.addEventListener('mousemove', function(e){
+        var r = card.getBoundingClientRect();
+        var rx = ((e.clientY - r.top) / r.height - 0.5) * -10;
+        var ry = ((e.clientX - r.left) / r.width - 0.5) * 10;
+        card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+        card.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      });
+      card.addEventListener('mouseleave', function(){
+        card.style.setProperty('--rx', '0deg');
+        card.style.setProperty('--ry', '0deg');
+      });
+    });
   }
 
-  // marquee content
-  var days = ['PAZARTESİ <b>SERBEST</b>','SALI <b>HİKAYELİ</b>','ÇARŞAMBA <b>COMPETITIVE</b>','PERŞEMBE <b>SURVIVAL</b>','CUMA <b>TOPLU EKİP</b>'];
-  var track = document.getElementById('marquee');
-  var html = '';
-  for(var r=0;r<2;r++){
-    days.forEach(function(d){ html += '<span>'+d+'</span><span class="sep">⚓</span>'; });
+  // marquee: idle drift + a kick from scroll velocity (skipped for reduced-motion — CSS keyframe handles that fallback)
+  if(!reduced){
+    var track = document.getElementById('marquee');
+    var half = track.scrollWidth / 2;
+    var x = 0, lastY = window.scrollY, vel = 0;
+    window.addEventListener('scroll', function(){
+      var dy = window.scrollY - lastY;
+      lastY = window.scrollY;
+      vel = Math.max(-14, Math.min(14, vel + dy * 0.12));
+    }, {passive:true});
+    (function drift(){
+      vel *= 0.94;
+      x -= (0.55 + Math.abs(vel) * 0.4 + vel);
+      if(-x >= half) x += half;
+      if(x > 0) x -= half;
+      track.style.transform = 'translateX(' + x.toFixed(1) + 'px)';
+      requestAnimationFrame(drift);
+    })();
   }
-  track.innerHTML = html;
 })();
 </script>
 </body>

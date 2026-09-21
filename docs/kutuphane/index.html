@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kaptanın Kütüphanesi</title>
+<meta name="description" content="Kaptan Qedy'nin 624 oyunluk Steam kütüphanesi — bir sonraki Keşif yayınının adayları.">
+<meta name="view-transition" content="same-origin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#07090d;
+    --surface:#0f131a;
+    --surface-2:#151b24;
+    --line:rgba(245,247,250,.09);
+    --line-strong:rgba(245,247,250,.18);
+    --ink:#f4f7fa;
+    --ink-dim:#9aa7b6;
+    --ink-faint:#5f6b79;
+    --blue:#22aef0;
+    --blue-2:#0d7fc4;
+    --pink:#ff3d7f;
+    --blue-soft:rgba(34,174,240,.14);
+    --pink-soft:rgba(255,61,127,.14);
+    --font-display:'Unbounded',system-ui,sans-serif;
+    --font-body:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.55;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+  .wrap{max-width:1180px;margin:0 auto;padding-inline:20px;}
+
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(7,9,13,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding-block:12px;gap:14px;flex-wrap:wrap;}
+  .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+  .nav-brand img{width:32px;height:32px;border-radius:50%;flex:none;view-transition-name:kaptan-logo;}
+  .nav-brand span{font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:.02em;}
+  .nav-links{display:flex;align-items:center;gap:20px;}
+  .nav-links a{font-size:13px;font-weight:600;color:var(--ink-dim);text-decoration:none;}
+  .nav-links a:hover{color:var(--ink);}
+  @media (max-width:640px){ .nav-links{display:none;} }
+
+  .head{padding:56px 20px 28px;text-align:center;}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--blue);margin:0 0 14px;
+  }
+  .head h1{
+    font-family:var(--font-display);font-weight:900;font-size:clamp(32px,7vw,64px);margin:0 0 14px;
+    letter-spacing:-.01em;text-wrap:balance;
+  }
+  .head p{color:var(--ink-dim);font-size:15.5px;max-width:56ch;margin:0 auto;}
+
+  .search-band{
+    position:sticky;top:57px;z-index:40;background:var(--bg);
+    border-bottom:1px solid var(--line);padding-block:14px;
+  }
+  .search-inner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .search-box{
+    flex:1 1 260px;display:flex;align-items:center;gap:10px;
+    background:var(--surface);border:1px solid var(--line-strong);border-radius:100px;
+    padding:11px 18px;
+  }
+  .search-box input{
+    flex:1;background:none;border:none;outline:none;color:var(--ink);
+    font-family:var(--font-body);font-size:14.5px;
+  }
+  .search-box input::placeholder{color:var(--ink-faint);}
+  .search-box svg{flex:none;opacity:.5;}
+  .count{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);white-space:nowrap;}
+
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;
+    padding-block:34px 80px;
+  }
+  @media (max-width:520px){ .grid{grid-template-columns:repeat(2,1fr);gap:10px;} }
+
+  .game{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    text-decoration:none;color:var(--ink);display:flex;flex-direction:column;
+    transition:transform .2s ease, border-color .2s ease;
+  }
+  .game:hover{transform:translateY(-4px);border-color:var(--blue);}
+  .game .thumb{
+    aspect-ratio:460/215;background:var(--surface-2);position:relative;overflow:hidden;
+  }
+  .game .thumb img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s ease;}
+  .game .thumb img.loaded{opacity:1;}
+  .game .thumb .fallback{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:10px;font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--ink-faint);
+  }
+  .game .name{padding:10px 12px 13px;font-size:12.5px;font-weight:600;line-height:1.35;}
+
+  .js .reveal-card{opacity:0;transform:translateY(16px);transition:opacity .5s ease, transform .5s ease;}
+  .js .reveal-card.in{opacity:1;transform:translateY(0);}
+  @media (prefers-reduced-motion:reduce){ .js .reveal-card{opacity:1;transform:none;transition:none;} }
+
+  .empty{display:none;text-align:center;padding:60px 20px;color:var(--ink-faint);font-size:14px;}
+  .empty.show{display:block;}
+
+  footer{border-top:1px solid var(--line);padding:26px 0;}
+  .foot-inner{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;max-width:1180px;margin:0 auto;padding-inline:20px;}
+  .foot-brand{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-faint);}
+  .foot-brand img{width:20px;height:20px;border-radius:50%;}
+  .foot-links{display:flex;gap:20px;font-size:12.5px;}
+  .foot-links a{color:var(--ink-dim);text-decoration:none;}
+  .foot-links a:hover{color:var(--ink);}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="nav-brand" href="../">
+      <img src="../assets/logo_cat.png" alt="Kaptan Qedy">
+      <span>KAPTAN&nbsp;QEDY</span>
+    </a>
+    <nav class="nav-links">
+      <a href="../">Ana Sayfa</a>
+      <a href="../captain-on-the-bridge/">Captain on the Bridge</a>
+    </nav>
+  </div>
+</header>
+
+<div class="head">
+  <div class="eyebrow">624 Oyun · Keşif Havuzu</div>
+  <h1>Kaptanın Kütüphanesi</h1>
+  <p>Steam'deki tüm gemiler tek limanda. Sıradaki "Keşif" yayınının adayını burada ara — her biri bir sonraki bölümün potansiyel kahramanı.</p>
+</div>
+
+<div class="search-band">
+  <div class="wrap search-inner">
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="search" placeholder="Oyun ara… (ör. Baldur's Gate)" autocomplete="off">
+    </div>
+    <span class="count" id="count">624 / 624 oyun</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Bu isimde bir oyun bulunamadı — belki henüz Steam'e eklenmemiştir. ⚓</div>
+</div>
+
+<footer>
+  <div class="foot-inner">
+    <div class="foot-brand"><img src="../assets/logo_cat.png" alt="">⚓ Kaptan Qedy — 2026</div>
+    <div class="foot-links">
+      <a href="../">Ana Sayfa</a>
+      <a href="../captain-on-the-bridge/">Captain on the Bridge</a>
+      <a href="https://github.com/ertugrul-tug/stream-library" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  document.documentElement.classList.add('js');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var grid = document.getElementById('grid');
+  var empty = document.getElementById('empty');
+  var countEl = document.getElementById('count');
+  var searchEl = document.getElementById('search');
+  var games = [];
+  var io = ('IntersectionObserver' in window && !reduced) ? new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:0.05, rootMargin:'0px 0px -4% 0px'}) : null;
+
+  function render(list){
+    grid.innerHTML = '';
+    list.forEach(function(g){
+      var a = document.createElement('a');
+      a.className = 'game reveal-card';
+      a.href = 'https://store.steampowered.com/app/' + g.appid + '/';
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.innerHTML =
+        '<div class="thumb">' +
+          '<div class="fallback">' + g.name + '</div>' +
+          '<img loading="lazy" alt="" src="https://cdn.cloudflare.steamstatic.com/steam/apps/' + g.appid + '/header.jpg">' +
+        '</div>' +
+        '<div class="name">' + g.name + '</div>';
+      var img = a.querySelector('img');
+      img.addEventListener('load', function(){ img.classList.add('loaded'); });
+      img.addEventListener('error', function(){ img.remove(); });
+      grid.appendChild(a);
+      if(io) io.observe(a); else a.classList.add('in');
+    });
+    countEl.textContent = list.length + ' / ' + games.length + ' oyun';
+    empty.classList.toggle('show', list.length === 0);
+  }
+
+  function normalize(s){
+    return s.toLocaleLowerCase('tr-TR').replace(/[^\p{L}\p{N}]/gu, '');
+  }
+
+  fetch('../assets/steam-library.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      games = data;
+      render(games);
+      var pool = games.map(function(g){ return {g:g, n:normalize(g.name)}; });
+      searchEl.addEventListener('input', function(){
+        var q = normalize(searchEl.value);
+        render(q ? pool.filter(function(p){ return p.n.indexOf(q) !== -1; }).map(function(p){ return p.g; }) : games);
+      });
+    })
+    .catch(function(){
+      empty.textContent = 'Kütüphane şu an yüklenemedi. ⚓';
+      empty.classList.add('show');
+    });
+})();
+</script>
+</body>
+</html>

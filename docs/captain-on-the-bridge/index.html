@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Captain on the Bridge</title>
 <meta name="description" content="KaptanQedy'nin Twitch/YouTube/Kick geri dönüş planı: mevcut durum, hedefler, haftalık yayın ritmi ve ilk 4 haftalık takvim.">
+<meta name="view-transition" content="same-origin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
@@ -132,7 +133,7 @@
     width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;
     border:1.5px solid var(--border-strong);
   }
-  .brand-mark img{width:100%;height:100%;object-fit:cover;display:block;}
+  .brand-mark img{width:100%;height:100%;object-fit:cover;display:block;view-transition-name:kaptan-logo;}
   .brand-text{display:flex;flex-direction:column;line-height:1.15;}
   .brand-text strong{font-family:var(--font-display);font-size:14.5px;letter-spacing:.03em;}
   .brand-text span{font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;}
@@ -326,13 +327,32 @@
   footer{border-top:1px solid var(--border);padding:26px 0 8px;color:var(--text-faint);font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;}
   footer a{color:var(--text-dim);}
 
-  @media (prefers-reduced-motion:no-preference){
-    section{animation:rise .5s ease both;}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent-2),var(--accent));z-index:100;transition:width .08s linear;}
+
+  .js .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.2,.7,.2,1), transform .6s cubic-bezier(.2,.7,.2,1);}
+  .js .reveal.in{opacity:1;transform:translateY(0);}
+
+  .stagger{perspective:900px;}
+  .js .stagger > *{
+    opacity:0;transform:translateY(18px) rotateX(8deg);transform-origin:bottom center;
+    transition:opacity .5s cubic-bezier(.2,.7,.2,1), transform .5s cubic-bezier(.2,.7,.2,1);
   }
-  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .js .stagger.in > *{opacity:1;transform:none;}
+  .stagger > *:nth-child(1){transition-delay:0ms}
+  .stagger > *:nth-child(2){transition-delay:55ms}
+  .stagger > *:nth-child(3){transition-delay:110ms}
+  .stagger > *:nth-child(4){transition-delay:165ms}
+  .stagger > *:nth-child(5){transition-delay:220ms}
+  .stagger > *:nth-child(6){transition-delay:275ms}
+  .stagger > *:nth-child(7){transition-delay:330ms}
+  @media (prefers-reduced-motion:reduce){
+    .js .reveal{opacity:1;transform:none;transition:none;}
+    .js .stagger > *{opacity:1;transform:none;transition:none;}
+  }
 </style>
 </head>
 <body>
+<div id="progress"></div>
 
 <div class="shell">
   <aside class="side">
@@ -352,6 +372,7 @@
       <a href="#duyuru">Duyuru &amp; Bio</a>
       <a href="#risk">Risk &amp; Yol Haritası</a>
       <a href="#adimlar">Sonraki Adımlar</a>
+      <a href="../kutuphane/" style="color:var(--accent-2);">Kütüphane →</a>
     </nav>
   </aside>
 
@@ -373,7 +394,7 @@
       <div class="eyebrow">01 — Envanter</div>
       <h2>Mevcut Durum</h2>
       <p class="section-note">Üç kanal da hâlâ ayakta, takipçi/abone tabanı korunmuş. Hiçbir şey kaybolmamış — sadece uyuyor.</p>
-      <div class="grid cols-3">
+      <div class="grid cols-3 stagger">
         <div class="platform-card">
           <div class="top"><span class="name">Twitch</span><span class="badge">Offline</span></div>
           <div class="figure">2.8K</div>
@@ -422,7 +443,7 @@
     <section id="icerik">
       <div class="eyebrow">03 — Muhteva</div>
       <h2>İçerik Stratejisi</h2>
-      <div class="grid cols-3">
+      <div class="grid cols-3 stagger">
         <div class="card">
           <h3>Ana içerik</h3>
           <p>Türkçe oynanış serileri, çok bölümlü. İlk oyun <b style="color:var(--text)">Baldur's Gate 3</b> — bitirmeye hiç vakit bulamamıştı, seri buradan başlıyor. Sıradaki adaylar: Elden Ring, RDR2, The Witcher 3, Resident Evil Village, Disco Elysium.</p>
@@ -436,7 +457,7 @@
           <p>Haftalık sohbet/IRL — asıl topluluğu inşa eden bu, oynanış değil. "Nerelerdeydim" güncellemesi, müzik/sanat sohbeti (Spotify'da müzik yapıyor, resim çiziyor — farklılaştırıcı).</p>
         </div>
       </div>
-      <div class="grid cols-3" style="margin-top:14px;">
+      <div class="grid cols-3 stagger" style="margin-top:14px;">
         <div class="card"><h3>Twitch</h3><p>Canlı ana üs, gerçek zamanlı topluluk. 2.8K'lık taban hâlâ en büyük varlık.</p></div>
         <div class="card"><h3>YouTube</h3><p>Edit'lenmiş VOD/highlight, yayından 2-3 gün sonra. 264 videoluk alışkanlık zaten kurulu.</p></div>
         <div class="card"><h3>Kick</h3><p>Twitch simulcast. 178 takipçide özel içerik üretme, sadece oradan geleni yakala.</p></div>
@@ -447,7 +468,7 @@
       <div class="eyebrow">04 — Düzen</div>
       <h2>Haftalık Ritim</h2>
       <p class="section-note">Pazartesi–Cuma her akşam 20:30, günü değişen tema. Cumartesi tam dinlenme, Pazar sadece YouTube (yayın yok).</p>
-      <div class="week-strip">
+      <div class="week-strip stagger">
         <div class="day-card" style="--c:var(--t-serbest)"><div class="dname">Pazartesi</div><div class="theme">Serbest</div><div class="desc">O günkü keyfe göre — modpaketli Minecraft, LoL, ne çekerse</div></div>
         <div class="day-card" style="--c:var(--t-hikaye)"><div class="dname">Salı</div><div class="theme">Hikayeli</div><div class="desc">Baldur's Gate 3 serisi — ana seri, haftada 1 bölüm</div></div>
         <div class="day-card" style="--c:var(--t-comp)"><div class="dname">Çarşamba</div><div class="theme">Competitive</div><div class="desc">League of Legends vb.</div></div>
@@ -477,10 +498,10 @@
     <section id="prodüksiyon">
       <div class="eyebrow">06 — Standart</div>
       <h2>Prodüksiyon &amp; Marka</h2>
-      <div class="grid cols-2">
+      <div class="grid cols-2 stagger">
         <div>
           <h3 style="font-size:14.5px;margin-bottom:10px;">Yayın öncesi (15 dk)</h3>
-          <ul class="checklist">
+          <ul class="checklist stagger">
             <li><span class="box"></span>Mikrofon/kamera/ses seviyesi testi</li>
             <li><span class="box"></span>Twitch + Kick simulcast bağlantısı kontrolü</li>
             <li><span class="box"></span>Başlık + kategori güncel (oyun adı + bölüm no)</li>
@@ -492,7 +513,7 @@
         </div>
         <div>
           <h3 style="font-size:14.5px;margin-bottom:10px;">Marka yenileme</h3>
-          <ul class="checklist">
+          <ul class="checklist stagger">
             <li><span class="box"></span><b>Twitch bio</b> yenilenmeli — içerik türü, yayın günleri, "geri döndüm" notu</li>
             <li><span class="box"></span><b>Kick linki</b> Twitch paneline ve instabio'ya eklenmeli</li>
             <li><span class="box"></span><b>YouTube</b> banner/açıklama comeback'i yansıtmalı</li>
@@ -507,7 +528,7 @@
     <section id="buyume">
       <div class="eyebrow">07 — Menzil</div>
       <h2>Büyüme &amp; Topluluk</h2>
-      <div class="grid cols-2">
+      <div class="grid cols-2 stagger">
         <div class="card">
           <h3>Klip stratejisi</h3>
           <p>Her yayından en iyi 2-3 anı aynı gece kesip Reels/Shorts/TikTok'a düş. Ekstra prodüksiyon gerektirmez, mevcut yayından kesilir.</p>
@@ -530,7 +551,7 @@
     <section id="duyuru">
       <div class="eyebrow">08 — Sinyal</div>
       <h2>Duyuru &amp; Bio Metinleri</h2>
-      <div class="grid cols-2" style="align-items:start;">
+      <div class="grid cols-2 stagger" style="align-items:start;">
         <div class="quote">
           <div class="qlabel">Duyuru — uzun versiyon</div>Uzun bir aradan sonra geri dönüyorum. 🎬
 
@@ -547,7 +568,7 @@ Beni bu kadar zaman sonra hâlâ takip eden herkese teşekkürler. Görüşmek �
           <div class="qlabel">Duyuru — kısa versiyon</div>Geri döndüm. Twitch, YouTube ve Kick'te yeniden yayınlardayım — takipte kalın, detaylar yakında. ⚓ #KaptanQedy</div>
       </div>
 
-      <div class="grid cols-3" style="margin-top:14px;">
+      <div class="grid cols-3 stagger" style="margin-top:14px;">
         <div class="bio-card">
           <div class="plat"><span class="dot" style="--c:var(--t-serbest)"></span>Twitch — About</div>
           <p>⚓ Kaptan Qedy geri döndü! Türkçe oynanış serileri, yeni oyunlar ve sohbet yayınlarıyla buradayım. Her akşam 20:30 (Pzt–Cuma), her gün ayrı tema: Pzt serbest, Salı hikayeli (BG3), Çrş competitive, Perş survival, Cuma toplu ekip · YouTube &amp; Kick'te de aynı anda canlıdayım.</p>
@@ -570,7 +591,7 @@ Discord: discord.gg/cpB6phwYUs</p>
     <section id="risk">
       <div class="eyebrow">09 — Fırtına Uyarısı</div>
       <h2>Riskler &amp; Yol Haritası</h2>
-      <div class="grid cols-2" style="align-items:start;">
+      <div class="grid cols-2 stagger" style="align-items:start;">
         <div class="callout warn">
           <h3>En büyük risk: tükenmişlik</h3>
           <p>Haftada 5 gece yayın (~15 saat) + tam zamanlı iş + Pazar edit günü — önceki 3 yayınlık plandan belirgin şekilde ağır. Cumartesi'nin tam dinlenme olması bunu dengeliyor ama ilk 2-3 hafta gerçek yorgunluğu gösterecek.</p>
@@ -578,7 +599,7 @@ Discord: discord.gg/cpB6phwYUs</p>
         </div>
         <div class="callout">
           <h3>Monetizasyon yol haritası</h3>
-          <div class="roadmap">
+          <div class="roadmap stagger">
             <div class="rm-item"><span class="rm-tag">Şimdi</span><div><h4>Twitch Affiliate/Partner</h4><p>2.8K takipçiyle şartları muhtemelen karşılıyor — kontrol edip başvurulmalı.</p></div></div>
             <div class="rm-item"><span class="rm-tag">1–2 ay</span><div><h4>YouTube Partner Program</h4><p>500 abone eşiğine çok yakın (491).</p></div></div>
             <div class="rm-item"><span class="rm-tag">Netleşince</span><div><h4>Kick Creator Program</h4><p>Kick'in kendi destek programı, büyüme netleşince değerlendirilir.</p></div></div>
@@ -591,7 +612,7 @@ Discord: discord.gg/cpB6phwYUs</p>
     <section id="adimlar">
       <div class="eyebrow">10 — Liman</div>
       <h2>Sonraki Adımlar</h2>
-      <ul class="checklist">
+      <ul class="checklist stagger">
         <li class="done"><span class="box">✓</span>Kesin lansman tarihi — deneme 21 Eylül (bu akşam), resmi lansman 22 Eylül Salı 20:30</li>
         <li class="done"><span class="box">✓</span>Haftalık yayın takvimi netleşti — Pzt–Cuma günlük temalı, Cmt dinlenme, Paz sadece YouTube</li>
         <li class="done"><span class="box">✓</span>Twitch/Kick/YouTube bio metinleri yazıldı</li>
@@ -666,7 +687,7 @@ Discord: discord.gg/cpB6phwYUs</p>
     root.appendChild(lbl);
 
     var grid = document.createElement('div');
-    grid.className = 'cal-grid';
+    grid.className = 'cal-grid stagger';
     week.days.forEach(function(day){
       var meta = THEMES[day.t];
       var cell = document.createElement('div');
@@ -681,6 +702,29 @@ Discord: discord.gg/cpB6phwYUs</p>
     });
     root.appendChild(grid);
   });
+
+  document.documentElement.classList.add('js');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var bar = document.getElementById('progress');
+  function onScroll(){
+    var h = document.documentElement;
+    var pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    bar.style.width = (isFinite(pct) ? pct : 0) + '%';
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  if('IntersectionObserver' in window && !reduced){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:0.12, rootMargin:'0px 0px -6% 0px'});
+    document.querySelectorAll('.reveal, .stagger').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal, .stagger').forEach(function(el){ el.classList.add('in'); });
+  }
 })();
 </script>
 </body>
