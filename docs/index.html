@@ -555,12 +555,12 @@
     var rect = heroSection.getBoundingClientRect();
     var total = heroSection.offsetHeight - window.innerHeight;
     var p = total > 0 ? clamp01(-rect.top / total) : 0;
-    // logo zooms up to fill (and blow past) the screen, then is fully gone before the wordmark starts —
-    // sequential, not overlapping, so nothing ever fights for the same pixels.
-    heroStage.style.setProperty('--logoScale', (1 + smoothstep(0,0.38,p) * 11).toFixed(3));
-    heroStage.style.setProperty('--logoRot', (smoothstep(0,0.38,p) * -10).toFixed(2) + 'deg');
-    heroStage.style.setProperty('--logoOpacity', (1 - smoothstep(0.30,0.42,p)).toFixed(3));
-    var wp = smoothstep(0.46,0.68,p);
+    // logo zooms up to fill (and blow past) the screen, then dissolves into the wordmark: both share
+    // the same fade window so their opacities always sum to ~1 — a true crossfade, never a dead gap.
+    heroStage.style.setProperty('--logoScale', (1 + smoothstep(0,0.42,p) * 11).toFixed(3));
+    heroStage.style.setProperty('--logoRot', (smoothstep(0,0.42,p) * -10).toFixed(2) + 'deg');
+    var wp = smoothstep(0.30,0.62,p);
+    heroStage.style.setProperty('--logoOpacity', (1 - wp).toFixed(3));
     heroStage.style.setProperty('--wordOpacity', wp.toFixed(3));
     heroStage.style.setProperty('--wordY', ((1 - wp) * 26).toFixed(1) + 'px');
     heroStage.style.setProperty('--cueOpacity', (1 - smoothstep(0,0.1,p)).toFixed(3));
