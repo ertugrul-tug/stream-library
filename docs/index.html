@@ -239,28 +239,38 @@
   .scrub .week-track{flex-wrap:nowrap;gap:20px;padding-inline:6vw;will-change:transform;}
 
   .day{
-    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 14px;
-    display:flex;flex-direction:column;gap:10px;min-height:168px;flex:1 1 150px;min-width:150px;
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 18px;
+    display:flex;flex-direction:column;gap:10px;min-height:230px;flex:1 1 160px;min-width:160px;
     transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
   .day:hover{transform:translateY(-5px) perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
-  .day .dd{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
-  .day .dt{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c);}
-  .day .de{font-size:12.5px;color:var(--ink-dim);flex:1;}
+  .day .dd{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);}
+  .day .dtime{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .day .dt{font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--c);margin-top:4px;}
+  .day .de{font-size:13px;color:var(--ink-dim);flex:1;}
   .day.off{opacity:.5;}
   .scrub .day{
-    flex:0 0 clamp(230px,62vw,340px);min-height:300px;padding:34px 28px;justify-content:center;
+    flex:0 0 clamp(230px,62vw,340px);min-height:340px;padding:38px 30px;justify-content:center;
     box-shadow:0 30px 60px -30px rgba(0,0,0,.6);
   }
-  .scrub .day .dd{font-size:12.5px;}
+  .scrub .day .dd{font-size:18px;}
+  .scrub .day .dtime{font-size:13px;}
   .scrub .day .dt{font-size:clamp(26px,6vw,34px);}
   .scrub .day .de{font-size:14.5px;}
 
   /* platforms */
   .plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
-  .plat-grid.two{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto;}
-  @media (max-width:820px){ .plat-grid{grid-template-columns:1fr;} }
-  @media (max-width:600px){ .plat-grid.two{grid-template-columns:1fr;} }
+  .plat-grid.two{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto;gap:18px;}
+  @media (max-width:820px){ .plat-grid:not(.two){grid-template-columns:1fr;} }
+  /* İki Liman stays side-by-side at every width — just tightens up so it never overflows */
+  @media (max-width:520px){
+    .plat-grid.two{gap:10px;}
+    .plat-grid.two .plat-card{padding:16px 13px;}
+    .plat-grid.two .plat-figure{font-size:21px;}
+    .plat-grid.two .plat-name{font-size:14.5px;}
+    .plat-grid.two .plat-desc{font-size:11.5px;}
+    .plat-grid.two .plat-tag{font-size:9.5px;margin-bottom:10px;}
+  }
 
   /* youtube — deliberately not a third harbor card */
   .yt-panel{
@@ -435,13 +445,13 @@
     <div class="week-scrub">
       <div class="week-stage" id="weekStage">
         <div class="week-track stagger" id="weekTrack">
-          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
-          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
-          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
-          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
-          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
-          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
-          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
+          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dtime">20:30 – 23:30</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
+          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dtime">20:30 – 23:30</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
+          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dtime">20:30 – 23:30</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
+          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dtime">20:30 – 23:30</div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
+          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dtime">20:30 – geç saatlere</div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
+          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dtime">—</div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
+          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dtime">—</div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
         </div>
       </div>
     </div>
@@ -454,7 +464,7 @@
         <h2>Nerede rahatsan orada</h2>
         <p>Aynı yayın, iki güverte. Nerede izlersen izle, mürettebat aynı.</p>
       </div>
-      <div class="plat-grid two stagger">
+      <div class="plat-grid two" id="zipGrid">
         <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener" style="--c:#9146FF;--c-soft:rgba(145,70,255,.14);--tagc:#9146FF;--tagc-glow:rgba(145,70,255,.55)">
           <div class="plat-tag live"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Twitch</span><span class="plat-arrow">↗</span></div>
@@ -578,15 +588,34 @@
     weekTrack.style.transform = 'translateX(' + (-p * maxX) + 'px)';
   }
 
+  // İki Liman — Twitch zips in from the left, Kick from the right; scrolling on toward
+  // YouTube unzips them back out the same way they came, instead of a one-shot reveal.
+  var limanlarSection = document.getElementById('limanlar');
+  var zipCards = limanlarSection ? limanlarSection.querySelectorAll('.plat-card') : [];
+  function updateLimanlar(){
+    if(reduced || zipCards.length < 2) return;
+    var rect = limanlarSection.getBoundingClientRect();
+    var vh = window.innerHeight;
+    var mid = rect.top + rect.height / 2 - vh / 2;
+    var enter = smoothstep(vh * 0.6, vh * 0.05, mid);
+    var exit = 1 - smoothstep(-vh * 0.15, -vh * 0.8, mid);
+    var t = Math.min(enter, exit);
+    var offset = (1 - t) * 130;
+    zipCards[0].style.transform = 'translateX(' + (-offset).toFixed(1) + 'px)';
+    zipCards[0].style.opacity = t.toFixed(3);
+    zipCards[1].style.transform = 'translateX(' + offset.toFixed(1) + 'px)';
+    zipCards[1].style.opacity = t.toFixed(3);
+  }
+
   var ticking = false;
   function onScroll(){
     if(ticking) return;
     ticking = true;
-    requestAnimationFrame(function(){ updateProgress(); updateHero(); updateWeek(); ticking = false; });
+    requestAnimationFrame(function(){ updateProgress(); updateHero(); updateWeek(); updateLimanlar(); ticking = false; });
   }
   document.addEventListener('scroll', onScroll, {passive:true});
   window.addEventListener('resize', onScroll);
-  updateProgress(); updateHero(); updateWeek();
+  updateProgress(); updateHero(); updateWeek(); updateLimanlar();
 
   // reveal on scroll (.reveal = whole block fades; .stagger = children fade in one by one)
   if('IntersectionObserver' in window && !reduced){
