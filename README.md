@@ -2,17 +2,22 @@
 
 Kaptan Qedy'nin (Twitch/YouTube/Kick) geri dönüş planı ve yayın kütüphanesi. Ev ve iş bilgisayarı arasında senkron kalması için burada tutuluyor.
 
-**Canlı sayfa:** https://ertugrul-tug.github.io/stream-library/
+**Canlı sayfa (izleyici vitrini):** https://ertugrul-tug.github.io/stream-library/
+**Captain on the Bridge (plan/checklist, mürettebat & moderatör için):** https://ertugrul-tug.github.io/stream-library/captain-on-the-bridge/
 
 ## Yapı
 
 ```
-docs/       GitHub Pages kaynağı — seyir defteri sayfası (index.html)
-planning/   Comeback planı ve haftalık metrik takip dosyaları
-data/       Steam kütüphanesi (JSON) ve marka logoları
+docs/
+├── index.html                  Halka açık iniş sayfası — hero, haftalık ritim, platformlar, animasyonlu
+├── assets/                     Landing page için marka görselleri
+└── captain-on-the-bridge/      Detaylı plan/checklist sayfası (eski Seyir Defteri)
+planning/   Comeback planı ve haftalık metrik takip dosyaları (.md kaynağı)
+data/       Steam kütüphanesi (JSON) ve marka logoları (kaynak çözünürlük)
 ```
 
-- [`docs/index.html`](docs/index.html) — planın görsel/paylaşılabilir hali, moderatörlerle bu link paylaşılabilir
+- [`docs/index.html`](docs/index.html) — izleyiciye gösterilecek vitrin sayfası
+- [`docs/captain-on-the-bridge/index.html`](docs/captain-on-the-bridge/index.html) — planın görsel/paylaşılabilir hali, moderatörlerle bu link paylaşılabilir
 - [`planning/comeback-plan.md`](planning/comeback-plan.md) — tam plan (vizyon, içerik stratejisi, yayın takvimi, risk vb.)
 - [`planning/metrics-log.md`](planning/metrics-log.md) — haftalık takipçi/abone takibi
 - [`data/steam-library.json`](data/steam-library.json) — 624 oyunluk Steam kütüphanesi
