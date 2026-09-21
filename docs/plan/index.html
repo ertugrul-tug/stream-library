@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kaptan Qedy Seyir Defteri</title>
+<meta name="description" content="KaptanQedy'nin Twitch/YouTube/Kick geri dönüş planı: mevcut durum, hedefler, haftalık yayın ritmi ve ilk 4 haftalık takvim.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#0a1420;
+    --surface:#101d2c;
+    --surface-2:#16283b;
+    --border:rgba(230,238,246,0.09);
+    --border-strong:rgba(230,238,246,0.16);
+    --text:#eaf1f7;
+    --text-dim:#9db0c4;
+    --text-faint:#5c7488;
+    --accent:#d7a13f;
+    --accent-soft:rgba(215,161,63,0.14);
+    --accent-2:#48b3a3;
+    --accent-2-soft:rgba(72,179,163,0.14);
+    --danger:#d97575;
+
+    --t-serbest:#8ba0b8;
+    --t-hikaye:#d7a13f;
+    --t-comp:#d97a6a;
+    --t-surv:#6aac6f;
+    --t-team:#5aa8d6;
+    --t-rest:#4a5a6c;
+    --t-yt:#c06a93;
+
+    --font-display:'Cinzel',Georgia,'Times New Roman',serif;
+    --font-body:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  }
+
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f2ede2;
+      --surface:#fbf8f1;
+      --surface-2:#f3ecdb;
+      --border:rgba(30,40,50,0.12);
+      --border-strong:rgba(30,40,50,0.22);
+      --text:#1c2a36;
+      --text-dim:#5b6b7a;
+      --text-faint:#8b98a4;
+      --accent:#a9721f;
+      --accent-soft:rgba(169,114,31,0.12);
+      --accent-2:#2f8577;
+      --accent-2-soft:rgba(47,133,119,0.12);
+      --danger:#b1483f;
+      --t-serbest:#5f7488;
+      --t-hikaye:#a9721f;
+      --t-comp:#b1483f;
+      --t-surv:#3f7c46;
+      --t-team:#2f6f9c;
+      --t-rest:#a7a196;
+      --t-yt:#9c4d70;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2ede2;
+    --surface:#fbf8f1;
+    --surface-2:#f3ecdb;
+    --border:rgba(30,40,50,0.12);
+    --border-strong:rgba(30,40,50,0.22);
+    --text:#1c2a36;
+    --text-dim:#5b6b7a;
+    --text-faint:#8b98a4;
+    --accent:#a9721f;
+    --accent-soft:rgba(169,114,31,0.12);
+    --accent-2:#2f8577;
+    --accent-2-soft:rgba(47,133,119,0.12);
+    --danger:#b1483f;
+    --t-serbest:#5f7488;
+    --t-hikaye:#a9721f;
+    --t-comp:#b1483f;
+    --t-surv:#3f7c46;
+    --t-team:#2f6f9c;
+    --t-rest:#a7a196;
+    --t-yt:#9c4d70;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.55;}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;letter-spacing:.01em;text-wrap:balance;color:var(--text);}
+  a{color:var(--accent-2);}
+  .mono{font-family:var(--font-mono);}
+
+  .shell{
+    display:grid;
+    grid-template-columns:230px minmax(0,1fr);
+    max-width:1180px;
+    margin:0 auto;
+    padding-inline:20px;
+    gap:36px;
+  }
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;gap:0;}
+  }
+
+  /* ---- side nav ---- */
+  .side{
+    position:sticky;
+    top:24px;
+    align-self:start;
+    padding-block:32px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  @media (max-width:900px){
+    .side{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:var(--bg);
+      padding:12px 0;
+      border-bottom:1px solid var(--border);
+      flex-direction:row;
+      align-items:center;
+      gap:14px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+  }
+  .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+  .brand-mark{
+    width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;
+    border:1.5px solid var(--border-strong);
+  }
+  .brand-mark img{width:100%;height:100%;object-fit:cover;display:block;}
+  .brand-text{display:flex;flex-direction:column;line-height:1.15;}
+  .brand-text strong{font-family:var(--font-display);font-size:14.5px;letter-spacing:.03em;}
+  .brand-text span{font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;}
+  nav.toc{display:flex;flex-direction:column;gap:2px;}
+  @media (max-width:900px){ nav.toc{flex-direction:row;gap:4px;} }
+  nav.toc a{
+    color:var(--text-dim);text-decoration:none;font-size:12.5px;font-weight:600;
+    padding:6px 10px;border-radius:7px;white-space:nowrap;
+  }
+  nav.toc a:hover{color:var(--text);background:var(--surface-2);}
+
+  main{padding-block:32px 64px;min-width:0;}
+  section{scroll-margin-top:20px;margin-bottom:56px;}
+  section:last-of-type{margin-bottom:24px;}
+
+  .eyebrow{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 8px;
+  }
+  section h2{font-size:22px;margin:0 0 6px;}
+  .section-note{color:var(--text-dim);font-size:14px;margin:0 0 22px;max-width:62ch;}
+
+  /* ---- hero ---- */
+  .hero{
+    border:1px solid var(--border-strong);
+    border-radius:18px;
+    background:
+      radial-gradient(circle at 12% -10%, var(--accent-soft), transparent 55%),
+      var(--surface);
+    padding:36px 30px;
+    margin-top:32px;
+    margin-bottom:44px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero-logo{
+    position:absolute;top:22px;right:26px;width:76px;height:76px;border-radius:50%;
+    border:2px solid var(--accent-soft);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.28);
+  }
+  .hero-logo img{width:100%;height:100%;object-fit:cover;display:block;}
+  @media (max-width:560px){ .hero-logo{width:52px;height:52px;top:16px;right:16px;} }
+  .hero-eyebrow{font-family:var(--font-mono);font-size:12px;color:var(--accent-2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;}
+  .hero h1{font-size:clamp(28px,4.4vw,42px);margin:0 0 10px;}
+  .hero p.lede{color:var(--text-dim);max-width:56ch;font-size:15.5px;margin:0 0 26px;}
+  .hero-stats{display:flex;flex-wrap:wrap;gap:12px;}
+  .stat-pill{
+    display:flex;align-items:baseline;gap:8px;
+    border:1px solid var(--border);border-radius:11px;
+    background:var(--surface-2);padding:10px 16px;
+  }
+  .stat-pill .n{font-family:var(--font-mono);font-size:19px;font-weight:600;color:var(--text);}
+  .stat-pill .l{font-size:11.5px;color:var(--text-dim);}
+  .stat-pill .status{width:7px;height:7px;border-radius:50%;background:var(--text-faint);display:inline-block;margin-right:2px;}
+
+  /* ---- generic cards / grids ---- */
+  .grid{display:grid;gap:14px;}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+  @media (max-width:720px){ .grid.cols-3,.grid.cols-2{grid-template-columns:1fr;} }
+
+  .card{
+    border:1px solid var(--border);border-radius:14px;background:var(--surface);
+    padding:20px;
+  }
+  .card h3{font-size:15px;margin:0 0 6px;font-family:var(--font-body);font-weight:700;}
+  .card p{margin:0;color:var(--text-dim);font-size:13.6px;}
+
+  /* platform status cards */
+  .platform-card{
+    border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:20px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .platform-card .top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .platform-card .name{font-weight:800;font-size:15px;}
+  .badge{
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 8px;border-radius:100px;border:1px solid var(--border-strong);color:var(--text-faint);
+  }
+  .platform-card .figure{font-family:var(--font-mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .platform-card .figure-label{font-size:12px;color:var(--text-dim);}
+  .platform-card .bio{font-size:12.5px;color:var(--text-faint);border-top:1px dashed var(--border);padding-top:10px;margin-top:2px;}
+
+  /* goal comparison */
+  .goal-row{
+    display:grid;grid-template-columns:100px 1fr auto 1fr;align-items:center;gap:12px;
+    border:1px solid var(--border);border-radius:12px;padding:14px 18px;background:var(--surface);
+  }
+  .goal-row + .goal-row{margin-top:10px;}
+  @media (max-width:560px){ .goal-row{grid-template-columns:1fr;gap:6px;} .goal-row .arrow{display:none;} }
+  .goal-row .plat{font-weight:800;font-size:13.5px;}
+  .goal-row .val{font-family:var(--font-mono);font-size:15px;}
+  .goal-row .val.now{color:var(--text-dim);}
+  .goal-row .val.target{color:var(--accent);font-weight:600;}
+  .goal-row .arrow{color:var(--text-faint);}
+  .goal-row .bar-wrap{grid-column:1/-1;height:5px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-top:2px;}
+  .goal-row .bar{height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));border-radius:4px;}
+
+  ul.quality{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;}
+  ul.quality li{display:flex;gap:10px;font-size:14px;color:var(--text-dim);align-items:flex-start;}
+  ul.quality li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;flex:none;}
+
+  /* weekly rhythm strip */
+  .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+  @media (max-width:820px){ .week-strip{grid-template-columns:repeat(4,1fr);} }
+  @media (max-width:480px){ .week-strip{grid-template-columns:repeat(2,1fr);} }
+  .day-card{
+    border-radius:13px;border:1px solid var(--border);background:var(--surface);
+    padding:15px 13px;display:flex;flex-direction:column;gap:8px;min-height:132px;
+    border-top:3px solid var(--c);
+  }
+  .day-card .dname{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);}
+  .day-card .theme{font-weight:800;font-size:14.5px;color:var(--c);}
+  .day-card .desc{font-size:12px;color:var(--text-dim);flex:1;}
+  .day-card.off{opacity:.55;}
+  .day-card.off .theme{color:var(--text-faint);}
+
+  /* segment timeline */
+  .timeline{position:relative;padding-left:26px;margin-top:22px;}
+  .timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1.5px;background:var(--border-strong);}
+  .t-item{position:relative;padding-bottom:24px;}
+  .t-item:last-child{padding-bottom:0;}
+  .t-item::before{content:"";position:absolute;left:-26px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);}
+  .t-item .time{font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:600;}
+  .t-item .ttl{font-weight:700;font-size:14.5px;margin:2px 0 3px;}
+  .t-item .desc{font-size:13px;color:var(--text-dim);}
+
+  /* calendar */
+  .cal-week-label{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.1em;margin:26px 0 10px;}
+  .cal-week-label:first-child{margin-top:0;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+  @media (max-width:760px){ .cal-grid{grid-template-columns:repeat(1,1fr);} }
+  .cal-cell{
+    border-radius:11px;border:1px solid var(--border);background:var(--surface);
+    padding:11px 12px;min-height:92px;display:flex;flex-direction:column;gap:6px;
+    border-left:3px solid var(--c);position:relative;
+  }
+  .cal-cell.rest{background:transparent;border-style:dashed;opacity:.6;}
+  .cal-cell .date{font-family:var(--font-mono);font-size:12px;color:var(--text-faint);}
+  .cal-cell .theme{font-weight:800;font-size:12.5px;color:var(--c);}
+  .cal-cell .note{font-size:11.5px;color:var(--text-dim);}
+  .cal-cell.flag::after{
+    content:attr(data-flag);position:absolute;top:9px;right:9px;
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:5px;
+  }
+
+  /* checklist */
+  .checklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .checklist li{
+    display:flex;gap:11px;align-items:flex-start;font-size:14px;color:var(--text-dim);
+    border:1px solid var(--border);border-radius:11px;padding:12px 14px;background:var(--surface);
+  }
+  .checklist li b{color:var(--text);}
+  .box{
+    width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex:none;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .checklist li.done .box{background:var(--accent-2);border-color:var(--accent-2);color:var(--bg);font-size:11px;font-weight:900;}
+  .checklist li.done{opacity:.72;}
+
+  /* quote / transmission */
+  .quote{
+    border:1px solid var(--border-strong);border-left:3px solid var(--accent);border-radius:0 14px 14px 0;
+    background:var(--surface);padding:22px 24px;font-size:14.5px;color:var(--text-dim);white-space:pre-line;
+  }
+  .quote .qlabel{font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+  .quote.short{border-left-color:var(--accent-2);}
+  .quote.short .qlabel{color:var(--accent-2);}
+
+  /* bio cards */
+  .bio-card{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px;}
+  .bio-card .plat{font-weight:800;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .bio-card .plat .dot{width:8px;height:8px;border-radius:50%;background:var(--c);}
+  .bio-card p{font-size:13px;color:var(--text-dim);margin:0;white-space:pre-line;}
+
+  /* callouts */
+  .callout{border-radius:14px;border:1px solid var(--border);padding:20px 22px;background:var(--surface);}
+  .callout.warn{border-color:rgba(217,117,117,.35);background:linear-gradient(180deg,rgba(217,117,117,.07),transparent);}
+  .callout.warn h3{color:var(--danger);}
+  .callout h3{margin:0 0 8px;font-size:14.5px;font-family:var(--font-body);font-weight:800;}
+  .callout p{margin:0 0 8px;font-size:13.6px;color:var(--text-dim);}
+  .callout p:last-child{margin-bottom:0;}
+
+  .roadmap{display:flex;flex-direction:column;gap:0;}
+  .rm-item{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--border);}
+  .rm-item:first-child{border-top:none;}
+  .rm-tag{font-family:var(--font-mono);font-size:11px;color:var(--accent-2);text-transform:uppercase;letter-spacing:.06em;padding-top:2px;}
+  .rm-item h4{margin:0 0 4px;font-size:14px;}
+  .rm-item p{margin:0;font-size:13.4px;color:var(--text-dim);}
+
+  footer{border-top:1px solid var(--border);padding:26px 0 8px;color:var(--text-faint);font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;}
+  footer a{color:var(--text-dim);}
+
+  @media (prefers-reduced-motion:no-preference){
+    section{animation:rise .5s ease both;}
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark"><img src="logo_cat.png" alt="Kaptan Qedy logosu"></div>
+      <div class="brand-text"><strong>KAPTAN QEDY</strong><span>Seyir Defteri</span></div>
+    </div>
+    <nav class="toc">
+      <a href="../" style="color:var(--accent-2);">← Kaptan Qedy</a>
+      <a href="#durum">Mevcut Durum</a>
+      <a href="#hedefler">Hedefler</a>
+      <a href="#icerik">İçerik</a>
+      <a href="#ritim">Haftalık Ritim</a>
+      <a href="#takvim">Takvim</a>
+      <a href="#prodüksiyon">Prodüksiyon</a>
+      <a href="#buyume">Büyüme</a>
+      <a href="#duyuru">Duyuru &amp; Bio</a>
+      <a href="#risk">Risk &amp; Yol Haritası</a>
+      <a href="#adimlar">Sonraki Adımlar</a>
+    </nav>
+  </aside>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-logo"><img src="logo_cat.png" alt="Kaptan Qedy logosu"></div>
+      <div class="hero-eyebrow">Operasyon · Geri Dönüş</div>
+      <h1>Kaptan Qedy limandan ayrılıyor</h1>
+      <p class="lede">Twitch, YouTube ve Kick'te uzun bir aradan sonra yeniden demir alma planı — mevcut durum, hedefler, haftalık ritim ve ilk dört haftanın seyir defteri.</p>
+      <div class="hero-stats">
+        <div class="stat-pill"><span class="status"></span><span class="n">2.8K</span><span class="l">Twitch takipçi</span></div>
+        <div class="stat-pill"><span class="status"></span><span class="n">491</span><span class="l">YouTube abone</span></div>
+        <div class="stat-pill"><span class="status"></span><span class="n">178</span><span class="l">Kick takipçi</span></div>
+        <div class="stat-pill"><span class="n" style="color:var(--accent)">22 Eyl</span><span class="l">resmi lansman</span></div>
+      </div>
+    </section>
+
+    <section id="durum">
+      <div class="eyebrow">01 — Envanter</div>
+      <h2>Mevcut Durum</h2>
+      <p class="section-note">Üç kanal da hâlâ ayakta, takipçi/abone tabanı korunmuş. Hiçbir şey kaybolmamış — sadece uyuyor.</p>
+      <div class="grid cols-3">
+        <div class="platform-card">
+          <div class="top"><span class="name">Twitch</span><span class="badge">Offline</span></div>
+          <div class="figure">2.8K</div>
+          <div class="figure-label">takipçi</div>
+          <div class="bio">"Sui generis Qedy."</div>
+        </div>
+        <div class="platform-card">
+          <div class="top"><span class="name">YouTube</span><span class="badge">Aktif değil</span></div>
+          <div class="figure">491</div>
+          <div class="figure-label">abone · 264 video</div>
+          <div class="bio">Son video ~1 yıl önce (God of War Ragnarök TR serisi). 200. video edit'inde "5.500 saat yayın" notu var.</div>
+        </div>
+        <div class="platform-card">
+          <div class="top"><span class="name">Kick</span><span class="badge">Offline</span></div>
+          <div class="figure">178</div>
+          <div class="figure-label">takipçi</div>
+          <div class="bio">Twitch simulcast ile beslenecek, ayrı içerik üretimi yok şimdilik.</div>
+        </div>
+      </div>
+      <p class="section-note" style="margin-top:18px;">Diğer bağlantılar: Instagram (@ertugrul_tug ve @kaptan_qedy — iki ayrı hesap), X/Twitter @yaramasa_adam, Discord, Spotify artist sayfası, Steam (624 oyunluk kütüphane). Kick linki instabio'da eksik, eklenmeli.</p>
+    </section>
+
+    <section id="hedefler">
+      <div class="eyebrow">02 — Rota</div>
+      <h2>Vizyon &amp; 3 Aylık Hedefler</h2>
+      <p class="section-note">Amaç sadece yayın açmak değil — 2.8K'lık uyuyan Twitch tabanını uyandırıp üç platformu birbirini besleyen tek ekosisteme dönüştürmek. Sayılar tahmin, garanti değil.</p>
+      <div class="goal-row">
+        <span class="plat">Twitch</span><span class="val now">2.8K</span><span class="arrow">→</span><span class="val target">~3.3–3.5K</span>
+        <div class="bar-wrap"><div class="bar" style="width:78%"></div></div>
+      </div>
+      <div class="goal-row">
+        <span class="plat">YouTube</span><span class="val now">491</span><span class="arrow">→</span><span class="val target">~700–800</span>
+        <div class="bar-wrap"><div class="bar" style="width:62%"></div></div>
+      </div>
+      <div class="goal-row">
+        <span class="plat">Kick</span><span class="val now">178</span><span class="arrow">→</span><span class="val target">~350–400</span>
+        <div class="bar-wrap"><div class="bar" style="width:47%"></div></div>
+      </div>
+      <ul class="quality">
+        <li>12 hafta boyunca <b>hiç yayın kaçırmamak</b> — tutarlılık tek bir viral andan daha değerli</li>
+        <li><b>YouTube Partner Program</b> eşiğine ulaşmak (500 abone + 3.000 saat izlenme) — 491 aboneyle çok yakın</li>
+        <li><b>Twitch Affiliate/Partner</b> şartlarını kontrol edip karşılıyorsa başvurmak</li>
+      </ul>
+    </section>
+
+    <section id="icerik">
+      <div class="eyebrow">03 — Muhteva</div>
+      <h2>İçerik Stratejisi</h2>
+      <div class="grid cols-3">
+        <div class="card">
+          <h3>Ana içerik</h3>
+          <p>Türkçe oynanış serileri, çok bölümlü. İlk oyun <b style="color:var(--text)">Baldur's Gate 3</b> — bitirmeye hiç vakit bulamamıştı, seri buradan başlıyor. Sıradaki adaylar: Elden Ring, RDR2, The Witcher 3, Resident Evil Village, Disco Elysium.</p>
+        </div>
+        <div class="card">
+          <h3>Keşif</h3>
+          <p>Ayda 1 yeni/trend oyun, tek seferlik deneme — algoritma keşfi için. Adaylar: Helldivers 2, Sea of Thieves, Dark and Darker, Escape the Backrooms, Deep Rock Galactic.</p>
+        </div>
+        <div class="card">
+          <h3>Bağ kurma</h3>
+          <p>Haftalık sohbet/IRL — asıl topluluğu inşa eden bu, oynanış değil. "Nerelerdeydim" güncellemesi, müzik/sanat sohbeti (Spotify'da müzik yapıyor, resim çiziyor — farklılaştırıcı).</p>
+        </div>
+      </div>
+      <div class="grid cols-3" style="margin-top:14px;">
+        <div class="card"><h3>Twitch</h3><p>Canlı ana üs, gerçek zamanlı topluluk. 2.8K'lık taban hâlâ en büyük varlık.</p></div>
+        <div class="card"><h3>YouTube</h3><p>Edit'lenmiş VOD/highlight, yayından 2-3 gün sonra. 264 videoluk alışkanlık zaten kurulu.</p></div>
+        <div class="card"><h3>Kick</h3><p>Twitch simulcast. 178 takipçide özel içerik üretme, sadece oradan geleni yakala.</p></div>
+      </div>
+    </section>
+
+    <section id="ritim">
+      <div class="eyebrow">04 — Düzen</div>
+      <h2>Haftalık Ritim</h2>
+      <p class="section-note">Pazartesi–Cuma her akşam 20:30, günü değişen tema. Cumartesi tam dinlenme, Pazar sadece YouTube (yayın yok).</p>
+      <div class="week-strip">
+        <div class="day-card" style="--c:var(--t-serbest)"><div class="dname">Pazartesi</div><div class="theme">Serbest</div><div class="desc">O günkü keyfe göre — modpaketli Minecraft, LoL, ne çekerse</div></div>
+        <div class="day-card" style="--c:var(--t-hikaye)"><div class="dname">Salı</div><div class="theme">Hikayeli</div><div class="desc">Baldur's Gate 3 serisi — ana seri, haftada 1 bölüm</div></div>
+        <div class="day-card" style="--c:var(--t-comp)"><div class="dname">Çarşamba</div><div class="theme">Competitive</div><div class="desc">League of Legends vb.</div></div>
+        <div class="day-card" style="--c:var(--t-surv)"><div class="dname">Perşembe</div><div class="theme">Survival</div><div class="desc">Project Zomboid, Minecraft survival vb.</div></div>
+        <div class="day-card" style="--c:var(--t-team)"><div class="dname">Cuma</div><div class="theme">Toplu Ekip</div><div class="desc">İzleyici/arkadaş co-op — Cumartesi dinlenme, geceye sarkayabilir</div></div>
+        <div class="day-card off" style="--c:var(--t-rest)"><div class="dname">Cumartesi</div><div class="theme">Dinlenme</div><div class="desc">Tam tatil, yayın yok</div></div>
+        <div class="day-card off" style="--c:var(--t-yt)"><div class="dname">Pazar</div><div class="theme">YouTube</div><div class="desc">Sadece edit/upload günü, yayın yok</div></div>
+      </div>
+
+      <h3 style="font-size:15px;margin:30px 0 4px;">Yayın içi akış</h3>
+      <p class="section-note" style="margin-bottom:0;">Pazartesi–Perşembe ~3 saat, Cuma esnek/uzayabilir.</p>
+      <div class="timeline">
+        <div class="t-item"><div class="time">20:30</div><div class="ttl">Açılış sohbet</div><div class="desc">Selamlama, o günkü tema/plan, geçen yayının kısa özeti</div></div>
+        <div class="t-item"><div class="time">21:00</div><div class="ttl">Tema bloğu</div><div class="desc">O günün oyunu — yukarıdaki haftalık ritme göre</div></div>
+        <div class="t-item"><div class="time">23:00</div><div class="ttl">Günlük sohbet / haberler</div><div class="desc">Gündelik muhabbet, gündem, soru-cevap</div></div>
+        <div class="t-item"><div class="time">23:30</div><div class="ttl">Kapanış</div><div class="desc">Sonraki yayın hatırlatması, "en sevdiğiniz an" sorusu, Discord/Instagram'a veda mesajı</div></div>
+      </div>
+    </section>
+
+    <section id="takvim">
+      <div class="eyebrow">05 — Seyir Planı</div>
+      <h2>İlk 4 Hafta</h2>
+      <p class="section-note">21 Eylül – 18 Ekim. Ay 2-3'te aynı desen sürer, BG3 Salı günleri bitene kadar; her ay başında gerçek tarihlerle güncellenmeli.</p>
+      <div id="calendar"></div>
+    </section>
+
+    <section id="prodüksiyon">
+      <div class="eyebrow">06 — Standart</div>
+      <h2>Prodüksiyon &amp; Marka</h2>
+      <div class="grid cols-2">
+        <div>
+          <h3 style="font-size:14.5px;margin-bottom:10px;">Yayın öncesi (15 dk)</h3>
+          <ul class="checklist">
+            <li><span class="box"></span>Mikrofon/kamera/ses seviyesi testi</li>
+            <li><span class="box"></span>Twitch + Kick simulcast bağlantısı kontrolü</li>
+            <li><span class="box"></span>Başlık + kategori güncel (oyun adı + bölüm no)</li>
+            <li><span class="box"></span>Discord'da "5 dakikaya canlıyım" pingi</li>
+          </ul>
+          <h3 style="font-size:14.5px;margin:22px 0 10px;">Başlık/thumbnail formülü</h3>
+          <p style="font-size:13.4px;color:var(--text-dim);margin:0 0 8px;"><b style="color:var(--text)">YouTube:</b> <span class="mono">[Oyun Adı] | [Bölüm N] | [Dramatik an/soru] | [Türkçe Oynanış]</span> — 264 videoluk mevcut formata sadık kal.</p>
+          <p style="font-size:13.4px;color:var(--text-dim);margin:0;"><b style="color:var(--text)">Twitch:</b> <span class="mono">[Oyun Adı] | Bölüm [N] | [merak uyandırıcı alt başlık]</span></p>
+        </div>
+        <div>
+          <h3 style="font-size:14.5px;margin-bottom:10px;">Marka yenileme</h3>
+          <ul class="checklist">
+            <li><span class="box"></span><b>Twitch bio</b> yenilenmeli — içerik türü, yayın günleri, "geri döndüm" notu</li>
+            <li><span class="box"></span><b>Kick linki</b> Twitch paneline ve instabio'ya eklenmeli</li>
+            <li><span class="box"></span><b>YouTube</b> banner/açıklama comeback'i yansıtmalı</li>
+            <li><span class="box"></span><b>Instagram</b> — iki hesaptan (@ertugrul_tug / @kaptan_qedy) hangisi "yayıncı" hesabı olacak, karar kullanıcıda</li>
+            <li><span class="box"></span><b>Discord</b> herkese açık duyurudan önce yeniden aktifleştirilmeli</li>
+            <li><span class="box"></span><b>Profil görselleri</b> üç platformda eşleşmeli — tek koordineli lansman hissi</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="buyume">
+      <div class="eyebrow">07 — Menzil</div>
+      <h2>Büyüme &amp; Topluluk</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Klip stratejisi</h3>
+          <p>Her yayından en iyi 2-3 anı aynı gece kesip Reels/Shorts/TikTok'a düş. Ekstra prodüksiyon gerektirmez, mevcut yayından kesilir.</p>
+        </div>
+        <div class="card">
+          <h3>Cross-post disiplini</h3>
+          <p>Yayın sonrası aynı gece Discord + Instagram story, ertesi gün X paylaşımı. İleri aşamada webhook ile otomatikleştirilebilir.</p>
+        </div>
+        <div class="card">
+          <h3>Collab/raid</h3>
+          <p>Benzer ölçekte 2-3 TR yayıncıyla karşılıklı raid. İlk ayda değil, taban ısındıktan sonra (Ay 2-3).</p>
+        </div>
+        <div class="card">
+          <h3>Topluluk</h3>
+          <p>Discord'da sabit takvim pinlensin, eski topluluktan güvenilir bir moderatör geri çağrılabilir. Aylık oyun/çizim/müzik gecesi — sanat tarafını öne çıkarır.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="duyuru">
+      <div class="eyebrow">08 — Sinyal</div>
+      <h2>Duyuru &amp; Bio Metinleri</h2>
+      <div class="grid cols-2" style="align-items:start;">
+        <div class="quote">
+          <div class="qlabel">Duyuru — uzun versiyon</div>Uzun bir aradan sonra geri dönüyorum. 🎬
+
+Biliyorum, bir süredir ortalarda yoktum ama bu süre boşuna geçmedi — şimdi geri dönme vaktim geldi. Eski oynanış serilerimize kaldığımız yerden devam edeceğiz, yeni oyunlar deneyeceğiz ve tabii ki eskisi gibi sohbet günlerimiz de olacak.
+
+Yeni yayın günlerim: Pazartesi'den Cuma'ya her akşam 20:30'da, her gün ayrı bir tema var. Cumartesi dinleniyorum, Pazar da YouTube'a o haftanın en iyi anlarını yüklüyorum.
+
+Twitch: twitch.tv/kaptanqedy
+YouTube: youtube.com/@kaptanqedy
+Kick: kick.com/kaptanqedy
+
+Beni bu kadar zaman sonra hâlâ takip eden herkese teşekkürler. Görüşmek üzere kaptanlar. ⚓</div>
+        <div class="quote short">
+          <div class="qlabel">Duyuru — kısa versiyon</div>Geri döndüm. Twitch, YouTube ve Kick'te yeniden yayınlardayım — takipte kalın, detaylar yakında. ⚓ #KaptanQedy</div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:14px;">
+        <div class="bio-card">
+          <div class="plat"><span class="dot" style="--c:var(--t-serbest)"></span>Twitch — About</div>
+          <p>⚓ Kaptan Qedy geri döndü! Türkçe oynanış serileri, yeni oyunlar ve sohbet yayınlarıyla buradayım. Her akşam 20:30 (Pzt–Cuma), her gün ayrı tema: Pzt serbest, Salı hikayeli (BG3), Çrş competitive, Perş survival, Cuma toplu ekip · YouTube &amp; Kick'te de aynı anda canlıdayım.</p>
+        </div>
+        <div class="bio-card">
+          <div class="plat"><span class="dot" style="--c:var(--t-yt)"></span>Kick — About</div>
+          <p>⚓ Kaptan Qedy | Türkçe oynanış &amp; sohbet yayınları. Twitch'ten simulcast. Her akşam 20:30 (Pazartesi–Cuma), günlük değişen temalar.</p>
+        </div>
+        <div class="bio-card">
+          <div class="plat"><span class="dot" style="--c:var(--t-comp)"></span>YouTube — Açıklama</div>
+          <p>Merhaba, ben Ertuğrul — Kaptan Qedy. Kocaeli Üniversitesi'nde öğrenciyim; resim çiziyor, müzik yapıyor, kod yazıyor, şiir/kitap yazıyor ve fotoğraf çekiyorum. Uzun bir aradan sonra geri döndüm, Türkçe oynanış serilerime kaldığım yerden devam ediyorum. Pzt–Cuma her akşam 20:30'da canlıyım.
+
+Twitch: twitch.tv/kaptanqedy
+Kick: kick.com/kaptanqedy
+Discord: discord.gg/cpB6phwYUs</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="risk">
+      <div class="eyebrow">09 — Fırtına Uyarısı</div>
+      <h2>Riskler &amp; Yol Haritası</h2>
+      <div class="grid cols-2" style="align-items:start;">
+        <div class="callout warn">
+          <h3>En büyük risk: tükenmişlik</h3>
+          <p>Haftada 5 gece yayın (~15 saat) + tam zamanlı iş + Pazar edit günü — önceki 3 yayınlık plandan belirgin şekilde ağır. Cumartesi'nin tam dinlenme olması bunu dengeliyor ama ilk 2-3 hafta gerçek yorgunluğu gösterecek.</p>
+          <p>Edit yükü sadece Pazar, tek oturumda. Bir yayın kaçırmak dünyanın sonu değil — zorlayıp isteksiz yayın yapmaktan iyidir. İlk ay sonunda (~20 Ekim) tempo <a href="https://github.com/ertugrul-tug/stream-library/blob/main/planning/metrics-log.md" target="_blank" rel="noopener">metrics-log.md</a> ile birlikte gözden geçirilmeli.</p>
+        </div>
+        <div class="callout">
+          <h3>Monetizasyon yol haritası</h3>
+          <div class="roadmap">
+            <div class="rm-item"><span class="rm-tag">Şimdi</span><div><h4>Twitch Affiliate/Partner</h4><p>2.8K takipçiyle şartları muhtemelen karşılıyor — kontrol edip başvurulmalı.</p></div></div>
+            <div class="rm-item"><span class="rm-tag">1–2 ay</span><div><h4>YouTube Partner Program</h4><p>500 abone eşiğine çok yakın (491).</p></div></div>
+            <div class="rm-item"><span class="rm-tag">Netleşince</span><div><h4>Kick Creator Program</h4><p>Kick'in kendi destek programı, büyüme netleşince değerlendirilir.</p></div></div>
+            <div class="rm-item"><span class="rm-tag">6 ay+</span><div><h4>Sponsorluk</h4><p>Toplam takipçi büyüdükçe oyun/donanım sponsorlukları gündeme gelebilir.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="adimlar">
+      <div class="eyebrow">10 — Liman</div>
+      <h2>Sonraki Adımlar</h2>
+      <ul class="checklist">
+        <li class="done"><span class="box">✓</span>Kesin lansman tarihi — deneme 21 Eylül (bu akşam), resmi lansman 22 Eylül Salı 20:30</li>
+        <li class="done"><span class="box">✓</span>Haftalık yayın takvimi netleşti — Pzt–Cuma günlük temalı, Cmt dinlenme, Paz sadece YouTube</li>
+        <li class="done"><span class="box">✓</span>Twitch/Kick/YouTube bio metinleri yazıldı</li>
+        <li class="done"><span class="box">✓</span>Lansman öncesi Instagram story hatırlatması kuruldu — 22 Eylül 19:30 otomatik bildirim</li>
+        <li><span class="box"></span>Instagram için tek "yayıncı" hesabına karar verilmesi — kullanıcıya bırakıldı</li>
+        <li><span class="box"></span>İlk ay sonu (~20 Ekim) plan check-in'i — metrik tablosu doldurulup hedefler gözden geçirilmeli</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Kaynak: 21 Eylül 2026 platform incelemesi · <a href="https://github.com/ertugrul-tug/stream-library/blob/main/planning/comeback-plan.md" target="_blank" rel="noopener">tam metin (.md)</a> · <a href="https://github.com/ertugrul-tug/stream-library/blob/main/planning/metrics-log.md" target="_blank" rel="noopener">metrics-log.md</a> · <a href="https://github.com/ertugrul-tug/stream-library/blob/main/data/steam-library.json" target="_blank" rel="noopener">steam-library.json</a> · <a href="https://github.com/ertugrul-tug/stream-library" target="_blank" rel="noopener">repo</a></span>
+      <span style="display:flex;align-items:center;gap:7px;"><img src="logo_cat.png" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;">Kaptan Qedy</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  var THEMES = {
+    serbest:{c:'var(--t-serbest)',label:'Serbest'},
+    hikaye:{c:'var(--t-hikaye)',label:'Hikayeli · BG3'},
+    comp:{c:'var(--t-comp)',label:'Competitive'},
+    surv:{c:'var(--t-surv)',label:'Survival'},
+    team:{c:'var(--t-team)',label:'Toplu Ekip'},
+    rest:{c:'var(--t-rest)',label:'Dinlenme'},
+    yt:{c:'var(--t-yt)',label:'YouTube'}
+  };
+  var weeks = [
+    {label:'Hafta 1 — 21 Eylül · 27 Eylül', days:[
+      {d:'21 Eyl',t:'serbest',note:'Deneme yayını',flag:'Deneme'},
+      {d:'22 Eyl',t:'hikaye',note:'BG3 Bölüm 1',flag:'Lansman'},
+      {d:'23 Eyl',t:'comp',note:'LoL vb.'},
+      {d:'24 Eyl',t:'surv',note:'Zomboid / Minecraft'},
+      {d:'25 Eyl',t:'team',note:'Toplu ekip oyunu'},
+      {d:'26 Eyl',t:'rest',note:''},
+      {d:'27 Eyl',t:'yt',note:'Highlight yükleme'}
+    ]},
+    {label:'Hafta 2 — 28 Eylül · 4 Ekim', days:[
+      {d:'28 Eyl',t:'serbest',note:''},
+      {d:'29 Eyl',t:'hikaye',note:'BG3 Bölüm 2'},
+      {d:'30 Eyl',t:'comp',note:''},
+      {d:'1 Eki',t:'surv',note:''},
+      {d:'2 Eki',t:'team',note:''},
+      {d:'3 Eki',t:'rest',note:''},
+      {d:'4 Eki',t:'yt',note:'Highlight yükleme'}
+    ]},
+    {label:'Hafta 3 — 5 Ekim · 11 Ekim', days:[
+      {d:'5 Eki',t:'serbest',note:''},
+      {d:'6 Eki',t:'hikaye',note:'BG3 Bölüm 3'},
+      {d:'7 Eki',t:'comp',note:''},
+      {d:'8 Eki',t:'surv',note:''},
+      {d:'9 Eki',t:'team',note:''},
+      {d:'10 Eki',t:'rest',note:''},
+      {d:'11 Eki',t:'yt',note:'Highlight yükleme'}
+    ]},
+    {label:'Hafta 4 — 12 Ekim · 18 Ekim', days:[
+      {d:'12 Eki',t:'serbest',note:''},
+      {d:'13 Eki',t:'hikaye',note:'BG3 Bölüm 4'},
+      {d:'14 Eki',t:'comp',note:''},
+      {d:'15 Eki',t:'surv',note:''},
+      {d:'16 Eki',t:'team',note:''},
+      {d:'17 Eki',t:'rest',note:''},
+      {d:'18 Eki',t:'yt',note:'Highlight yükleme'}
+    ]}
+  ];
+
+  var root = document.getElementById('calendar');
+  weeks.forEach(function(week){
+    var lbl = document.createElement('div');
+    lbl.className = 'cal-week-label';
+    lbl.textContent = week.label;
+    root.appendChild(lbl);
+
+    var grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    week.days.forEach(function(day){
+      var meta = THEMES[day.t];
+      var cell = document.createElement('div');
+      cell.className = 'cal-cell' + (day.t === 'rest' ? ' rest' : '') + (day.flag ? ' flag' : '');
+      cell.style.setProperty('--c', meta.c);
+      if(day.flag) cell.setAttribute('data-flag', day.flag);
+      cell.innerHTML =
+        '<span class="date">' + day.d + '</span>' +
+        '<span class="theme">' + meta.label + '</span>' +
+        (day.note ? '<span class="note">' + day.note + '</span>' : '');
+      grid.appendChild(cell);
+    });
+    root.appendChild(grid);
+  });
+})();
+</script>
+</body>
+</html>
