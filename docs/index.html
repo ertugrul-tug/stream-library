@@ -56,9 +56,11 @@
     background:rgba(7,9,13,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line);
   }
-  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding-block:12px;}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding-block:12px;transition:padding-block .25s ease;}
+  .nav.compact .nav-inner{padding-block:8px;}
   .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
-  .nav-brand img{width:32px;height:32px;border-radius:50%;flex:none;view-transition-name:kaptan-logo;}
+  .nav-brand img{width:32px;height:32px;border-radius:50%;flex:none;view-transition-name:kaptan-logo;transition:width .25s ease, height .25s ease;}
+  .nav.compact .nav-brand img{width:24px;height:24px;}
   .nav-brand span{font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:.02em;}
   .nav-links{display:flex;align-items:center;gap:22px;}
   .nav-links a{font-size:13px;font-weight:600;color:var(--ink-dim);text-decoration:none;}
@@ -197,6 +199,9 @@
   /* reveal-on-scroll (progressive enhancement — see note in .js rule) */
   .js .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);}
   .js .reveal.in{opacity:1;transform:translateY(0);}
+  /* .rise — a bigger, slower arrival for a single focal element (YouTube panel) rather than a light fade */
+  .js .reveal.rise{transform:translateY(52px) scale(.96);transition-duration:.8s;}
+  .js .reveal.rise.in{transform:none;}
   @media (prefers-reduced-motion:reduce){ .js .reveal{opacity:1;transform:none;transition:none;} }
 
   /* staggered children — each child of a .stagger container fades in on its own beat */
@@ -226,7 +231,10 @@
     content:"";position:absolute;inset:-14px;border-radius:50%;
     background:conic-gradient(from 0deg, var(--blue), var(--pink), var(--blue));
     z-index:-1;filter:blur(22px);opacity:.35;
+    animation:ring-spin 16s linear infinite;
   }
+  @keyframes ring-spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){ .portrait::after{animation:none;} }
   .about-copy h3{font-family:var(--font-display);font-size:clamp(22px,3.4vw,32px);margin:0 0 14px;font-weight:800;text-wrap:balance;}
   .about-copy p{color:var(--ink-dim);font-size:15px;max-width:58ch;margin:0 0 20px;}
   @media (max-width:760px){ .about-copy p{margin-inline:auto;} }
@@ -343,7 +351,13 @@
     transition:border-color .2s ease, transform .2s ease, color .2s ease;
   }
   .comm-pill:hover{transform:translateY(-2px);border-color:var(--pink);color:var(--pink);}
-  .comm-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--c);}
+  .comm-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--c);animation:comm-pulse 2.4s ease-out infinite;}
+  @keyframes comm-pulse{
+    0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent);}
+    70%{box-shadow:0 0 0 7px transparent;}
+    100%{box-shadow:0 0 0 0 transparent;}
+  }
+  @media (prefers-reduced-motion:reduce){ .comm-pill .dot{animation:none;} }
 
   footer{border-top:1px solid var(--line);padding:34px 0 26px;}
   .foot-inner{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;}
@@ -502,7 +516,7 @@
 
   <section id="youtube">
     <div class="wrap">
-      <a class="yt-panel reveal" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">
+      <a class="yt-panel reveal rise" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">
         <div class="yt-panel-copy">
           <div class="plat-tag" style="--tagc:var(--pink)"><span class="dot"></span>Kendine Has İçerik</div>
           <h2>YouTube ayrı bir güverte</h2>
@@ -534,7 +548,7 @@
 </main>
 
 <footer>
-  <div class="wrap foot-inner">
+  <div class="wrap foot-inner reveal">
     <div class="foot-brand"><img src="assets/logo_cat.png" alt="">⚓ Kaptan Qedy — 2026</div>
     <div class="foot-links">
       <a href="kutuphane/">Kütüphane</a>
@@ -569,10 +583,12 @@
   }
 
   var bar = document.getElementById('progress');
+  var navEl = document.querySelector('header.nav');
   function updateProgress(){
     var h = document.documentElement;
     var pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
     bar.style.width = (isFinite(pct) ? pct : 0) + '%';
+    navEl.classList.toggle('compact', h.scrollTop > 60);
   }
 
   var heroSection = document.querySelector('.hero-scrub');
