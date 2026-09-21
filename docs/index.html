@@ -73,44 +73,53 @@
   .btn.ghost:hover{border-color:var(--pink);color:var(--pink);}
   @media (max-width:720px){ .nav-links{display:none;} }
 
-  /* ---- hero ---- */
-  .hero{
+  /* ---- hero (scroll-scrub: pinned stage, logo zooms in, wordmark takes over) ---- */
+  .hero-scrub{position:relative;}
+  .scrub .hero-scrub{height:200vh;}
+  @media (min-width:900px){ .scrub .hero-scrub{height:260vh;} }
+
+  .hero-stage{
     position:relative;padding:min(14vw,120px) 20px 90px;text-align:center;overflow:hidden;
-    display:flex;flex-direction:column;align-items:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;
   }
-  .hero::before{
-    content:"";position:absolute;inset:-20% -10% auto -10%;height:640px;z-index:0;pointer-events:none;
+  .scrub .hero-stage{position:sticky;top:0;height:100vh;padding-top:0;padding-bottom:70px;}
+  .hero-glow{
+    position:absolute;inset:-20% -10% auto -10%;height:640px;z-index:0;pointer-events:none;
     background:
       radial-gradient(480px 320px at var(--mx,30%) var(--my,20%), var(--blue-soft), transparent 60%),
       radial-gradient(420px 300px at 82% 65%, var(--pink-soft), transparent 60%);
   }
-  .hero-content{position:relative;z-index:1;max-width:820px;}
-  .hero-logo{
-    width:104px;height:104px;border-radius:50%;margin:0 auto 26px;
+  .hs-logo{
+    width:104px;height:104px;border-radius:50%;margin:0 auto 26px;position:relative;z-index:1;
     border:2px solid var(--line-strong);box-shadow:0 0 60px -8px var(--blue-soft);
   }
+  .scrub .hs-logo{transform:scale(var(--logoScale,1)) rotate(var(--logoRot,0deg));opacity:var(--logoOpacity,1);}
   .eyebrow{
     font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
     color:var(--blue);margin:0 0 18px;
   }
-  .hero h1{
+  .hs-word{position:relative;z-index:1;max-width:820px;}
+  .scrub .hs-word{opacity:var(--wordOpacity,1);transform:translateY(var(--wordY,0px));}
+  .hero-stage h1{
     font-family:var(--font-display);font-weight:900;line-height:.92;letter-spacing:-.01em;
     font-size:clamp(44px,11vw,116px);margin:0;text-wrap:balance;
     background:linear-gradient(180deg,#ffffff, #c9d6e3 70%, #93a6b7);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
-  .hero h2.sub{
+  .hero-stage h2.sub{
     font-family:var(--font-display);font-weight:800;font-size:clamp(20px,4.4vw,38px);margin:6px 0 26px;
     color:var(--pink);letter-spacing:-.01em;
   }
-  .hero p.lede{color:var(--ink-dim);font-size:16.5px;max-width:56ch;margin:0 auto 34px;}
+  .hero-stage p.lede{color:var(--ink-dim);font-size:16.5px;max-width:56ch;margin:0 auto 34px;}
   .hero-ctas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
   .scroll-cue{
-    margin-top:64px;display:flex;flex-direction:column;align-items:center;gap:8px;
+    position:relative;z-index:1;margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;
     font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
   }
+  .scrub .scroll-cue{opacity:var(--cueOpacity,1);}
   .chev{animation:bob 1.8s ease-in-out infinite;}
   @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+  @media (prefers-reduced-motion:reduce){ .chev{animation:none;} }
 
   /* ---- marquee ---- */
   .marquee-band{
@@ -160,13 +169,20 @@
     border:1px solid var(--line-strong);border-radius:100px;padding:7px 14px;color:var(--ink-dim);
   }
 
-  /* weekly */
-  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;}
-  @media (max-width:900px){ .week-grid{grid-template-columns:repeat(4,1fr);} }
-  @media (max-width:520px){ .week-grid{grid-template-columns:repeat(2,1fr);} }
+  /* weekly — normal wrapping grid by default; becomes a pinned horizontal scrub filmstrip under .scrub */
+  .week-scrub{position:relative;}
+  .scrub .week-scrub{height:190vh;}
+  @media (min-width:900px){ .scrub .week-scrub{height:240vh;} }
+
+  .week-stage{}
+  .scrub .week-stage{position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden;}
+
+  .week-track{display:flex;flex-wrap:wrap;gap:12px;}
+  .scrub .week-track{flex-wrap:nowrap;gap:20px;padding-inline:6vw;will-change:transform;}
+
   .day{
     background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 14px;
-    display:flex;flex-direction:column;gap:10px;min-height:168px;
+    display:flex;flex-direction:column;gap:10px;min-height:168px;flex:1 1 150px;min-width:150px;
     transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
   .day:hover{transform:translateY(-5px);border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
@@ -174,11 +190,19 @@
   .day .dt{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c);}
   .day .de{font-size:12.5px;color:var(--ink-dim);flex:1;}
   .day.off{opacity:.5;}
+  .scrub .day{
+    flex:0 0 clamp(230px,62vw,340px);min-height:300px;padding:34px 28px;justify-content:center;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.6);
+  }
+  .scrub .day .dd{font-size:12.5px;}
+  .scrub .day .dt{font-size:clamp(26px,6vw,34px);}
+  .scrub .day .de{font-size:14.5px;}
 
   /* platforms */
   .plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
   .plat-grid.two{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto;}
   @media (max-width:820px){ .plat-grid{grid-template-columns:1fr;} }
+  @media (max-width:600px){ .plat-grid.two{grid-template-columns:1fr;} }
 
   /* youtube — deliberately not a third harbor card */
   .yt-panel{
@@ -265,20 +289,23 @@
 </header>
 
 <main id="top">
-  <section class="hero" id="hero">
-    <div class="hero-content">
-      <img class="hero-logo" src="assets/logo_cat.png" alt="Kaptan Qedy logosu">
-      <div class="eyebrow">Twitch · YouTube · Kick · Türkçe Oynanış</div>
-      <h1>KAPTAN QEDY</h1>
-      <h2 class="sub">GERİ DÖNÜYOR</h2>
-      <p class="lede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
-      <div class="hero-ctas">
-        <a class="btn primary" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch'te İzle</a>
-        <a class="btn ghost" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">YouTube</a>
-        <a class="btn ghost" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick</a>
+  <section class="hero-scrub" id="hero">
+    <div class="hero-stage" id="heroStage">
+      <div class="hero-glow"></div>
+      <img class="hs-logo" id="hsLogo" src="assets/logo_cat.png" alt="Kaptan Qedy logosu">
+      <div class="hs-word" id="hsWord">
+        <div class="eyebrow">Twitch · YouTube · Kick · Türkçe Oynanış</div>
+        <h1>KAPTAN QEDY</h1>
+        <h2 class="sub">GERİ DÖNÜYOR</h2>
+        <p class="lede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
+        <div class="hero-ctas">
+          <a class="btn primary" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch'te İzle</a>
+          <a class="btn ghost" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">YouTube</a>
+          <a class="btn ghost" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick</a>
+        </div>
       </div>
+      <div class="scroll-cue" id="hsCue"><span>Kaydır</span><span class="chev">▾</span></div>
     </div>
-    <div class="scroll-cue"><span>Kaydır</span><span class="chev">▾</span></div>
   </section>
 
   <div class="marquee-band" aria-hidden="true">
@@ -313,14 +340,18 @@
         <h2>Her gün ayrı bir rota</h2>
         <p>Pazartesi'den Cuma'ya her akşam 20:30. Cumartesi dinleniyoruz, Pazar sadece YouTube.</p>
       </div>
-      <div class="week-grid reveal">
-        <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
-        <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
-        <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
-        <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
-        <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
-        <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
-        <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
+    </div>
+    <div class="week-scrub">
+      <div class="week-stage" id="weekStage">
+        <div class="week-track" id="weekTrack">
+          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
+          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
+          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
+          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
+          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
+          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
+          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
+        </div>
       </div>
     </div>
   </section>
@@ -397,19 +428,60 @@
 <script>
 (function(){
   document.documentElement.classList.add('js');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // scroll-scrub (pinned hero zoom, pinned week filmstrip) is skipped entirely for
+  // reduced-motion — those sections stay in their normal, fully-visible static layout.
+  if(!reduced) document.documentElement.classList.add('scrub');
 
-  // scroll progress
+  function smoothstep(e0,e1,p){ var t = Math.min(1, Math.max(0, (p - e0) / (e1 - e0))); return t*t*(3-2*t); }
+  function clamp01(v){ return Math.min(1, Math.max(0, v)); }
+
   var bar = document.getElementById('progress');
-  function onScroll(){
+  function updateProgress(){
     var h = document.documentElement;
     var pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
     bar.style.width = (isFinite(pct) ? pct : 0) + '%';
   }
+
+  var heroSection = document.querySelector('.hero-scrub');
+  var heroStage = document.getElementById('heroStage');
+  function updateHero(){
+    if(reduced || !heroSection) return;
+    var rect = heroSection.getBoundingClientRect();
+    var total = heroSection.offsetHeight - window.innerHeight;
+    var p = total > 0 ? clamp01(-rect.top / total) : 0;
+    heroStage.style.setProperty('--logoScale', (1 + smoothstep(0,0.45,p) * 2.4).toFixed(3));
+    heroStage.style.setProperty('--logoRot', (smoothstep(0,0.45,p) * -6).toFixed(2) + 'deg');
+    heroStage.style.setProperty('--logoOpacity', (1 - smoothstep(0.5,0.8,p)).toFixed(3));
+    var wp = smoothstep(0.28,0.55,p);
+    heroStage.style.setProperty('--wordOpacity', wp.toFixed(3));
+    heroStage.style.setProperty('--wordY', ((1 - wp) * 26).toFixed(1) + 'px');
+    heroStage.style.setProperty('--cueOpacity', (1 - smoothstep(0,0.12,p)).toFixed(3));
+  }
+
+  var weekSection = document.querySelector('.week-scrub');
+  var weekStage = document.getElementById('weekStage');
+  var weekTrack = document.getElementById('weekTrack');
+  function updateWeek(){
+    if(reduced || !weekSection) return;
+    var rect = weekSection.getBoundingClientRect();
+    var total = weekSection.offsetHeight - window.innerHeight;
+    var p = total > 0 ? clamp01(-rect.top / total) : 0;
+    var maxX = Math.max(0, weekTrack.scrollWidth - weekStage.clientWidth);
+    weekTrack.style.transform = 'translateX(' + (-p * maxX) + 'px)';
+  }
+
+  var ticking = false;
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){ updateProgress(); updateHero(); updateWeek(); ticking = false; });
+  }
   document.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
+  window.addEventListener('resize', onScroll);
+  updateProgress(); updateHero(); updateWeek();
 
   // reveal on scroll
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if('IntersectionObserver' in window && !reduced){
     var io = new IntersectionObserver(function(entries){
       entries.forEach(function(e){
@@ -421,13 +493,12 @@
     document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
   }
 
-  // hero cursor glow (pointer devices only)
-  var hero = document.getElementById('hero');
+  // hero cursor glow (pointer devices only — no-op on the phones most viewers use)
   if(window.matchMedia('(pointer: fine)').matches){
-    hero.addEventListener('mousemove', function(e){
-      var r = hero.getBoundingClientRect();
-      hero.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
-      hero.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+    heroStage.addEventListener('mousemove', function(e){
+      var r = heroStage.getBoundingClientRect();
+      heroStage.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+      heroStage.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
     });
   }
 
