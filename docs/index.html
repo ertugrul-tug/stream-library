@@ -255,7 +255,14 @@
   }
   .day:hover{transform:translateY(-5px) perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
   .day .dd{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);}
-  .day .dtime{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .day .dtime{
+    display:flex;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);
+    font-variant-numeric:tabular-nums;letter-spacing:0;
+  }
+  .day .dtime span{position:relative;padding-right:13px;}
+  .day .dtime span:not(:last-child)::after{
+    content:'';position:absolute;right:4px;top:50%;width:5px;height:1px;background:var(--ink-faint);opacity:.5;
+  }
   .day .dt{font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--c);margin-top:4px;overflow-wrap:break-word;word-break:break-word;}
   .day .de{font-size:13px;color:var(--ink-dim);flex:1;}
   .day.off{opacity:.5;}
@@ -455,13 +462,13 @@
     <div class="week-scrub">
       <div class="week-stage" id="weekStage">
         <div class="week-track stagger" id="weekTrack">
-          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dtime">20:30 – 23:30</div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
-          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dtime">20:30 – 23:30</div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
-          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dtime">20:30 – 23:30</div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
-          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dtime">20:30 – 23:30</div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
-          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dtime">20:30 – geç saatlere</div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
-          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dtime">—</div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
-          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dtime">—</div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
+          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
+          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
+          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
+          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
+          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>geç</span></div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
+          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dtime"><span>—</span></div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
+          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dtime"><span>—</span></div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
         </div>
       </div>
     </div>
