@@ -177,7 +177,28 @@
 
   /* platforms */
   .plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .plat-grid.two{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto;}
   @media (max-width:820px){ .plat-grid{grid-template-columns:1fr;} }
+
+  /* youtube — deliberately not a third harbor card */
+  .yt-panel{
+    display:flex;align-items:center;justify-content:space-between;gap:32px;text-decoration:none;color:var(--ink);
+    background:linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    border:1px solid var(--line);border-left:3px solid var(--pink);border-radius:22px;
+    padding:40px 44px;transition:transform .25s ease, border-color .25s ease;
+  }
+  .yt-panel:hover{transform:translateY(-4px);border-color:var(--pink);}
+  .yt-panel-copy{max-width:520px;}
+  .yt-panel-copy h2{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,3.6vw,32px);margin:6px 0 12px;text-wrap:balance;}
+  .yt-panel-copy p{color:var(--ink-dim);font-size:14.5px;margin:0 0 22px;}
+  .yt-panel-stats{display:flex;gap:28px;flex:none;}
+  .yt-panel-stats > div{display:flex;flex-direction:column;align-items:center;}
+  .yt-figure{font-family:var(--font-mono);font-size:34px;font-weight:600;}
+  .yt-label{font-size:12px;color:var(--ink-faint);}
+  @media (max-width:720px){
+    .yt-panel{flex-direction:column;align-items:flex-start;padding:32px 26px;}
+    .yt-panel-stats{align-self:stretch;justify-content:space-around;}
+  }
   .plat-card{
     position:relative;display:block;text-decoration:none;color:var(--ink);
     background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 26px;
@@ -307,24 +328,17 @@
   <section id="limanlar">
     <div class="wrap">
       <div class="sec-head reveal">
-        <div class="eyebrow">Üç Liman</div>
+        <div class="eyebrow">İki Liman</div>
         <h2>Nerede rahatsan orada</h2>
-        <p>Aynı yayın, üç güverte. Nerede izlersen izle, mürettebat aynı.</p>
+        <p>Aynı yayın, iki güverte. Nerede izlersen izle, mürettebat aynı.</p>
       </div>
-      <div class="plat-grid reveal">
+      <div class="plat-grid two reveal">
         <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">
           <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Twitch</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">2.8K</div>
           <div class="plat-label">takipçi</div>
           <div class="plat-desc">Ana üs. Canlı, gerçek zamanlı, günlük.</div>
-        </a>
-        <a class="plat-card" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">
-          <div class="plat-tag" style="--tagc:var(--blue)"><span class="dot"></span>Kendine Has İçerik</div>
-          <div class="plat-top"><span class="plat-name">YouTube</span><span class="plat-arrow">↗</span></div>
-          <div class="plat-figure">491</div>
-          <div class="plat-label">abone · 264 video</div>
-          <div class="plat-desc">Yayının tekrarı değil — kurgulanmış bölümler, kendi ritminde.</div>
         </a>
         <a class="plat-card" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">
           <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
@@ -334,6 +348,23 @@
           <div class="plat-desc">Twitch ile aynı anda, aynı güvertede.</div>
         </a>
       </div>
+    </div>
+  </section>
+
+  <section id="youtube">
+    <div class="wrap">
+      <a class="yt-panel reveal" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">
+        <div class="yt-panel-copy">
+          <div class="plat-tag" style="--tagc:var(--pink)"><span class="dot"></span>Kendine Has İçerik</div>
+          <h2>YouTube ayrı bir güverte</h2>
+          <p>Canlı yayının tekrarı değil. Kurgulanmış bölümler, kendi ritminde — 264 videoluk arşiv büyümeye devam ediyor.</p>
+          <span class="btn primary">YouTube'u Aç ↗</span>
+        </div>
+        <div class="yt-panel-stats">
+          <div><span class="yt-figure">491</span><span class="yt-label">abone</span></div>
+          <div><span class="yt-figure">264</span><span class="yt-label">video</span></div>
+        </div>
+      </a>
     </div>
   </section>
 
