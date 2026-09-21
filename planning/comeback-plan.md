@@ -35,7 +35,7 @@ _Kaynak: 2026-09-21 tarihinde yapılan platform incelemesi_
 - X/Twitter: @yaramasa_adam
 - Discord: discord.gg/cpB6phwYUs
 - Spotify artist sayfası
-- LinkedIn, Steam (KaptanQedy, 624 oyunluk kütüphane: [steam_library.json](steam_library.json))
+- LinkedIn, Steam (KaptanQedy, 624 oyunluk kütüphane: [steam-library.json](../data/steam-library.json))
 
 Not: Kick linki şu an instabio'da eksik, eklenmeli.
 
@@ -222,7 +222,7 @@ Segment şablonu için bkz. bölüm 4.
 
 ## 12. Metrik Takibi
 
-Ayrı dosyada tutuluyor (bu dosyayı şişirmemek için): [metrics_log.md](metrics_log.md) — haftalık takipçi/abone sayıları ve notlar için.
+Ayrı dosyada tutuluyor (bu dosyayı şişirmemek için): [metrics-log.md](metrics-log.md) — haftalık takipçi/abone sayıları ve notlar için.
 
 ## 13. Riskler & Sürdürülebilirlik
 

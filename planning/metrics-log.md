@@ -1,6 +1,6 @@
 # KaptanQedy — Haftalık Metrik Takibi
 
-Her hafta (ör. Pazar akşamı) doldurulacak. Amaç: hangi içerik/taktiğin işe yaradığını görmek, 3 aylık hedefleri (bkz. [KaptanQedy_Comeback.md](KaptanQedy_Comeback.md) bölüm 2) gerçek verilerle karşılaştırmak.
+Her hafta (ör. Pazar akşamı) doldurulacak. Amaç: hangi içerik/taktiğin işe yaradığını görmek, 3 aylık hedefleri (bkz. [comeback-plan.md](comeback-plan.md) bölüm 2) gerçek verilerle karşılaştırmak.
 
 | Hafta | Tarih aralığı | Twitch takipçi | YouTube abone | Kick takipçi | Not (ne değişti, ne denendi, en iyi anlar) |
 |---|---|---|---|---|---|
