@@ -63,16 +63,56 @@
   .nav-links{display:flex;align-items:center;gap:22px;}
   .nav-links a{font-size:13px;font-weight:600;color:var(--ink-dim);text-decoration:none;}
   .nav-links a:hover{color:var(--ink);}
+  .nav-actions{display:flex;align-items:center;gap:10px;}
   .btn{
     display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:700;font-size:13.5px;
-    padding:10px 18px;border-radius:100px;text-decoration:none;white-space:nowrap;
+    padding:10px 18px;border-radius:100px;text-decoration:none;white-space:nowrap;background:none;appearance:none;
     border:1.5px solid var(--line-strong);color:var(--ink);transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    cursor:pointer;font:inherit;
   }
   .btn:hover{transform:translateY(-2px);}
   .btn.primary{background:var(--blue);border-color:var(--blue);color:#04121a;box-shadow:0 0 0 0 var(--blue-soft);}
   .btn.primary:hover{box-shadow:0 8px 28px -6px rgba(34,174,240,.55);}
   .btn.ghost:hover{border-color:var(--pink);color:var(--pink);}
-  @media (max-width:720px){ .nav-links{display:none;} }
+  .btn.small{padding:9px 14px;font-size:12.5px;}
+  @media (max-width:720px){
+    .nav-links{display:none;}
+    .nav-actions{display:none;}
+  }
+
+  /* mobile thumb-zone action bar — actions live at the bottom on phones, not the top */
+  .mobile-bar{display:none;}
+  @media (max-width:720px){
+    .mobile-bar{
+      display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:60;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+      background:rgba(7,9,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border-top:1px solid var(--line);
+    }
+    .mobile-bar .btn{flex:1;justify-content:center;}
+    body{padding-bottom:64px;}
+  }
+
+  /* live-watch dialog */
+  .live-dialog{
+    background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:20px;
+    padding:0;width:min(380px,90vw);font-family:var(--font-body);
+  }
+  .live-dialog::backdrop{background:rgba(4,5,7,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+  .ld-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 14px;}
+  .ld-head h3{margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;}
+  .ld-close{background:none;border:none;color:var(--ink-faint);font-size:15px;cursor:pointer;padding:4px;line-height:1;}
+  .ld-close:hover{color:var(--ink);}
+  .ld-options{display:flex;flex-direction:column;gap:10px;padding:0 18px 20px;}
+  .ld-opt{
+    display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);
+    border:1.5px solid var(--line-strong);border-radius:14px;padding:14px 16px;transition:border-color .2s ease,transform .2s ease;
+  }
+  .ld-opt:hover{transform:translateY(-2px);border-color:var(--c);}
+  .ld-opt .ld-dot{width:11px;height:11px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent);}
+  .ld-opt strong{display:block;font-size:14.5px;}
+  .ld-opt small{display:block;font-size:12px;color:var(--ink-faint);font-weight:500;}
+  .ld-opt .ld-arrow{margin-left:auto;color:var(--ink-faint);}
 
   /* ---- hero (scroll-scrub: pinned stage, logo zooms in, wordmark takes over) ---- */
   .hero-scrub{position:relative;}
@@ -112,7 +152,6 @@
     color:var(--pink);letter-spacing:-.01em;
   }
   .hero-stage p.lede{color:var(--ink-dim);font-size:16.5px;max-width:56ch;margin:0 auto 34px;}
-  .hero-ctas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
   .scroll-cue{
     position:relative;z-index:1;margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;
     font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
@@ -301,12 +340,38 @@
       <a href="#program">Program</a>
       <a href="#murettebat">Mürettebat</a>
       <a href="#limanlar">Limanlar</a>
-      <a href="kutuphane/">Kütüphane</a>
       <a href="captain-on-the-bridge/">Seyir Defteri</a>
     </nav>
-    <a class="btn primary" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Canlı İzle</a>
+    <div class="nav-actions">
+      <a class="btn ghost small" href="kutuphane/">Kütüphane</a>
+      <button type="button" class="btn primary" data-watch-live>Canlı İzle</button>
+    </div>
   </div>
 </header>
+
+<dialog id="liveDialog" class="live-dialog">
+  <div class="ld-head">
+    <h3>Nerede izlersin?</h3>
+    <button type="button" class="ld-close" id="ldClose" aria-label="Kapat">✕</button>
+  </div>
+  <div class="ld-options">
+    <a class="ld-opt" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener" style="--c:#9146FF">
+      <span class="ld-dot"></span>
+      <span><strong>Twitch</strong><small>Ana üs, 2.8K mürettebat</small></span>
+      <span class="ld-arrow">↗</span>
+    </a>
+    <a class="ld-opt" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener" style="--c:#53FC18">
+      <span class="ld-dot"></span>
+      <span><strong>Kick</strong><small>Aynı yayın, farklı güverte</small></span>
+      <span class="ld-arrow">↗</span>
+    </a>
+  </div>
+</dialog>
+
+<div class="mobile-bar">
+  <a class="btn ghost" href="kutuphane/">Kütüphane</a>
+  <button type="button" class="btn primary" data-watch-live>Canlı İzle</button>
+</div>
 
 <main id="top">
   <section class="hero-scrub" id="hero">
@@ -318,11 +383,6 @@
         <h1>KAPTAN QEDY</h1>
         <h2 class="sub">GERİ DÖNÜYOR</h2>
         <p class="lede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
-        <div class="hero-ctas">
-          <a class="btn primary" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch'te İzle</a>
-          <a class="btn ghost" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">YouTube</a>
-          <a class="btn ghost" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick</a>
-        </div>
       </div>
       <div class="scroll-cue" id="hsCue"><span>Kaydır</span><span class="chev">▾</span></div>
     </div>
@@ -468,6 +528,19 @@
   function smoothstep(e0,e1,p){ var t = Math.min(1, Math.max(0, (p - e0) / (e1 - e0))); return t*t*(3-2*t); }
   function clamp01(v){ return Math.min(1, Math.max(0, v)); }
 
+  // "Canlı İzle" → pick Twitch or Kick (native <dialog>, falls back to a direct Twitch link if unsupported)
+  var liveDialog = document.getElementById('liveDialog');
+  document.querySelectorAll('[data-watch-live]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(liveDialog.showModal){ liveDialog.showModal(); }
+      else { window.open('https://www.twitch.tv/kaptanqedy', '_blank'); }
+    });
+  });
+  if(liveDialog.showModal){
+    document.getElementById('ldClose').addEventListener('click', function(){ liveDialog.close(); });
+    liveDialog.addEventListener('click', function(e){ if(e.target === liveDialog) liveDialog.close(); });
+  }
+
   var bar = document.getElementById('progress');
   function updateProgress(){
     var h = document.documentElement;
@@ -482,13 +555,15 @@
     var rect = heroSection.getBoundingClientRect();
     var total = heroSection.offsetHeight - window.innerHeight;
     var p = total > 0 ? clamp01(-rect.top / total) : 0;
-    heroStage.style.setProperty('--logoScale', (1 + smoothstep(0,0.45,p) * 2.4).toFixed(3));
-    heroStage.style.setProperty('--logoRot', (smoothstep(0,0.45,p) * -6).toFixed(2) + 'deg');
-    heroStage.style.setProperty('--logoOpacity', (1 - smoothstep(0.5,0.8,p)).toFixed(3));
-    var wp = smoothstep(0.28,0.55,p);
+    // logo zooms up to fill (and blow past) the screen, then is fully gone before the wordmark starts —
+    // sequential, not overlapping, so nothing ever fights for the same pixels.
+    heroStage.style.setProperty('--logoScale', (1 + smoothstep(0,0.38,p) * 11).toFixed(3));
+    heroStage.style.setProperty('--logoRot', (smoothstep(0,0.38,p) * -10).toFixed(2) + 'deg');
+    heroStage.style.setProperty('--logoOpacity', (1 - smoothstep(0.30,0.42,p)).toFixed(3));
+    var wp = smoothstep(0.46,0.68,p);
     heroStage.style.setProperty('--wordOpacity', wp.toFixed(3));
     heroStage.style.setProperty('--wordY', ((1 - wp) * 26).toFixed(1) + 'px');
-    heroStage.style.setProperty('--cueOpacity', (1 - smoothstep(0,0.12,p)).toFixed(3));
+    heroStage.style.setProperty('--cueOpacity', (1 - smoothstep(0,0.1,p)).toFixed(3));
   }
 
   var weekSection = document.querySelector('.week-scrub');
