@@ -189,6 +189,14 @@
     background:radial-gradient(220px 140px at 85% -10%, var(--blue-soft), transparent 70%);
   }
   .plat-card:hover::before{opacity:1;}
+  .plat-tag{
+    display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;position:relative;
+  }
+  .plat-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--tagc,var(--ink-faint));}
+  .plat-tag.live .dot{background:#ff4d5e;box-shadow:0 0 0 0 rgba(255,77,94,.55);animation:live-pulse 1.8s ease-out infinite;}
+  @keyframes live-pulse{0%{box-shadow:0 0 0 0 rgba(255,77,94,.5);}70%{box-shadow:0 0 0 7px rgba(255,77,94,0);}100%{box-shadow:0 0 0 0 rgba(255,77,94,0);}}
+  @media (prefers-reduced-motion:reduce){ .plat-tag.live .dot{animation:none;} }
   .plat-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;position:relative;}
   .plat-name{font-family:var(--font-display);font-weight:800;font-size:19px;}
   .plat-arrow{font-size:18px;color:var(--ink-faint);transition:transform .25s ease, color .25s ease;}
@@ -305,22 +313,25 @@
       </div>
       <div class="plat-grid reveal">
         <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">
+          <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Twitch</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">2.8K</div>
           <div class="plat-label">takipçi</div>
           <div class="plat-desc">Ana üs. Canlı, gerçek zamanlı, günlük.</div>
         </a>
         <a class="plat-card" href="https://www.youtube.com/@kaptanqedy" target="_blank" rel="noopener">
+          <div class="plat-tag" style="--tagc:var(--blue)"><span class="dot"></span>Kendine Has İçerik</div>
           <div class="plat-top"><span class="plat-name">YouTube</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">491</div>
           <div class="plat-label">abone · 264 video</div>
-          <div class="plat-desc">Bölüm bölüm arşiv, haftalık highlight.</div>
+          <div class="plat-desc">Yayının tekrarı değil — kurgulanmış bölümler, kendi ritminde.</div>
         </a>
         <a class="plat-card" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">
+          <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Kick</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">178</div>
           <div class="plat-label">takipçi</div>
-          <div class="plat-desc">Yeni liman, aynı yayın.</div>
+          <div class="plat-desc">Twitch ile aynı anda, aynı güvertede.</div>
         </a>
       </div>
     </div>
