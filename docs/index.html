@@ -204,10 +204,10 @@
     background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 26px;
     overflow:hidden;transition:transform .25s ease, border-color .25s ease;
   }
-  .plat-card:hover{transform:translateY(-6px);border-color:var(--blue);}
+  .plat-card:hover{transform:translateY(-6px);border-color:var(--c,var(--blue));}
   .plat-card::before{
     content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s ease;
-    background:radial-gradient(220px 140px at 85% -10%, var(--blue-soft), transparent 70%);
+    background:radial-gradient(220px 140px at 85% -10%, var(--c-soft,var(--blue-soft)), transparent 70%);
   }
   .plat-card:hover::before{opacity:1;}
   .plat-tag{
@@ -215,13 +215,13 @@
     letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;position:relative;
   }
   .plat-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--tagc,var(--ink-faint));}
-  .plat-tag.live .dot{background:#ff4d5e;box-shadow:0 0 0 0 rgba(255,77,94,.55);animation:live-pulse 1.8s ease-out infinite;}
-  @keyframes live-pulse{0%{box-shadow:0 0 0 0 rgba(255,77,94,.5);}70%{box-shadow:0 0 0 7px rgba(255,77,94,0);}100%{box-shadow:0 0 0 0 rgba(255,77,94,0);}}
+  .plat-tag.live .dot{box-shadow:0 0 0 0 var(--tagc-glow,rgba(255,77,94,.55));animation:live-pulse 1.8s ease-out infinite;}
+  @keyframes live-pulse{0%{box-shadow:0 0 0 0 var(--tagc-glow,rgba(255,77,94,.5));}70%{box-shadow:0 0 0 7px rgba(0,0,0,0);}100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}}
   @media (prefers-reduced-motion:reduce){ .plat-tag.live .dot{animation:none;} }
   .plat-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;position:relative;}
   .plat-name{font-family:var(--font-display);font-weight:800;font-size:19px;}
   .plat-arrow{font-size:18px;color:var(--ink-faint);transition:transform .25s ease, color .25s ease;}
-  .plat-card:hover .plat-arrow{transform:translate(4px,-4px);color:var(--blue);}
+  .plat-card:hover .plat-arrow{transform:translate(4px,-4px);color:var(--c,var(--blue));}
   .plat-figure{font-family:var(--font-mono);font-size:30px;font-weight:600;position:relative;}
   .plat-label{font-size:12px;color:var(--ink-faint);margin-bottom:14px;position:relative;}
   .plat-desc{font-size:13.5px;color:var(--ink-dim);position:relative;}
@@ -333,15 +333,15 @@
         <p>Aynı yayın, iki güverte. Nerede izlersen izle, mürettebat aynı.</p>
       </div>
       <div class="plat-grid two reveal">
-        <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">
-          <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
+        <a class="plat-card" href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener" style="--c:#9146FF;--c-soft:rgba(145,70,255,.14);--tagc:#9146FF;--tagc-glow:rgba(145,70,255,.55)">
+          <div class="plat-tag live"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Twitch</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">2.8K</div>
           <div class="plat-label">takipçi</div>
           <div class="plat-desc">Ana üs. Canlı, gerçek zamanlı, günlük.</div>
         </a>
-        <a class="plat-card" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">
-          <div class="plat-tag live" style="--tagc:#ff4d5e"><span class="dot"></span>Canlı Yayın</div>
+        <a class="plat-card" href="https://kick.com/kaptanqedy" target="_blank" rel="noopener" style="--c:#53FC18;--c-soft:rgba(83,252,24,.14);--tagc:#53FC18;--tagc-glow:rgba(83,252,24,.55)">
+          <div class="plat-tag live"><span class="dot"></span>Canlı Yayın</div>
           <div class="plat-top"><span class="plat-name">Kick</span><span class="plat-arrow">↗</span></div>
           <div class="plat-figure">178</div>
           <div class="plat-label">takipçi</div>
