@@ -247,3 +247,5 @@ Ayrı dosyada tutuluyor (bu dosyayı şişirmemek için): [metrics-log.md](metri
 - [x] Lansman öncesi Instagram story hatırlatması kuruldu — 22 Eylül 19:30'da otomatik bildirim (zamanlanmış görev: `instagram-story-launch-reminder`)
 - [ ] Instagram için tek "yayıncı" hesabına karar verilmesi — kullanıcıya bırakıldı
 - [ ] İlk ay sonu (yaklaşık 20 Ekim) plan check-in'i — metrik tablosu doldurulup 3 aylık hedefler gözden geçirilmeli
+- [ ] **Görsel yön notu** — profil anketinde (bkz. [profil-anketi.md](profil-anketi.md) soru 14) "renkli/enerjik + retro/pixel" tercih edildi; site şu an koyu/gizemli gece denizi temasında. Şimdilik siteye dokunulmuyor, sadece not — ileride bir rebrand/redesign konuşulursa buradan devam edilebilir.
+- [ ] **3 aylık kişisel hedef notu** — profil anketinde (soru 16) "insanlara kendi geliştirdiği bir oyunu test ettirmek" hedefi belirtildi. Şu an bir aksiyon gerekmiyor, ileride ayrı bir proje/duyuru olarak gündeme gelebilir.
