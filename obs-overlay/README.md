@@ -57,11 +57,13 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 ## İnteraktif yayın paketi
 
-show-bridge.py, Streamer.bot WebSocket sunucusundan Twitch ve Kick olaylarını alıp sahneler arasında ortak bir yayın durumu tutar. Köprü yalnızca bu bilgisayarda 127.0.0.1:8765 adresinde çalışır. Streamer.bot için kullanılan 127.0.0.1:8080 portunu değiştirme. kumanda.html tarayıcıda açılan kontrol ekranıdır; OBS kaynağı değildir. Köprü yoksa mevcut ortak sohbet ve bildirimler doğrudan Streamer.bot üzerinden çalışmaya devam eder; yeni interaktif alanlar canlı veri alamaz.
+show-bridge.py, Streamer.bot WebSocket sunucusundan Twitch ve Kick olaylarını alıp sahneler arasında ortak bir yayın durumu tutar. Köprünün WebSocket'i (8765) ve kumanda.html'i servis eden HTTP sunucusu (8766) artık bu bilgisayarın tüm ağ arayüzlerinde dinliyor — yani **aynı wifi'deki telefon veya tabletten de** kumandayı açabilirsin. Streamer.bot için kullanılan 127.0.0.1:8080 portunu değiştirme. kumanda.html OBS kaynağı değildir, sadece kendi tarayıcında (bilgisayar veya telefon) açık tutulur. Köprü yoksa mevcut ortak sohbet ve bildirimler doğrudan Streamer.bot üzerinden çalışmaya devam eder; yeni interaktif alanlar canlı veri alamaz.
+
+**Güvenlik notu:** Bu, kumandayı ev ağındaki herkesin erişebileceği hale getirir (internete değil, sadece aynı wifi'ye açık). Şu anki aksiyonlar (oyun adı, rota, anons, öne çıkanlar) zararsız; ileride timeout/ban gibi moderasyon aksiyonları eklenirse önce bir PIN/şifre kontrolü konulmalı.
 
 1. Bir kere: python -m pip install -r obs-overlay/requirements.txt
-2. Yayından önce start-show.cmd dosyasına çift tıkla veya python obs-overlay/show-bridge.py çalıştır. Terminal penceresini açık bırak. Streamer.bot WebSocket Server da açık olmalı. Köprü bağlantı kurulana kadar yeniden dener.
-3. obs-overlay/kumanda.html dosyasını tarayıcıda aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz.
+2. Yayından önce start-show.cmd dosyasına çift tıkla veya python obs-overlay/show-bridge.py çalıştır. Açılan "Qedy Show Bridge" penceresi telefon için kullanılacak LAN adresini yazdırır, o pencereyi açık bırak. Streamer.bot WebSocket Server da açık olmalı. Köprü bağlantı kurulana kadar yeniden dener.
+3. Kumanda otomatik açılır (http://127.0.0.1:8766/kumanda.html). Telefondan/tabletten aynı wifi'deyken "Qedy Show Bridge" penceresindeki `http://<LAN-IP>:8766/kumanda.html` adresini aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz.
 4. Sohbette !rota 1, !rota 2, !rota 3 oyları iki platformdan toplanır. Her kullanıcı her platformda bir güncel oya sahiptir; yeni oy önceki oyunu değiştirir. Kumandada mesajı “Anons yap” ile seçip ekranda öne çıkarabilirsin. “Öne çıkan anlar” alanına yayın sırasında kısa notlar ekleyebilirsin.
 5. Açılış sahnesi sohbete yazanları radar listesinde gösterir. Mola sahnesi oyun, dönüş notu ve öne çıkan anları; kapanış sahnesi mesaj, takip, abonelik sayılarını ve notları gösterir. Bunlar köprü başladıktan sonra gelen olaylardır. Geçmiş platform istatistikleri veya otomatik Twitch klipleri içe aktarılmaz.
 

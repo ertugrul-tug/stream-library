@@ -2,12 +2,26 @@
 
 Run: python show-bridge.py  (requires websockets>=14,<17)
 Streamer.bot stays on ws://127.0.0.1:8080/; this server uses 8765.
+
+Also serves this folder over plain HTTP on port 8766, bound to the
+whole LAN (not just this PC) — so kumanda.html can be opened from a
+phone or tablet on the same wifi, not only from this computer.
+
+Security note: this puts the control panel's WebSocket (8765) and
+static files (8766) on your home network. Anyone on the same wifi
+could reach them. Fine for the read/config actions here (game name,
+routes, spotlight, highlights) — but before adding real moderation
+actions (timeout/ban) on top of this bridge, add a shared PIN check
+first.
 """
 import asyncio
 import json
 import re
-from collections import deque
+import socket
+import threading
 from datetime import datetime
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from websockets.asyncio.client import connect
@@ -17,7 +31,27 @@ ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".show-state.json"
 CONFIG_FILE = ROOT / "show-config.json"
 SB_URL = "ws://127.0.0.1:8080/"
+WS_PORT = 8765
+HTTP_PORT = 8766
 CLIENTS = set()
+
+
+def lan_ip():
+    """Best-effort LAN IP for printing a phone-friendly URL. Never actually sends data."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+def start_static_server():
+    handler = partial(SimpleHTTPRequestHandler, directory=str(ROOT))
+    httpd = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
 
 def clean(value, limit=180):
@@ -171,8 +205,12 @@ async def client(ws):
 
 
 async def main():
-    async with serve(client, "127.0.0.1", 8765, max_size=2**18, origins=[None, "null"]):
-        print("Qedy Show Bridge: ws://127.0.0.1:8765 (yalnızca bu bilgisayar)", flush=True)
+    start_static_server()
+    async with serve(client, "0.0.0.0", WS_PORT, max_size=2**18):
+        ip = lan_ip()
+        print(f"Qedy Show Bridge hazır:", flush=True)
+        print(f"  Bu bilgisayarda : http://127.0.0.1:{HTTP_PORT}/kumanda.html", flush=True)
+        print(f"  Telefon/tablet  : http://{ip}:{HTTP_PORT}/kumanda.html  (aynı wifi'de olmalı)", flush=True)
         await streamer_bot()
 
 
