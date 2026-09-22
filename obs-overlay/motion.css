@@ -11,8 +11,14 @@
 .scene:not(.chat-scene) .emblem:after{border-left-color:var(--motion-accent)}
 .scene:not(.chat-scene) .emblem img{box-shadow:0 0 0 .28vw rgba(5,12,20,.7),0 0 2.7vw rgba(var(--motion-rgb),.52)}
 .scene:not(.chat-scene) .kicker{animation:riseReveal .8s .4s both}
-.scene:not(.chat-scene) h1{animation:riseReveal .95s .55s both}
-.scene:not(.chat-scene) h1 span{background-size:250% 100%;animation:titleLight 11s linear infinite}
+.scene:not(.chat-scene) h1 .word,.chat-scene h1 .word{
+  animation-name:wordIn,titleLight;animation-duration:.7s,11s;
+  animation-timing-function:cubic-bezier(.2,.8,.2,1),linear;
+  animation-fill-mode:both,none;animation-iteration-count:1,infinite;
+}
+.scene:not(.chat-scene) h1 .word:nth-child(1),.chat-scene h1 .word:nth-child(1){animation-delay:.5s,.5s}
+.scene:not(.chat-scene) h1 .word:nth-child(2),.chat-scene h1 .word:nth-child(2){animation-delay:.66s,.66s}
+.scene:not(.chat-scene) h1 .word:nth-child(3),.chat-scene h1 .word:nth-child(3){animation-delay:.82s,.82s}
 .scene:not(.chat-scene) .subtitle{animation:riseReveal .85s .82s both}
 .scene:not(.chat-scene) .pulse-line{position:relative;overflow:hidden;animation:riseReveal .85s 1.05s both,pillGlow 4s 2s ease-in-out infinite}
 .scene:not(.chat-scene) .pulse-line:after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-25deg) translateX(-220%);animation:lightSweep 6s 2.5s ease-in-out infinite}
@@ -36,7 +42,6 @@
 .overlay .alert.show:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.12) 48%,transparent 66%);background-size:220% 100%;animation:alertSheen 1.1s ease-out both;pointer-events:none}
 .overlay .lower .line,.chat-scene .footer .line{background-size:200% 100%;animation:gradientSlide 11s linear infinite}
 .chat-scene .left-copy{animation:slideFromLeft 1s .15s cubic-bezier(.2,.8,.2,1) both}
-.chat-scene .left-copy h1 span{background-size:230% 100%;animation:titleLight 11s linear infinite}
 .chat-scene .camera-bar{overflow:hidden;animation:slideFromLeft .8s .35s both}
 .chat-scene .chat-panel{animation:slideFromRight 1s .25s cubic-bezier(.2,.8,.2,1) both,panelGlow 6s 1.2s ease-in-out infinite}
 .chat-scene .chat-panel .message{animation:riseReveal .45s ease-out both}
@@ -45,6 +50,7 @@
 @keyframes haloBreathe{50%{opacity:.62;transform:scale(1.12)}}
 @keyframes haloTurn{50%{transform:rotate(180deg) scale(1.04)}to{transform:rotate(360deg)}}
 @keyframes enterEmblem{from{opacity:0;transform:translateY(2vw) scale(.78);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes wordIn{from{opacity:0;transform:translateY(.5em) scale(.9);filter:blur(7px)}to{opacity:1;transform:none;filter:blur(0)}}
 @keyframes riseReveal{from{opacity:0;transform:translateY(1.2vw);filter:blur(5px)}to{opacity:1;transform:none;filter:blur(0)}}
 @keyframes fadeReveal{from{opacity:0}to{opacity:1}}
 @keyframes titleLight{0%{background-position:0% 50%}100%{background-position:200% 50%}}

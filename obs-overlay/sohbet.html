@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kaptan Qedy · Sohbet</title><link rel="stylesheet" href="scene.css"><link rel="stylesheet" href="motion.css"><link rel="stylesheet" href="show.css">
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kaptan Qedy · Sohbet</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel="stylesheet" href="scene.css"><link rel="stylesheet" href="motion.css"><link rel="stylesheet" href="show.css">
 <style>
 html,body{background:transparent}
 .scene.chat-scene{background:transparent}
@@ -7,20 +7,20 @@ html,body{background:transparent}
 .scene.chat-scene.preview{background:url("preview-assets/game-scene.png") center/cover no-repeat}
 .scene.chat-scene.preview:after{display:block;background:linear-gradient(90deg,rgba(5,8,14,.35),transparent 48%,rgba(5,8,14,.3))}
 .chat-scene .left-copy{position:absolute;z-index:4;left:7.5%;top:24%;width:40%}
-.left-copy .mini{font-size:1vw;font-weight:850;letter-spacing:.34em;color:var(--blue)}
+.left-copy .mini{font-family:var(--font-mono);font-size:1vw;font-weight:600;letter-spacing:.34em;color:var(--blue)}
 .left-copy h1{margin:1.5vw 0 1vw;font-size:5.2vw;line-height:1.04}
 .left-copy p{margin:0;font-size:1.15vw;color:#d4e0eb;line-height:1.5}
-.camera-bar{position:absolute;z-index:5;left:7.5%;bottom:10%;width:22%;height:4.4%;display:flex;align-items:center;gap:.65vw;padding:0 .9vw;border-left:3px solid var(--blue);border-top:1px solid rgba(34,174,240,.5);border-bottom:1px solid rgba(255,61,127,.45);border-radius:.3vw .8vw .8vw .3vw;background:linear-gradient(90deg,rgba(7,9,13,.75),rgba(14,24,35,.51) 75%,rgba(7,9,13,.12));font-size:.78vw;font-weight:800;letter-spacing:.12em}
+.camera-bar{position:absolute;z-index:5;left:7.5%;bottom:10%;width:22%;height:4.4%;display:flex;align-items:center;gap:.65vw;padding:0 .9vw;border-left:3px solid var(--blue);border-top:1px solid rgba(34,174,240,.5);border-bottom:1px solid rgba(255,61,127,.45);border-radius:.3vw .8vw .8vw .3vw;background:linear-gradient(90deg,rgba(7,9,13,.75),rgba(14,24,35,.51) 75%,rgba(7,9,13,.12));font-family:var(--font-display);font-size:.72vw;font-weight:700;letter-spacing:.06em}
 .camera-bar img{width:2vw;height:2vw;object-fit:cover;border-radius:50%;opacity:.78;animation:float 5s ease-in-out infinite}
-.camera-bar small{margin-left:auto;color:var(--pink);font-size:.58vw}
+.camera-bar small{margin-left:auto;font-family:var(--font-mono);color:var(--pink);font-size:.58vw}
 .chat-panel{position:absolute;z-index:5;right:6%;top:16%;width:42%;height:73%;display:flex;flex-direction:column;border:1px solid rgba(205,234,248,.23);border-radius:1.15vw;background:linear-gradient(170deg,rgba(7,13,23,.83),rgba(8,13,20,.63));box-shadow:0 1.5vw 4vw rgba(0,0,0,.35);overflow:hidden}
-.chat-title{height:11%;min-height:3.8vw;flex:none;display:flex;align-items:center;gap:.8vw;padding:0 1.55vw;border-bottom:1px solid rgba(205,234,248,.16);font-size:1vw;font-weight:900;letter-spacing:.16em}
+.chat-title{height:11%;min-height:3.8vw;flex:none;display:flex;align-items:center;gap:.8vw;padding:0 1.55vw;border-bottom:1px solid rgba(205,234,248,.16);font-family:var(--font-mono);font-size:.9vw;font-weight:600;letter-spacing:.16em}
 .chat-title:before{content:"";width:.65vw;height:.65vw;border-radius:50%;background:var(--blue);box-shadow:0 0 1vw var(--blue);animation:beacon 2.4s ease-in-out infinite}
 .chat-title span{margin-left:auto;font-size:.58vw;letter-spacing:.2em;color:var(--muted)}
 .messages{min-height:0;flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:.65vw;overflow:hidden;padding:1.5vw}
 .message{padding:.8vw 1vw;min-width:0;border-left:3px solid var(--platform);border-radius:.45vw .65vw .65vw .45vw;background:rgba(3,7,12,.74);animation:rise .4s ease-out both;overflow-wrap:anywhere}
-.meta{display:flex;align-items:center;gap:.7vw;margin-bottom:.37vw;font-size:.82vw;font-weight:800}
-.badge{font-size:.55vw;letter-spacing:.14em;color:var(--platform);border:1px solid var(--platform);border-radius:.25vw;padding:.18vw .42vw}
+.meta{display:flex;align-items:center;gap:.7vw;margin-bottom:.37vw;font-size:.82vw;font-weight:700}
+.badge{font-family:var(--font-mono);font-size:.55vw;letter-spacing:.14em;color:var(--platform);border:1px solid var(--platform);border-radius:.25vw;padding:.18vw .42vw}
 .name{color:var(--platform)}
 .body{font-size:1vw;line-height:1.38;color:#e8eef3}
 @keyframes rise{from{opacity:0;transform:translateY(.7vw)}to{opacity:1;transform:translateY(0)}}
@@ -29,7 +29,7 @@ html,body{background:transparent}
 <body><main class="scene chat-scene" id="scene" aria-label="Twitch ve Kick ortak sohbet sahnesi">
 <div class="grain"></div><div class="topline"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="rail left"></div><div class="rail right"></div>
 <header class="header"><span class="channel twitch">TWITCH</span><span>KAPTAN QEDY</span><span class="channel kick">KICK</span></header>
-<div class="left-copy"><div class="mini">AYNI YAYIN · TEK MÜRETTEBAT</div><h1><span>SOHBET<br>GÜVERTESİ</span></h1><p>Twitch ve Kick mesajları bir arada.</p></div>
+<div class="left-copy"><div class="mini">AYNI YAYIN · TEK MÜRETTEBAT</div><h1><span class="word">SOHBET</span><br><span class="word">GÜVERTESİ</span></h1><p>Twitch ve Kick mesajları bir arada.</p></div>
 <div class="camera-bar"><img src="../docs/assets/logo_cat.png" alt=""><span>KAPTAN QEDY</span><small>CANLI</small></div>
 <section class="chat-panel" aria-label="Ortak sohbet"><div class="chat-title">SOHBET <span>TWITCH + KICK</span></div><div class="messages" id="messages" role="log" aria-live="polite"></div></section>
 <footer class="footer"><span>MÜRETTEBAT SOHBETİ</span><span class="line"></span><span>CANLI YAYIN</span></footer>

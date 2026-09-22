@@ -14,6 +14,17 @@
   const spotlight = kind === 'chat' || kind === 'overlay' ? card('show-spotlight','KAPTANIN ANONSU') : null;
   const vote = kind === 'chat' || kind === 'overlay' ? card('show-vote','SONRAKİ ROTA') : null;
   const div = (parent, cls, content) => { const e=document.createElement('div'); e.className=cls; e.textContent=content; parent.append(e); return e; };
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function countUp(el, target) {
+    target = Number(target) || 0;
+    if (reduceMotion) { el.textContent = String(target); return; }
+    const duration = 900, start = performance.now();
+    (function tick(now) {
+      const p = Math.min(1, (now - start) / duration);
+      el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(tick);
+    })(start);
+  }
   function render(s) {
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
@@ -33,7 +44,7 @@
       const stats=s.stats || {}, t=stats.twitch || {}, k=stats.kick || {};
       const grid=div(end,'stat-grid','');
       [['TWITCH MESAJ',t.chat],['KICK MESAJ',k.chat],['YENİ TAKİP',(t.follow||0)+(k.follow||0)],['ABONELİK',(t.sub||0)+(k.sub||0)]].forEach(([label,value])=>{
-        const n=div(grid,'stat',''); const strong=document.createElement('strong'); strong.textContent=String(value||0); n.append(strong); div(n,'',label);
+        const n=div(grid,'stat',''); const strong=document.createElement('strong'); strong.textContent='0'; n.append(strong); div(n,'',label); countUp(strong,value);
       });
       div(end,'show-small','SEYİR DEFTERİNDEN');
       (s.highlights || []).slice(-3).forEach(x=>div(end,'highlight','✦ '+x));
