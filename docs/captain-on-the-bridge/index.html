@@ -126,6 +126,10 @@
       gap:14px;
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
+      /* hint that the section list scrolls sideways — otherwise it silently
+         hides under the viewport edge with no sign there's more to see */
+      mask-image:linear-gradient(to right,black calc(100% - 36px),transparent);
+      -webkit-mask-image:linear-gradient(to right,black calc(100% - 36px),transparent);
     }
   }
   .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
