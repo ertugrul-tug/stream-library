@@ -34,11 +34,8 @@
   .camera-bar{position:absolute;left:4.1%;bottom:8.3%;width:18.5%;height:3.6%;display:flex;align-items:center;gap:.65vw;padding:0 .95vw;border-left:3px solid var(--blue);border-top:1px solid rgba(34,174,240,.5);border-bottom:1px solid rgba(255,61,127,.45);border-radius:.3vw .75vw .75vw .3vw;background:linear-gradient(90deg,rgba(7,9,13,.68),rgba(14,24,35,.48) 72%,rgba(7,9,13,.12));box-shadow:0 12px 28px rgba(0,0,0,.35),0 0 20px rgba(34,174,240,.13);font-family:var(--font-display);font-size:.58vw;font-weight:700;letter-spacing:.03em}
   .camera-logo{width:1.65vw;height:1.65vw;flex:none;border-radius:50%;object-fit:cover;opacity:.78;box-shadow:0 0 12px rgba(34,174,240,.35);animation:logoFloat 6s ease-in-out infinite}
   .camera-bar small{margin-left:auto;font-family:var(--font-mono);color:var(--pink);font-size:.49vw;letter-spacing:.2em}
-  .chat{position:absolute;right:4.1%;bottom:8.3%;width:21.5%;height:36%;border:1px solid rgba(214,240,255,.19);border-radius:1.25vw;background:linear-gradient(180deg,rgba(8,12,19,.58),rgba(8,12,19,.34));box-shadow:0 15px 40px rgba(0,0,0,.16),0 0 20px rgba(34,174,240,.06);overflow:hidden;display:flex;flex-direction:column}
-  .chat-header{display:flex;align-items:center;gap:.7vw;height:14%;padding:0 1.1vw;flex:none;border-bottom:1px solid rgba(214,240,255,.12);background:rgba(17,24,34,.42);font-family:var(--font-mono);font-size:.65vw;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-  .chat-header i{display:block;width:.48vw;height:.48vw;border-radius:50%;background:var(--blue);box-shadow:0 0 14px var(--blue);animation:beacon 2.8s ease-in-out infinite}
-  .chat-header small{margin-left:auto;color:var(--muted);font-size:.5vw;font-weight:600;letter-spacing:.12em}
-  .messages{min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:.48vw;padding:1vw 1.05vw 1.15vw;overflow:hidden;mask-image:linear-gradient(transparent,#000 11%,#000)}
+  .chat{position:absolute;right:4.1%;bottom:8.3%;width:15%;height:52%;border:1px solid rgba(214,240,255,.19);border-radius:1.25vw;background:linear-gradient(180deg,rgba(8,12,19,.58),rgba(8,12,19,.34));box-shadow:0 15px 40px rgba(0,0,0,.16),0 0 20px rgba(34,174,240,.06);overflow:hidden;display:flex;flex-direction:column}
+  .messages{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:.48vw;padding:1vw 1.05vw 1.15vw;overflow:hidden;mask-image:linear-gradient(transparent,#000 11%,#000)}
   .message{min-width:0;padding:.56vw .66vw;background:rgba(7,9,13,.66);border-left:2px solid var(--platform);border-radius:.35vw .55vw .55vw .35vw;animation:messageIn .45s ease-out both;overflow-wrap:anywhere}
   .message .meta{display:flex;align-items:center;gap:.46vw;margin-bottom:.28vw;font-size:.61vw;font-weight:700}
   .message .badge{font-family:var(--font-mono);font-size:.44vw;letter-spacing:.1em;color:var(--platform);border:1px solid var(--platform);border-radius:.22vw;padding:.11vw .27vw}
@@ -75,7 +72,7 @@
   <img class="preview-webcam" src="preview-assets/webcam-standin.png" alt="Temsili kamera görüntüsü">
   <div class="preview-tag">Temsili kamera</div>
   <div class="camera-bar" aria-label="Kamera alt yazısı"><img class="camera-logo" src="../docs/assets/logo_cat.png" alt=""><span>KAPTAN QEDY</span><small>CANLI</small></div>
-  <div class="chat" aria-label="Ortak sohbet"><div class="chat-header"><i></i>SOHBET</div><div class="messages" id="messages" role="log" aria-live="polite"></div></div>
+  <div class="chat" aria-label="Ortak sohbet"><div class="messages" id="messages" role="log" aria-live="polite"></div></div>
   <div class="alert twitch" id="alertTwitch" aria-live="polite"><img class="alert-logo" src="../docs/assets/logo_cat.png" alt=""><div class="alert-content"><div class="alert-eyebrow">TWITCH · YENİ TAKİP</div><strong class="alert-name"></strong><div class="alert-line">Mürettebata hoş geldin!</div></div></div>
   <div class="alert kick" id="alertKick" aria-live="polite"><img class="alert-logo" src="../docs/assets/logo_cat.png" alt=""><div class="alert-content"><div class="alert-eyebrow">KICK · YENİ TAKİP</div><strong class="alert-name"></strong><div class="alert-line">Mürettebata hoş geldin!</div></div></div>
   <div class="lower"><span class="line"></span><span>AYNI YAYIN · TEK MÜRETTEBAT</span></div>
