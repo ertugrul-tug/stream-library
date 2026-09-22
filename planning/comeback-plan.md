@@ -101,7 +101,8 @@ Cuma (toplu ekip oyunu) günü Cumartesi dinlenme olduğu için bu şablon esner
 
 ## 5. Marka Yenileme Kontrol Listesi
 
-- [ ] **Twitch bio** — "Sui generis Qedy." eğlenceli ama ne/ne zaman yayın yapıldığını söylemiyor. İçerik türü, yayın günleri ve "geri döndüm" notu eklenmeli.
+- [x] **Twitch bio** — güncellendi (bkz. Bölüm 9), 2026-09-22'de kanala işlendi.
+- [ ] **Kick bio** — Bölüm 9'daki taslak hazır, ev bilgisayarından işlenecek.
 - [ ] **Panel/link senkronizasyonu** — Twitch paneli YouTube'a ✓ ve instabio'ya ✓ bağlı. Kick linki Twitch paneline ve instabio'ya eklenmeli.
 - [x] **YouTube kanalı** — açıklama comeback ve güncel yayın takvimini yansıtacak şekilde güncellendi (bkz. Bölüm 9). Banner hâlâ güncellenmeli.
 - [ ] **Handle tutarlılığı** — Twitch/YouTube/Kick'te `kaptanqedy` tutarlı, ama Instagram iki hesaba bölünmüş (@ertugrul_tug / @kaptan_qedy) — hangisinin "yayıncı" hesabı olacağına karar verilmeli ve stream panellerinden o linklenmeli.
@@ -144,11 +145,11 @@ Cuma (toplu ekip oyunu) günü Cumartesi dinlenme olduğu için bu şablon esner
 
 ## 9. Bio Metinleri
 
-**Twitch (About)**
+**Twitch (About)** — 2026-09-22'de kanala işlendi
 
 > ⚓ Kaptan Qedy geri döndü! Türkçe oynanış serileri, yeni oyunlar ve sohbet yayınlarıyla buradayım. Her akşam 20:30 (Pzt-Cuma), her gün ayrı tema: Pzt serbest, Salı hikayeli (BG3), Çrş competitive, Perş survival, Cuma toplu ekip · YouTube & Kick'te de aynı anda canlıdayım.
 
-**Kick (About)**
+**Kick (About)** — henüz işlenmedi, ev bilgisayarından yapılacak
 
 > ⚓ Kaptan Qedy | Türkçe oynanış & sohbet yayınları. Twitch'ten simulcast. Her akşam 20:30 (Pazartesi-Cuma), günlük değişen temalar.
 
