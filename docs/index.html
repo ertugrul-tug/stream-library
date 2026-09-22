@@ -92,7 +92,8 @@
       border-top:1px solid var(--line);
     }
     .mobile-bar .btn{flex:1;justify-content:center;min-width:0;padding:10px 8px;font-size:12.5px;}
-    body{padding-bottom:64px;}
+    /* body's bottom padding is set once, unconditionally, further down — it needs to
+       clear both this bar and the fixed sea-band, whichever loads later in the cascade. */
   }
 
   /* live-watch dialog */
@@ -359,11 +360,15 @@
   }
   @media (prefers-reduced-motion:reduce){ .comm-pill .dot{animation:none;} }
 
-  .sea-band{position:relative;height:150px;overflow:hidden;border-top:1px solid var(--line);}
+  /* pinned to the viewport bottom at all times — sits behind normal content (low
+     z-index) and behind the mobile action bar (z-index:60), which shows it through
+     its own blur. footer gets a solid backing so its text stays legible over it. */
+  .sea-band{position:fixed;left:0;right:0;bottom:0;height:150px;overflow:hidden;border-top:1px solid var(--line);z-index:1;pointer-events:none;}
   .sea-band canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
   @media (max-width:640px){ .sea-band{height:100px;} }
+  body{padding-bottom:150px;}
 
-  footer{border-top:1px solid var(--line);padding:34px 0 26px;}
+  footer{position:relative;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:34px 0 26px;}
   .foot-inner{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;}
   .foot-brand{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-faint);}
   .foot-brand img{width:20px;height:20px;border-radius:50%;}
@@ -784,35 +789,53 @@
       corvette:{masts:[-8,11], heights:[25,20], main:0},
       sloop:{masts:[3], heights:[24], main:0}
     };
-    var HULL_DARK = 'rgba(6,8,13,.92)';
+    // Solid, distinct colors per part (hull / trim / cabin / window / sail) read far more
+    // clearly at a glance than a single monochrome fill.
+    var PALETTE = {
+      galleon:{hull:'58,36,24', trim:'184,138,86', cabin:'230,214,172', win:'108,188,232'},
+      corvette:{hull:'34,46,64', trim:'132,156,182', cabin:'214,220,228', win:'108,188,232'},
+      sloop:{hull:'64,50,36', trim:'150,118,84', cabin:null, win:null}
+    };
+    var RIGGING_DARK = 'rgba(28,19,13,.92)';
 
     function drawShip(ship,x,y,angle){
       var rig = RIG[ship.type];
-      var glow = 'rgba(' + ship.rgb + ',.75)';
+      var pal = PALETTE[ship.type];
+      var glow = 'rgba(' + ship.rgb + ',.85)';
       ctx.save();
       ctx.translate(x,y);
       ctx.rotate(angle);
       ctx.scale(ship.dir*ship.scale*1.15, ship.scale*1.15);
 
-      ctx.fillStyle = HULL_DARK;
+      ctx.fillStyle = 'rgba(' + pal.hull + ',.97)';
       ctx.beginPath();
       ctx.ellipse(0,9,30,8,0,0,Math.PI,false);
       ctx.closePath(); ctx.fill();
       ctx.beginPath();
       ctx.moveTo(-29,9); ctx.lineTo(-38,3); ctx.lineTo(-25,6);
       ctx.closePath(); ctx.fill();
-      if(ship.type!=='sloop') ctx.fillRect(20,0,10,9);
-      ctx.strokeStyle = glow; ctx.lineWidth = .8;
+
+      ctx.fillStyle = 'rgba(' + pal.trim + ',.92)';
+      ctx.fillRect(-27,7.4,50,1.8);
+
+      if(pal.cabin){
+        ctx.fillStyle = 'rgba(' + pal.cabin + ',.96)';
+        ctx.fillRect(16,0,11,9);
+        ctx.fillStyle = 'rgba(' + pal.win + ',.95)';
+        ctx.beginPath(); ctx.arc(21.5,4.2,1.3,0,Math.PI*2); ctx.fill();
+      }
+
+      ctx.strokeStyle = glow; ctx.lineWidth = .7;
       ctx.beginPath(); ctx.ellipse(0,9,30,8,0,0,Math.PI,false); ctx.stroke();
 
       rig.masts.forEach(function(mx,i){
         var top = 6 - rig.heights[i];
-        ctx.strokeStyle = glow; ctx.lineWidth = 1;
+        ctx.strokeStyle = RIGGING_DARK; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(mx,6); ctx.lineTo(mx,top); ctx.stroke();
 
         var bulge = (i%2===0? -1:1) * 11;
-        ctx.fillStyle = HULL_DARK;
-        ctx.strokeStyle = 'rgba(' + ship.rgb + ',.45)'; ctx.lineWidth = .6;
+        ctx.fillStyle = 'rgba(238,232,214,.94)';
+        ctx.strokeStyle = 'rgba(28,19,13,.4)'; ctx.lineWidth = .5;
         ctx.beginPath();
         ctx.moveTo(mx,top+4); ctx.lineTo(mx,5);
         ctx.quadraticCurveTo(mx+bulge,(top+9)/1.3,mx,top+4);

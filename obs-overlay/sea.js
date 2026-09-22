@@ -71,20 +71,27 @@
     sloop: { masts: [3], heights: [24], main: 0 },
   };
 
-  // Ships render as solid dark silhouettes with a thin glowing accent rim/rigging —
-  // this reads far more clearly against the same-hue wave than an all-accent fill does.
-  const HULL_DARK = 'rgba(8,11,17,.9)';
+  // Solid, distinct colors per part (hull / trim / cabin / window / sail) read far more
+  // clearly at a glance than a single monochrome fill — same lesson as any flat-design
+  // vehicle icon: contrast between parts, not glow, is what makes the shape legible.
+  const PALETTE = {
+    galleon: { hull: '58,36,24', trim: '184,138,86', cabin: '230,214,172', win: '108,188,232' },
+    corvette: { hull: '34,46,64', trim: '132,156,182', cabin: '214,220,228', win: '108,188,232' },
+    sloop: { hull: '64,50,36', trim: '150,118,84', cabin: null, win: null },
+  };
+  const RIGGING_DARK = 'rgba(28,19,13,.92)';
 
   function drawShip(ship, x, y, angle) {
     const rig = RIG[ship.type];
-    const glow = `rgba(${rgb},.7)`;
+    const pal = PALETTE[ship.type];
+    const glow = `rgba(${rgb},.85)`;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
     ctx.scale(ship.dir * ship.scale * 1.5, ship.scale * 1.5);
 
-    // hull: smooth belly (bottom half of an ellipse) + pointed bow + small aft block
-    ctx.fillStyle = HULL_DARK;
+    // hull: smooth belly (bottom half of an ellipse) + pointed bow, solid wood/steel color
+    ctx.fillStyle = `rgba(${pal.hull},.97)`;
     ctx.beginPath();
     ctx.ellipse(0, 9, 30, 8, 0, 0, Math.PI, false);
     ctx.closePath();
@@ -93,17 +100,32 @@
     ctx.moveTo(-29, 9); ctx.lineTo(-38, 3); ctx.lineTo(-25, 6);
     ctx.closePath();
     ctx.fill();
-    if (ship.type !== 'sloop') ctx.fillRect(20, 0, 10, 9);
+
+    // waterline trim stripe
+    ctx.fillStyle = `rgba(${pal.trim},.92)`;
+    ctx.fillRect(-27, 7.4, 50, 1.8);
+
+    // small cabin block with a window (galleon/corvette only)
+    if (pal.cabin) {
+      ctx.fillStyle = `rgba(${pal.cabin},.96)`;
+      ctx.fillRect(16, 0, 11, 9);
+      ctx.fillStyle = `rgba(${pal.win},.95)`;
+      ctx.beginPath();
+      ctx.arc(21.5, 4.2, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // thin brand-accent rim on the hull — the one place the scene color shows through
     ctx.strokeStyle = glow;
-    ctx.lineWidth = .8;
+    ctx.lineWidth = .7;
     ctx.beginPath();
     ctx.ellipse(0, 9, 30, 8, 0, 0, Math.PI, false);
     ctx.stroke();
 
-    // rigging: glowing masts, dark sails with a glowing edge, a bright flag on the main mast
+    // rigging: dark masts, cream sails, a bright flag on the main mast
     rig.masts.forEach((mx, i) => {
       const top = 6 - rig.heights[i];
-      ctx.strokeStyle = glow;
+      ctx.strokeStyle = RIGGING_DARK;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mx, 6);
@@ -111,9 +133,9 @@
       ctx.stroke();
 
       const bulge = (i % 2 === 0 ? -1 : 1) * 11;
-      ctx.fillStyle = HULL_DARK;
-      ctx.strokeStyle = `rgba(${rgb},.45)`;
-      ctx.lineWidth = .6;
+      ctx.fillStyle = `rgba(${pal.sail || '238,232,214'},.94)`;
+      ctx.strokeStyle = 'rgba(28,19,13,.4)';
+      ctx.lineWidth = .5;
       ctx.beginPath();
       ctx.moveTo(mx, top + 4);
       ctx.lineTo(mx, 5);
