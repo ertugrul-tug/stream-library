@@ -67,11 +67,19 @@ button.mini{font-size:13px;padding:10px 14px;min-height:40px}
 
 .highlight{display:flex;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid #28404f;padding:10px 0}
 .highlight span{font-size:14.5px}
+
+.matches{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.matches button{text-align:left;background:#0a1420;border-color:#294152;font-weight:500;font-size:13.5px;padding:9px 12px;min-height:0}
+.matches button:empty{display:none}
+.mod{display:flex;gap:6px}
+.mod button{padding:8px 10px;min-height:0;font-size:12px}
 </style></head><body>
 
 <header class="topbar">
   <h1>⚓ Kumanda</h1>
   <div class="conn">
+    <span class="pill" id="segmentPill">—</span>
+    <span class="pill" id="statusObs">OBS bekleniyor</span>
     <span class="pill" id="statusBridge">Köprü bekleniyor</span>
   </div>
 </header>
@@ -80,15 +88,16 @@ button.mini{font-size:13px;padding:10px 14px;min-height:40px}
 <p><small>Bu sayfayı OBS'e kaynak olarak ekleme — sadece kendi tarayıcında (bilgisayar veya telefon, aynı wifi) açık tut.</small></p>
 
 <div class="grid">
-<section><h2>Seyir defteri</h2><label for="game">OYNANAN OYUN</label><input id="game" maxlength="80"><label for="returnMessage">MOLA DÖNÜŞ NOTU</label><input id="returnMessage" maxlength="100"><div class="row"><button id="saveDetails">Kaydet</button></div></section>
+<section><h2>Seyir defteri</h2><label for="game">OYNANAN OYUN</label><input id="game" maxlength="80" autocomplete="off"><div id="gameMatches" class="matches"></div><label for="returnMessage">MOLA DÖNÜŞ NOTU</label><input id="returnMessage" maxlength="100"><div class="row"><button id="saveDetails">Kaydet</button></div></section>
 <section><h2>Sonraki rota · sohbet oylaması</h2><p>Twitch ve Kick sohbetinde <b>!rota 1</b>, <b>!rota 2</b> veya <b>!rota 3</b>. Her hesap için son oy sayılır.</p><label for="route1">1. ROTA</label><input id="route1" maxlength="65"><label for="route2">2. ROTA</label><input id="route2" maxlength="65"><label for="route3">3. ROTA</label><input id="route3" maxlength="65"><div class="row"><button id="saveRoutes">Rotaları kaydet · oyları sıfırla</button><button id="resetVotes" class="mini">Sadece oyları sıfırla</button></div><div id="votes"></div></section>
+<section><h2>Sahne · anons</h2><label>OBS SAHNESİ</label><div class="row" id="obsScenes"></div><label for="discordText">DISCORD ANONSU</label><div class="row"><input id="discordText" maxlength="500" placeholder="Yayın açıldı, gel!"><button id="discordSend">Gönder</button></div></section>
 <section><h2>Ortak sohbet · kaptanın anonsu</h2><p>Twitch ve Kick mesajlarından birini seç. Seçilen mesaj ekranda anons olarak görünür.</p><div class="row"><button id="clearSpotlight" class="mini">Anonsu kaldır</button></div><div id="chat"></div></section>
 <section><h2>Öne çıkan anlar ve özet</h2><div class="row"><input id="highlight" maxlength="100" placeholder="Örn. Gizli bölüm bulundu"><button id="addHighlight">Ekle</button></div><div id="highlights"></div><div id="metrics"></div><div class="row"><button id="resetShow" class="danger">Yeni yayın başlat · istatistikleri sıfırla</button></div><p><small>Yayın verisi bilgisayarda .show-state.json içinde tutulur.</small></p></section>
 </div>
 </div>
 
 <script>
-(()=>{'use strict';let socket,state,initialized=false;const $=id=>document.getElementById(id);const send=body=>{if(socket?.readyState===1)socket.send(JSON.stringify(body))};const el=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;n.className=cls||'';return n};function render(s){state=s;if(!initialized){$('game').value=s.game||'';$('returnMessage').value=s.returnMessage||'';(s.routes||[]).forEach((v,i)=>{$('route'+(i+1)).value=v});initialized=true}const votes=$('votes');votes.replaceChildren();(s.routes||[]).forEach((r,i)=>votes.append(el('p',`${i+1}. ${r} · ${(s.voteCounts||[])[i]||0} oy`)));const chat=$('chat');chat.replaceChildren();(s.chat||[]).slice(-15).reverse().forEach(m=>{const row=el('div','','chat-item'),main=el('div','','main'),meta=el('div',m.platform.toUpperCase()+' · '+m.name,'badge '+m.platform),body=el('p',m.text),button=el('button','Anons yap','mini');button.onclick=()=>send({action:'spotlight',id:m.id});main.append(meta,body);row.append(main,button);chat.append(row)});const highlights=$('highlights');highlights.replaceChildren();(s.highlights||[]).forEach((h,i)=>{const row=el('div','','highlight'),button=el('button','Sil','mini');button.onclick=()=>send({action:'removeHighlight',index:i});row.append(el('span',h),button);highlights.append(row)});const t=s.stats?.twitch||{},k=s.stats?.kick||{};const metrics=$('metrics');metrics.replaceChildren();[['Twitch mesaj',t.chat],['Kick mesaj',k.chat],['Takip',(t.follow||0)+(k.follow||0)],['Abonelik',(t.sub||0)+(k.sub||0)],['Bit',t.bits],['Kicks',k.kicks]].forEach(([label,value])=>{const box=el('div','','metric');box.append(el('strong',String(value||0)),el('span',label));metrics.append(box)});const st=$('statusBridge');st.textContent=s.connection==='connected'?'Streamer.bot bağlı':'Köprü açık · Streamer.bot bekleniyor';st.classList.toggle('on',s.connection==='connected')}
+(()=>{'use strict';let socket,state,initialized=false;const $=id=>document.getElementById(id);const send=body=>{if(socket?.readyState===1)socket.send(JSON.stringify(body))};const el=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;n.className=cls||'';return n};function render(s){state=s;if(!initialized){$('game').value=s.game||'';$('returnMessage').value=s.returnMessage||'';(s.routes||[]).forEach((v,i)=>{$('route'+(i+1)).value=v});initialized=true}const votes=$('votes');votes.replaceChildren();(s.routes||[]).forEach((r,i)=>votes.append(el('p',`${i+1}. ${r} · ${(s.voteCounts||[])[i]||0} oy`)));const chat=$('chat');chat.replaceChildren();(s.chat||[]).slice(-15).reverse().forEach(m=>{const row=el('div','','chat-item'),main=el('div','','main'),meta=el('div',m.platform.toUpperCase()+' · '+m.name,'badge '+m.platform),body=el('p',m.text),spot=el('button','Anons yap','mini'),mod=el('div','','mod'),timeout=el('button','⏱','mini danger'),ban=el('button','⛔','mini danger');spot.onclick=()=>send({action:'spotlight',id:m.id});timeout.title='Timeout';timeout.onclick=()=>{if(confirm(m.name+' susturulsun mu (timeout)?'))send({action:'modAction',platform:m.platform,name:m.name,type:'timeout'})};ban.title='Ban';ban.onclick=()=>{if(confirm(m.name+' banlansın mı?'))send({action:'modAction',platform:m.platform,name:m.name,type:'ban'})};mod.append(timeout,ban);main.append(meta,body);row.append(main,spot,mod);chat.append(row)});const highlights=$('highlights');highlights.replaceChildren();(s.highlights||[]).forEach((h,i)=>{const row=el('div','','highlight'),button=el('button','Sil','mini');button.onclick=()=>send({action:'removeHighlight',index:i});row.append(el('span',h),button);highlights.append(row)});const t=s.stats?.twitch||{},k=s.stats?.kick||{};const metrics=$('metrics');metrics.replaceChildren();[['Twitch mesaj',t.chat],['Kick mesaj',k.chat],['Takip',(t.follow||0)+(k.follow||0)],['Abonelik',(t.sub||0)+(k.sub||0)],['Bit',t.bits],['Kicks',k.kicks]].forEach(([label,value])=>{const box=el('div','','metric');box.append(el('strong',String(value||0)),el('span',label));metrics.append(box)});const st=$('statusBridge');st.textContent=s.connection==='connected'?'Streamer.bot bağlı':'Köprü açık · Streamer.bot bekleniyor';st.classList.toggle('on',s.connection==='connected');const so=$('statusObs');so.textContent=s.obsConnection==='connected'?'OBS bağlı':'OBS bekleniyor';so.classList.toggle('on',s.obsConnection==='connected')}
 function connect(){
   // Same host the page was loaded from — works whether this is opened on
   // this PC (127.0.0.1 / localhost) or from a phone via the LAN IP the
@@ -100,5 +109,43 @@ function connect(){
   socket.onclose=()=>{const st=$('statusBridge');st.textContent='Köprü kapalı · yeniden bağlanıyor';st.classList.remove('on');setTimeout(connect,3000)};
 }
 connect();$('saveDetails').onclick=()=>send({action:'setDetails',game:$('game').value,returnMessage:$('returnMessage').value});$('saveRoutes').onclick=()=>send({action:'setRoutes',routes:[1,2,3].map(i=>$('route'+i).value)});$('resetVotes').onclick=()=>send({action:'resetVotes'});$('clearSpotlight').onclick=()=>send({action:'clearSpotlight'});$('addHighlight').onclick=()=>{send({action:'addHighlight',title:$('highlight').value});$('highlight').value=''};$('resetShow').onclick=()=>{if(confirm('Yeni yayın için sohbet, oylar, anons ve istatistikler sıfırlansın mı?'))send({action:'resetShow'})};
+$('discordSend').onclick=()=>{const text=$('discordText').value.trim();if(!text)return;send({action:'discordAnnounce',text});$('discordText').value=''};
+
+// segment indicator + OBS scene buttons: both read from show-config.json,
+// served as a static file alongside this page (same origin, port 8766).
+fetch('show-config.json').then(r=>r.json()).then(cfg=>{
+  const schedule=Object.entries(cfg.schedule||{});
+  function updateSegment(){
+    if(!schedule.length)return;
+    const now=new Date(),mins=now.getHours()*60+now.getMinutes();
+    const toMins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m};
+    let current=schedule[0];
+    for(const [label,time] of schedule) if(toMins(time)<=mins) current=[label,time];
+    $('segmentPill').textContent=current[0]+' · '+current[1];
+  }
+  updateSegment();setInterval(updateSegment,30000);
+
+  const scenesBox=$('obsScenes');
+  (cfg.obsScenes||[]).forEach(name=>{
+    const b=el('button',name,'mini');
+    b.onclick=()=>send({action:'obsSetScene',scene:name});
+    scenesBox.append(b);
+  });
+}).catch(()=>{});
+
+// Steam library search: filters the 624-game export as you type, click fills the game field.
+fetch('steam-library.json').then(r=>r.json()).then(games=>{
+  const box=$('gameMatches');
+  $('game').addEventListener('input',()=>{
+    const q=$('game').value.trim().toLowerCase();
+    box.replaceChildren();
+    if(q.length<2)return;
+    games.filter(g=>g.name.toLowerCase().includes(q)).slice(0,6).forEach(g=>{
+      const b=el('button',g.name,'mini');
+      b.onclick=()=>{$('game').value=g.name;box.replaceChildren()};
+      box.append(b);
+    });
+  });
+}).catch(()=>{});
 })();
 </script></body></html>

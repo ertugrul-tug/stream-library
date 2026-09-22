@@ -1,2 +1,3 @@
 .show-state.json
 __pycache__/
+show-config.local.json

@@ -1,5 +1,20 @@
 {
   "game": "Bu akşamki oyun",
   "returnMessage": "Birazdan güvertede görüşürüz",
-  "routes": ["Ana göreve devam", "Yan görev keşfi", "Mürettebat seçsin"]
+  "routes": ["Ana göreve devam", "Yan görev keşfi", "Mürettebat seçsin"],
+
+  "discordWebhook": "",
+
+  "obs": {
+    "url": "ws://127.0.0.1:4455",
+    "password": ""
+  },
+  "obsScenes": ["Yayın Başlıyor", "Ana Yayın", "Kısa Mola", "Yayın Bitti"],
+
+  "schedule": {
+    "Açılış sohbet": "20:30",
+    "Tema bloğu": "21:00",
+    "Günlük sohbet": "23:00",
+    "Kapanış": "23:30"
+  }
 }

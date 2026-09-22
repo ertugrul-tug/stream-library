@@ -59,15 +59,24 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 show-bridge.py, Streamer.bot WebSocket sunucusundan Twitch ve Kick olaylarını alıp sahneler arasında ortak bir yayın durumu tutar. Köprünün WebSocket'i (8765) ve kumanda.html'i servis eden HTTP sunucusu (8766) artık bu bilgisayarın tüm ağ arayüzlerinde dinliyor — yani **aynı wifi'deki telefon veya tabletten de** kumandayı açabilirsin. Streamer.bot için kullanılan 127.0.0.1:8080 portunu değiştirme. kumanda.html OBS kaynağı değildir, sadece kendi tarayıcında (bilgisayar veya telefon) açık tutulur. Köprü yoksa mevcut ortak sohbet ve bildirimler doğrudan Streamer.bot üzerinden çalışmaya devam eder; yeni interaktif alanlar canlı veri alamaz.
 
-**Güvenlik notu:** Bu, kumandayı ev ağındaki herkesin erişebileceği hale getirir (internete değil, sadece aynı wifi'ye açık). Şu anki aksiyonlar (oyun adı, rota, anons, öne çıkanlar) zararsız; ileride timeout/ban gibi moderasyon aksiyonları eklenirse önce bir PIN/şifre kontrolü konulmalı.
+**Güvenlik notu:** Bu, kumandayı ev ağındaki herkesin erişebileceği hale getirir (internete değil, sadece aynı wifi'ye açık). Şu anki aksiyonlar arasında artık timeout/ban gibi moderasyon da var; kumanda bilerek PIN/şifre korumasız bırakıldı, bu yüzden yalnızca güvendiğin bir ev ağındayken kullan. PIN eklemek ileride ayrı bir adım.
 
 1. Bir kere: python -m pip install -r obs-overlay/requirements.txt
 2. Yayından önce start-show.cmd dosyasına çift tıkla veya python obs-overlay/show-bridge.py çalıştır. Açılan "Qedy Show Bridge" penceresi telefon için kullanılacak LAN adresini yazdırır, o pencereyi açık bırak. Streamer.bot WebSocket Server da açık olmalı. Köprü bağlantı kurulana kadar yeniden dener.
-3. Kumanda otomatik açılır (http://127.0.0.1:8766/kumanda.html). Telefondan/tabletten aynı wifi'deyken "Qedy Show Bridge" penceresindeki `http://<LAN-IP>:8766/kumanda.html` adresini aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz.
-4. Sohbette !rota 1, !rota 2, !rota 3 oyları iki platformdan toplanır. Her kullanıcı her platformda bir güncel oya sahiptir; yeni oy önceki oyunu değiştirir. Kumandada mesajı “Anons yap” ile seçip ekranda öne çıkarabilirsin. “Öne çıkan anlar” alanına yayın sırasında kısa notlar ekleyebilirsin.
-5. Açılış sahnesi sohbete yazanları radar listesinde gösterir. Mola sahnesi oyun, dönüş notu ve öne çıkan anları; kapanış sahnesi mesaj, takip, abonelik sayılarını ve notları gösterir. Bunlar köprü başladıktan sonra gelen olaylardır. Geçmiş platform istatistikleri veya otomatik Twitch klipleri içe aktarılmaz.
+3. Kumanda otomatik açılır (http://127.0.0.1:8766/kumanda.html). Telefondan/tabletten aynı wifi'deyken "Qedy Show Bridge" penceresindeki `http://<LAN-IP>:8766/kumanda.html` adresini aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz. Oyun kutusuna yazarken 624 oyunluk Steam kütüphaneni eşleştiren öneriler çıkar.
+4. Sohbette !rota 1, !rota 2, !rota 3 oyları iki platformdan toplanır. Her kullanıcı her platformda bir güncel oya sahiptir; yeni oy önceki oyunu değiştirir. Kumandada mesajı “Anons yap” ile seçip ekranda öne çıkarabilirsin. Her sohbet mesajının yanındaki ⏱/⛔ düğmeleri, o kullanıcı için Streamer.bot'ta tanımladığın "ModTimeout"/"ModBan" adlı Action'ı tetikler — köprü Twitch/Kick'e doğrudan bağlanmaz, gerçek timeout/ban işlemini o Action yapar. “Öne çıkan anlar” alanına yayın sırasında kısa notlar ekleyebilirsin.
+5. Üst çubuktaki rozet, show-config.json > schedule zaman çizelgesine göre şu anki segmenti gösterir (örn. “Tema bloğu · 21:00”). “Sahne · anons” bölümündeki düğmeler show-config.json > obsScenes listesindeki her sahneye OBS'de geçiş yapar (obs-websocket v5 gerekir, aşağıya bak); yanındaki kutu show-config.json > discordWebhook adresine kısa bir duyuru mesajı gönderir.
+6. Açılış sahnesi sohbete yazanları radar listesinde gösterir. Mola sahnesi oyun, dönüş notu ve öne çıkan anları; kapanış sahnesi mesaj, takip, abonelik sayılarını ve notları gösterir. Bunlar köprü başladıktan sonra gelen olaylardır. Geçmiş platform istatistikleri veya otomatik Twitch klipleri içe aktarılmaz.
 
-show-config.json ilk açılıştaki metinleri belirler. Değişen yayın verileri .show-state.json içinde yerel olarak saklanır ve Git'e eklenmez. Dosyada sohbet kullanıcı adları ve mesajları olabilir; paylaşma. Kumandadaki “Yeni yayın başlat” düğmesi bu oturum verilerini sıfırlar. Canlı mesajlar HTML olarak işlenmez, yalnızca düz metin olarak gösterilir. ?sample=1 ile sahnelerde örnek interaktif içerik görülebilir; OBS'ye normal dosya adresini ekle.
+show-config.json ilk açılıştaki metinleri, rota/segment/sahne listelerini belirler ve Git'e eklenir (public repo). **Gerçek Discord webhook adresini ve OBS şifresini bu dosyaya yazma.** Bunun yerine aynı klasörde `show-config.local.json` adında yeni bir dosya oluştur (Git'e eklenmez, .gitignore'da), içine sadece değiştirmek istediğin alanları yaz:
+
+```json
+{ "discordWebhook": "https://discord.com/api/webhooks/...", "obs": { "password": "..." } }
+```
+
+Bu dosya varsa show-config.json üzerine yazılır (merge). OBS tarafında Tools > obs-websocket Settings'ten sunucuyu aç, portu (varsayılan 4455) ve şifreyi show-config.json > obs.url / show-config.local.json > obs.password ile eşle.
+
+Değişen yayın verileri .show-state.json içinde yerel olarak saklanır ve Git'e eklenmez. Dosyada sohbet kullanıcı adları ve mesajları olabilir; paylaşma. Kumandadaki “Yeni yayın başlat” düğmesi bu oturum verilerini sıfırlar. Canlı mesajlar HTML olarak işlenmez, yalnızca düz metin olarak gösterilir. ?sample=1 ile sahnelerde örnek interaktif içerik görülebilir; OBS'ye normal dosya adresini ekle.
 
 ## Pusulalı sahne geçişi
 
