@@ -23,6 +23,15 @@
 .scene:not(.chat-scene) .pulse-line{position:relative;overflow:hidden;animation:riseReveal .85s 1.05s both,pillGlow 4s 2s ease-in-out infinite}
 .scene:not(.chat-scene) .pulse-line:after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-25deg) translateX(-220%);animation:lightSweep 6s 2.5s ease-in-out infinite}
 .scene:not(.chat-scene) .footer{animation:riseReveal .8s 1.2s both}
+.scene:not(.chat-scene) .sea{animation:fadeReveal 1.6s 1.3s both}
+.scene:not(.chat-scene) .wave{animation:waveDrift 24s linear infinite}
+.scene:not(.chat-scene) .wave-back{animation-duration:38s;animation-direction:reverse}
+.scene:not(.chat-scene) .ship-galleon{animation:sailRight 46s linear infinite}
+.scene:not(.chat-scene) .ship-galleon .ship{animation:shipBob 6.5s ease-in-out infinite}
+.scene:not(.chat-scene) .ship-corvette{animation:sailLeft 30s linear infinite 4s}
+.scene:not(.chat-scene) .ship-corvette .ship{animation:shipBob 4.8s ease-in-out infinite .4s}
+.scene:not(.chat-scene) .ship-sloop{animation:sailRight 19s linear infinite 1.5s}
+.scene:not(.chat-scene) .ship-sloop .ship{animation:shipBob 3.4s ease-in-out infinite .8s}
 .scene:not(.chat-scene) .header{animation:fadeReveal 1s .2s both}
 .scene:not(.chat-scene) .timer.active{animation:riseReveal .6s both,timerBreathe 3s .7s ease-in-out infinite}
 .scene:not(.chat-scene) .topline,.overlay .topline,.chat-scene .topline{background-size:230% 100%;animation:gradientSlide 9s linear infinite}
@@ -65,6 +74,10 @@
 @keyframes alertFlash{from{filter:brightness(1.7)}to{filter:brightness(1)}}
 @keyframes alertSheen{from{background-position:190% 0}to{background-position:-40% 0}}
 @keyframes panelGlow{50%{box-shadow:0 1.5vw 4vw rgba(0,0,0,.35),0 0 2.5vw rgba(34,174,240,.13)}}
+@keyframes waveDrift{to{transform:translateX(-50%)}}
+@keyframes sailRight{from{transform:translateX(0)}to{transform:translateX(132vw)}}
+@keyframes sailLeft{from{transform:translateX(0)}to{transform:translateX(-132vw)}}
+@keyframes shipBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-.45vw) rotate(-2deg)}}
 @media(prefers-reduced-motion:reduce){
   .scene *, .scene *:before,.scene *:after,.overlay *, .overlay *:before,.overlay *:after{animation:none!important;transition:none!important}
   .scene:not(.chat-scene) .center>* , .chat-scene .left-copy,.chat-scene .chat-panel,.overlay .camera-bar,.overlay .chat{opacity:1!important;transform:none!important;filter:none!important}
