@@ -103,7 +103,7 @@ Cuma (toplu ekip oyunu) günü Cumartesi dinlenme olduğu için bu şablon esner
 
 - [ ] **Twitch bio** — "Sui generis Qedy." eğlenceli ama ne/ne zaman yayın yapıldığını söylemiyor. İçerik türü, yayın günleri ve "geri döndüm" notu eklenmeli.
 - [ ] **Panel/link senkronizasyonu** — Twitch paneli YouTube'a ✓ ve instabio'ya ✓ bağlı. Kick linki Twitch paneline ve instabio'ya eklenmeli.
-- [ ] **YouTube kanalı** — banner/açıklama comeback ve güncel yayın takvimini yansıtacak şekilde güncellenmeli; "hakkında" metni hâlâ "yayın serilerini paylaşan öğrenci" diyor.
+- [x] **YouTube kanalı** — açıklama comeback ve güncel yayın takvimini yansıtacak şekilde güncellendi (bkz. Bölüm 9). Banner hâlâ güncellenmeli.
 - [ ] **Handle tutarlılığı** — Twitch/YouTube/Kick'te `kaptanqedy` tutarlı, ama Instagram iki hesaba bölünmüş (@ertugrul_tug / @kaptan_qedy) — hangisinin "yayıncı" hesabı olacağına karar verilmeli ve stream panellerinden o linklenmeli.
 - [ ] **Discord** — herkese açık duyurudan önce Discord'da yeniden aktifleştirilmeli/pinlenmeli; en sıcak kitle orada.
 - [ ] **Profil görselleri** — avatar/banner üç platformda da eşleşmeli ki "geri dönüş" tek koordineli lansman gibi görünsün, üç ayrı yeniden başlangıç değil.
@@ -152,9 +152,9 @@ Cuma (toplu ekip oyunu) günü Cumartesi dinlenme olduğu için bu şablon esner
 
 > ⚓ Kaptan Qedy | Türkçe oynanış & sohbet yayınları. Twitch'ten simulcast. Her akşam 20:30 (Pazartesi-Cuma), günlük değişen temalar.
 
-**YouTube (Kanal Açıklaması)**
+**YouTube (Kanal Açıklaması)** — 2026-09-22'de kanala işlendi
 
-> Merhaba, ben Ertuğrul — Kaptan Qedy. Kocaeli Üniversitesi'nde öğrenciyim; resim çiziyor, müzik yapıyor, kod yazıyor, şiir/kitap yazıyor ve fotoğraf çekiyorum. Bu kanalda uzun bir aradan sonra geri döndüm ve Türkçe oynanış serilerime kaldığım yerden devam ediyorum. Pazartesi'den Cuma'ya her akşam 20:30'da Twitch ve Kick'te canlı yayın yapıyor, en iyi anları burada sizinle paylaşıyorum.
+> Merhaba, ben Ertuğrul — Kaptan Qedy. Yazılım mühendisiyim, boş vakitlerimde kendi projelerimi geliştiriyorum. Bu kanalda uzun bir aradan sonra geri döndüm ve Türkçe oynanış serilerime kaldığım yerden devam ediyorum. Pazartesi'den Cuma'ya her akşam 20:30'da Twitch ve Kick'te canlı yayın yapıyor, en iyi anları burada sizinle paylaşıyorum.
 >
 > Twitch: twitch.tv/kaptanqedy
 > Kick: kick.com/kaptanqedy
