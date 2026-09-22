@@ -62,7 +62,7 @@
     if(vote) {
       vote.querySelectorAll('.vote-row,.show-small').forEach(n=>n.remove());
       const routes=s.routes || [], counts=s.voteCounts || [], total=counts.reduce((a,b)=>a+b,0);
-      vote.classList.toggle('active',routes.length>0);
+      vote.classList.toggle('active',routes.length>0 && s.routesVisible!==false);
       routes.forEach((route,i)=>{
         const row=div(vote,'vote-row',''); const number=document.createElement('b'); number.textContent=String(i+1); row.append(number);
         const name=document.createElement('span'); name.textContent=route; row.append(name);

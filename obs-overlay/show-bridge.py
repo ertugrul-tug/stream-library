@@ -88,6 +88,7 @@ def defaults():
         "game": clean(CONFIG.get("game"), 80),
         "returnMessage": clean(CONFIG.get("returnMessage"), 100),
         "routes": [clean(x, 65) for x in CONFIG.get("routes", [])][:3],
+        "routesVisible": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -309,6 +310,8 @@ async def client(ws):
                         state["highlights"].pop(index)
                 elif action == "resetVotes":
                     state["votes"] = {}
+                elif action == "toggleRoutesVisible":
+                    state["routesVisible"] = not state["routesVisible"]
                 elif action == "resetShow":
                     previous = {k: state[k] for k in ("game", "returnMessage", "routes", "connection", "obsConnection")}
                     state.clear()
