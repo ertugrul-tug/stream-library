@@ -359,6 +359,10 @@
   }
   @media (prefers-reduced-motion:reduce){ .comm-pill .dot{animation:none;} }
 
+  .sea-band{position:relative;height:150px;overflow:hidden;border-top:1px solid var(--line);}
+  .sea-band canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  @media (max-width:640px){ .sea-band{height:100px;} }
+
   footer{border-top:1px solid var(--line);padding:34px 0 26px;}
   .foot-inner{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;}
   .foot-brand{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-faint);}
@@ -546,6 +550,8 @@
     </div>
   </section>
 </main>
+
+<div class="sea-band" aria-hidden="true"><canvas id="siteSea"></canvas></div>
 
 <footer>
   <div class="wrap foot-inner reveal">
@@ -735,6 +741,153 @@
       requestAnimationFrame(drift);
     })();
   }
+
+  // sea band above the footer — same technique as the OBS overlay's start/break/end
+  // scenes: harmonic waves with slope-triggered foam, ships that ride the local slope.
+  (function initSea(){
+    var host = document.querySelector('.sea-band');
+    var canvas = document.getElementById('siteSea');
+    if(!host || !canvas) return;
+    var ctx = canvas.getContext('2d');
+    if(!ctx) return;
+
+    var W = 0, H = 0, t = 0;
+    var foam = [];
+    function resize(){
+      var r = host.getBoundingClientRect();
+      W = canvas.width = Math.max(1, Math.round(r.width));
+      H = canvas.height = Math.max(1, Math.round(r.height));
+    }
+
+    var waves = [
+      {yR:.30, amp:.16, freq:.010, phase:0.0, spd:.016, rgb:'34,174,240', a:.20},
+      {yR:.55, amp:.12, freq:.014, phase:2.1, spd:.012, rgb:'255,61,127', a:.14},
+      {yR:.78, amp:.09, freq:.009, phase:4.2, spd:.009, rgb:'34,174,240', a:.16}
+    ];
+    function wy(w,x){
+      return w.yR*H
+        + Math.sin(x*w.freq + t*w.spd + w.phase)*w.amp*H
+        + Math.sin(x*w.freq*2.4 + t*w.spd*1.6 + w.phase)*w.amp*H*.3;
+    }
+    function spawnFoam(x,y){
+      if(foam.length>50 || Math.random()>.05) return;
+      foam.push({x:x,y:y,vx:(Math.random()-.5)*.7,vy:-Math.random()*.9-.3,r:Math.random()*1.3+.4,a:.5+Math.random()*.25,decay:.02+Math.random()*.02});
+    }
+
+    var ships = [
+      {type:'galleon', x:-.2, spd:.000075, dir:1, wave:0, scale:1.1, yOff:-.06, rgb:'34,174,240'},
+      {type:'corvette', x:1.15, spd:.00012, dir:-1, wave:1, scale:.82, yOff:-.01, rgb:'255,61,127'},
+      {type:'sloop', x:-.35, spd:.00018, dir:1, wave:2, scale:.6, yOff:.02, rgb:'34,174,240'}
+    ];
+    var RIG = {
+      galleon:{masts:[-13,2,17], heights:[23,29,23], main:1},
+      corvette:{masts:[-8,11], heights:[25,20], main:0},
+      sloop:{masts:[3], heights:[24], main:0}
+    };
+    var HULL_DARK = 'rgba(6,8,13,.92)';
+
+    function drawShip(ship,x,y,angle){
+      var rig = RIG[ship.type];
+      var glow = 'rgba(' + ship.rgb + ',.75)';
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(angle);
+      ctx.scale(ship.dir*ship.scale*1.15, ship.scale*1.15);
+
+      ctx.fillStyle = HULL_DARK;
+      ctx.beginPath();
+      ctx.ellipse(0,9,30,8,0,0,Math.PI,false);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-29,9); ctx.lineTo(-38,3); ctx.lineTo(-25,6);
+      ctx.closePath(); ctx.fill();
+      if(ship.type!=='sloop') ctx.fillRect(20,0,10,9);
+      ctx.strokeStyle = glow; ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.ellipse(0,9,30,8,0,0,Math.PI,false); ctx.stroke();
+
+      rig.masts.forEach(function(mx,i){
+        var top = 6 - rig.heights[i];
+        ctx.strokeStyle = glow; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(mx,6); ctx.lineTo(mx,top); ctx.stroke();
+
+        var bulge = (i%2===0? -1:1) * 11;
+        ctx.fillStyle = HULL_DARK;
+        ctx.strokeStyle = 'rgba(' + ship.rgb + ',.45)'; ctx.lineWidth = .6;
+        ctx.beginPath();
+        ctx.moveTo(mx,top+4); ctx.lineTo(mx,5);
+        ctx.quadraticCurveTo(mx+bulge,(top+9)/1.3,mx,top+4);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        if(i===rig.main){
+          ctx.beginPath();
+          ctx.moveTo(mx,top+4); ctx.lineTo(mx,5);
+          ctx.quadraticCurveTo(mx-bulge,(top+9)/1.3,mx,top+4);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.moveTo(mx,top); ctx.lineTo(mx+7,top+3); ctx.lineTo(mx,top+5.5);
+          ctx.closePath(); ctx.fill();
+        }
+      });
+      ctx.restore();
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      waves.forEach(function(w){
+        ctx.beginPath();
+        ctx.moveTo(0, wy(w,0));
+        for(var x=0; x<=W; x+=4) ctx.lineTo(x, wy(w,x));
+        ctx.lineTo(W,H); ctx.lineTo(0,H);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(' + w.rgb + ',' + w.a + ')';
+        ctx.fill();
+
+        ctx.beginPath();
+        for(var xx=0; xx<=W; xx+=4){
+          var y = wy(w,xx);
+          xx===0 ? ctx.moveTo(xx,y) : ctx.lineTo(xx,y);
+          if(xx%8===0){
+            var slope = Math.abs(wy(w,xx+6)-wy(w,xx-6));
+            if(slope>1.4) spawnFoam(xx,y);
+          }
+        }
+        ctx.strokeStyle = 'rgba(' + w.rgb + ',.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      for(var i=foam.length-1; i>=0; i--){
+        var p = foam[i];
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.028; p.a-=p.decay;
+        if(p.a<=0){ foam.splice(i,1); continue; }
+        ctx.globalAlpha = Math.max(0,p.a);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ships.forEach(function(s){
+        s.x += s.spd*s.dir;
+        if(s.x>1.3) s.x=-.3;
+        if(s.x<-.3) s.x=1.3;
+        var w = waves[s.wave];
+        var sx = s.x*W;
+        var sy = wy(w,sx) + s.yOff*H;
+        var slope = (wy(w,sx+9)-wy(w,sx-9))/18;
+        var angle = Math.atan(slope)*.5;
+        drawShip(s,sx,sy,angle);
+      });
+
+      t++;
+      if(!reduced) requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener('resize', resize, {passive:true});
+    draw();
+  })();
 })();
 </script>
 </body>
