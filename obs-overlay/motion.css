@@ -1,0 +1,65 @@
+/* Shared motion layer for OBS browser sources. */
+.scene:not(.chat-scene){--motion-accent:#22aef0;--motion-rgb:34,174,240}
+.scene.break{--motion-accent:#ff3d7f;--motion-rgb:255,61,127}
+.scene.end{--motion-accent:#53fc18;--motion-rgb:83,252,24}
+.scene:not(.chat-scene):before{animation:sceneDrift 28s ease-in-out infinite alternate}
+.scene:not(.chat-scene) .grain{opacity:.21}
+.scene:not(.chat-scene) .center:before{content:"";position:absolute;z-index:-1;width:49vw;height:49vw;border-radius:50%;background:radial-gradient(circle,rgba(var(--motion-rgb),.14),rgba(var(--motion-rgb),.04) 31%,transparent 67%);filter:blur(1.8vw);animation:haloBreathe 9s ease-in-out infinite}
+.scene:not(.chat-scene) .center:after{content:"";position:absolute;z-index:-1;width:48vw;height:48vw;border:1px solid rgba(var(--motion-rgb),.11);border-radius:50%;box-shadow:0 0 0 4vw rgba(var(--motion-rgb),.025),0 0 0 9vw rgba(var(--motion-rgb),.012);animation:haloTurn 30s linear infinite}
+.scene:not(.chat-scene) .emblem{animation:enterEmblem 1.25s cubic-bezier(.17,.75,.2,1) both}
+.scene:not(.chat-scene) .emblem:before{border-width:2px;border-top-color:var(--motion-accent);border-right-color:transparent}
+.scene:not(.chat-scene) .emblem:after{border-left-color:var(--motion-accent)}
+.scene:not(.chat-scene) .emblem img{box-shadow:0 0 0 .28vw rgba(5,12,20,.7),0 0 2.7vw rgba(var(--motion-rgb),.52)}
+.scene:not(.chat-scene) .kicker{animation:riseReveal .8s .4s both}
+.scene:not(.chat-scene) h1{animation:riseReveal .95s .55s both}
+.scene:not(.chat-scene) h1 span{background-size:250% 100%;animation:titleLight 11s linear infinite}
+.scene:not(.chat-scene) .subtitle{animation:riseReveal .85s .82s both}
+.scene:not(.chat-scene) .pulse-line{position:relative;overflow:hidden;animation:riseReveal .85s 1.05s both,pillGlow 4s 2s ease-in-out infinite}
+.scene:not(.chat-scene) .pulse-line:after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-25deg) translateX(-220%);animation:lightSweep 6s 2.5s ease-in-out infinite}
+.scene:not(.chat-scene) .footer{animation:riseReveal .8s 1.2s both}
+.scene:not(.chat-scene) .header{animation:fadeReveal 1s .2s both}
+.scene:not(.chat-scene) .timer.active{animation:riseReveal .6s both,timerBreathe 3s .7s ease-in-out infinite}
+.scene:not(.chat-scene) .topline,.overlay .topline,.chat-scene .topline{background-size:230% 100%;animation:gradientSlide 9s linear infinite}
+.scene:not(.chat-scene) .corner,.overlay .corner,.chat-scene .corner{animation:edgeBreathe 6s ease-in-out infinite}
+.scene:not(.chat-scene) .corner.tr,.overlay .corner.tr,.chat-scene .corner.tr{animation-delay:-1.5s}
+.scene:not(.chat-scene) .corner.bl,.overlay .corner.bl,.chat-scene .corner.bl{animation-delay:-3s}
+.scene:not(.chat-scene) .corner.br,.overlay .corner.br,.chat-scene .corner.br{animation-delay:-4.5s}
+.atmosphere{position:absolute;z-index:2;inset:0;width:100%;height:100%;pointer-events:none}
+.overlay .port{animation:fadeReveal 1.1s both}
+.overlay .port.kick{animation-delay:.2s}
+.overlay .camera-bar{overflow:hidden;animation:slideFromLeft .85s .2s cubic-bezier(.2,.8,.2,1) both}
+.overlay .camera-bar:after,.chat-scene .camera-bar:after{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);transform:skewX(-25deg) translateX(-240%);animation:lightSweep 8s 2s ease-in-out infinite}
+.overlay .chat{animation:slideFromRight .9s .28s cubic-bezier(.2,.8,.2,1) both}
+.overlay .chat-header,.chat-scene .chat-title{position:relative;overflow:hidden}
+.overlay .chat-header:after,.chat-scene .chat-title:after{content:"";position:absolute;bottom:0;left:-45%;width:35%;height:1px;background:linear-gradient(90deg,transparent,#22aef0,transparent);box-shadow:0 0 12px #22aef0;animation:underlineTravel 8s 2s linear infinite}
+.overlay .alert.show{box-shadow:0 18px 45px rgba(0,0,0,.48),0 0 32px var(--accent);animation:alertFlash .7s ease-out}
+.overlay .alert.show:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.12) 48%,transparent 66%);background-size:220% 100%;animation:alertSheen 1.1s ease-out both;pointer-events:none}
+.overlay .lower .line,.chat-scene .footer .line{background-size:200% 100%;animation:gradientSlide 11s linear infinite}
+.chat-scene .left-copy{animation:slideFromLeft 1s .15s cubic-bezier(.2,.8,.2,1) both}
+.chat-scene .left-copy h1 span{background-size:230% 100%;animation:titleLight 11s linear infinite}
+.chat-scene .camera-bar{overflow:hidden;animation:slideFromLeft .8s .35s both}
+.chat-scene .chat-panel{animation:slideFromRight 1s .25s cubic-bezier(.2,.8,.2,1) both,panelGlow 6s 1.2s ease-in-out infinite}
+.chat-scene .chat-panel .message{animation:riseReveal .45s ease-out both}
+.chat-scene .footer{animation:fadeReveal 1s 1s both}
+@keyframes sceneDrift{from{transform:scale(1.03) translate(-.7%,.4%)}to{transform:scale(1.12) translate(.8%,-.6%)}}
+@keyframes haloBreathe{50%{opacity:.62;transform:scale(1.12)}}
+@keyframes haloTurn{50%{transform:rotate(180deg) scale(1.04)}to{transform:rotate(360deg)}}
+@keyframes enterEmblem{from{opacity:0;transform:translateY(2vw) scale(.78);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes riseReveal{from{opacity:0;transform:translateY(1.2vw);filter:blur(5px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes fadeReveal{from{opacity:0}to{opacity:1}}
+@keyframes titleLight{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes pillGlow{50%{box-shadow:0 0 2vw rgba(var(--motion-rgb),.32)}}
+@keyframes timerBreathe{50%{opacity:.65}}
+@keyframes lightSweep{0%,72%{transform:skewX(-25deg) translateX(-240%)}86%,100%{transform:skewX(-25deg) translateX(420%)}}
+@keyframes gradientSlide{to{background-position:200% 0}}
+@keyframes edgeBreathe{50%{opacity:.32;filter:drop-shadow(0 0 7px rgba(34,174,240,.5))}}
+@keyframes slideFromLeft{from{opacity:0;transform:translateX(-1.6vw)}to{opacity:1;transform:none}}
+@keyframes slideFromRight{from{opacity:0;transform:translateX(1.6vw)}to{opacity:1;transform:none}}
+@keyframes underlineTravel{from{left:-45%}to{left:110%}}
+@keyframes alertFlash{from{filter:brightness(1.7)}to{filter:brightness(1)}}
+@keyframes alertSheen{from{background-position:190% 0}to{background-position:-40% 0}}
+@keyframes panelGlow{50%{box-shadow:0 1.5vw 4vw rgba(0,0,0,.35),0 0 2.5vw rgba(34,174,240,.13)}}
+@media(prefers-reduced-motion:reduce){
+  .scene *, .scene *:before,.scene *:after,.overlay *, .overlay *:before,.overlay *:after{animation:none!important;transition:none!important}
+  .scene:not(.chat-scene) .center>* , .chat-scene .left-copy,.chat-scene .chat-panel,.overlay .camera-bar,.overlay .chat{opacity:1!important;transform:none!important;filter:none!important}
+}

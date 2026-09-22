@@ -1,0 +1,22 @@
+.show-card{position:absolute;z-index:8;color:#f4f9ff;font-family:system-ui,"Segoe UI",sans-serif;border:1px solid rgba(147,215,247,.35);border-radius:1vw;background:linear-gradient(140deg,rgba(8,19,30,.88),rgba(7,13,22,.7));box-shadow:0 1vw 3vw rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.08);backdrop-filter:blur(10px);padding:1.1vw 1.4vw}
+.show-label{font-size:.7vw;letter-spacing:.23em;font-weight:900;color:#69cdf8;text-transform:uppercase;margin-bottom:.7vw}
+.show-small{font-size:.8vw;line-height:1.5;color:#d0dce8}
+.show-spotlight{left:26%;right:26%;bottom:8%;text-align:center;display:none;animation:showIn .45s cubic-bezier(.2,.8,.2,1) both}
+.show-spotlight.active{display:block}
+.show-spotlight .show-text{font-size:1.35vw;font-weight:720;line-height:1.3;overflow-wrap:anywhere}
+.show-spotlight .show-author{margin-top:.65vw;font-size:.74vw;letter-spacing:.12em;color:#d8e7f3}
+.show-spotlight[data-platform="twitch"]{border-color:rgba(145,70,255,.7)}
+.show-spotlight[data-platform="kick"]{border-color:rgba(83,252,24,.55)}
+.show-vote{left:4%;top:16%;width:22%;display:none}
+.show-vote.active{display:block}
+.show-vote .vote-row{display:grid;grid-template-columns:1.25vw 1fr 2vw;gap:.4vw;align-items:center;font-size:.75vw;margin:.45vw 0}
+.show-vote .vote-row b{color:#68ccf9}.show-vote .vote-track{grid-column:2 / 4;height:.22vw;border-radius:1vw;background:rgba(255,255,255,.12);overflow:hidden}.show-vote .vote-track i{display:block;height:100%;background:linear-gradient(90deg,#9146ff,#22aef0,#53fc18);transition:width .6s}
+.show-vote .show-small{font-size:.62vw;letter-spacing:.07em;margin-top:.6vw}
+.scene.start .show-crew{left:5.5%;top:25%;width:19%;min-height:16%;max-height:49%;overflow:hidden}
+.show-crew .crew-list{display:flex;flex-direction:column;gap:.48vw}.show-crew .crew-person{font-size:.85vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:showIn .5s both}.show-crew .crew-person:before{content:"◉";color:#22aef0;margin-right:.5vw}.show-crew .crew-person.kick:before{color:#53fc18}.show-crew .crew-person.twitch:before{color:#9146ff}
+.show-log{left:5.5%;top:22%;width:22%}.show-log .show-value{font-size:1.08vw;font-weight:800;margin-bottom:1vw;overflow-wrap:anywhere}
+.show-end{right:5.5%;top:22%;width:23%}.show-end .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65vw;margin-bottom:1vw}.show-end .stat{border-top:1px solid rgba(255,255,255,.15);padding-top:.4vw}.show-end .stat strong{font-size:1.4vw}.show-end .stat span{display:block;color:#bccbd8;font-size:.64vw;letter-spacing:.1em}.show-end .highlight{font-size:.78vw;line-height:1.4;margin:.35vw 0;overflow-wrap:anywhere}
+.chat-scene .show-spotlight{left:5%;right:53%;bottom:4%;text-align:left}.chat-scene .show-vote{left:5%;top:58%;width:33%}
+.overlay .show-spotlight{left:29%;right:29%;bottom:5%;padding:.65vw 1vw}.overlay .show-spotlight .show-text{font-size:.9vw}.overlay .show-vote{left:3.7%;top:27%;width:18%;padding:.8vw}.overlay .show-vote .vote-row{font-size:.58vw}
+@keyframes showIn{from{opacity:0;transform:translateY(1.2vw) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.show-card,.show-crew .crew-person{animation:none!important}}

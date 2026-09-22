@@ -1,0 +1,5 @@
+{
+  "game": "Bu akşamki oyun",
+  "returnMessage": "Birazdan güvertede görüşürüz",
+  "routes": ["Ana göreve devam", "Yan görev keşfi", "Mürettebat seçsin"]
+}

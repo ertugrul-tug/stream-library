@@ -2,6 +2,21 @@
 
 overlay.html, mevcut sitenin görsel dilini kullanan tek OBS Browser Source katmanıdır. Oyun ve kamera görüntüsü şeffaf alanların arkasında OBS kaynakları olarak kalır. Twitch ile Kick mesajları aynı sohbet kutusunda, platform etiketleriyle görünür. Twitch bildirimleri solda, Kick bildirimleri sağda animasyon ve kısa bir sesle çıkar. Aynı anda gelen iki platformun bildirimleri birlikte görünebilir.
 
+## Ayrı yayın sahneleri
+
+Aşağıdaki dört dosya OBS Browser Source olarak ayrı sahnelere eklenebilir. Her biri 2560 × 1440 tuvale göre ölçeklenir; mevcut OBS sahneleri otomatik değiştirilmez.
+
+| Dosya | Kullanım |
+| --- | --- |
+| yayin-basliyor.html | Tam ekran “Yayın Başlıyor” bekleme sahnesi |
+| mola.html | Tam ekran “Kısa Bir Mola” sahnesi |
+| yayin-bitti.html | Tam ekran yayın sonu sahnesi |
+| sohbet.html | Sol tarafı kamera için şeffaf bırakan, sağda ortak Twitch + Kick sohbeti gösteren sahne |
+
+Başlangıç ve mola sahnelerinde isteğe bağlı geri sayım için yerel dosya adresine ?minutes=10 veya ?minutes=5 eklenebilir. Süre dolunca sayaç 00:00'da kalır; OBS sahnesi kendiliğinden değişmez.
+
+sohbet.html normal kullanımda şeffaftır. Yerleşimi oyun benzeri arka planda örnek mesajlarla görmek için tarayıcıda sohbet.html?sample=1 açılabilir. Yayına normal sohbet.html dosyasını ekle. Canlı mesajlar için Streamer.bot WebSocket sunucusu 127.0.0.1:8080 adresinde açık olmalıdır. scene.css, scene.js, motion.css ve motion.js dosyaları aynı klasörde kalmalıdır. Hareketli ışıklar ve atmosfer parçacıkları yayın başı, mola ve bitiş ekranlarında çalışır; oyun katmanının orta alanı şeffaf kalır. Animasyonlar sistemin azaltılmış hareket ayarına uyar.
+
 ## OBS'ye ekleme
 
 1. OBS'de QedyStudios profilini ve kullanacağın sahneyi aç. Bu profilin tuvali 2560 × 1440, 60 FPS; HTML bu tuvale göre tasarlandı.
@@ -40,9 +55,22 @@ Katman yerel olarak window.qedyOverlay.push(event) ile de test edilebilir:
 
 Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin olarak gösterilir. Chat kutusu son yedi mesajı tutar.
 
-## Sahne geçişi
+## İnteraktif yayın paketi
 
-Bu dosya sahne üzerindeki görsel katmandır. OBS'nin iki sahne arasında tüm ekranı kaplayan gerçek geçişi için ayrıca bir Stinger video dosyası gerekir.
+show-bridge.py, Streamer.bot WebSocket sunucusundan Twitch ve Kick olaylarını alıp sahneler arasında ortak bir yayın durumu tutar. Köprü yalnızca bu bilgisayarda 127.0.0.1:8765 adresinde çalışır. Streamer.bot için kullanılan 127.0.0.1:8080 portunu değiştirme. kumanda.html tarayıcıda açılan kontrol ekranıdır; OBS kaynağı değildir. Köprü yoksa mevcut ortak sohbet ve bildirimler doğrudan Streamer.bot üzerinden çalışmaya devam eder; yeni interaktif alanlar canlı veri alamaz.
+
+1. Bir kere: python -m pip install -r obs-overlay/requirements.txt
+2. Yayından önce start-show.cmd dosyasına çift tıkla veya python obs-overlay/show-bridge.py çalıştır. Terminal penceresini açık bırak. Streamer.bot WebSocket Server da açık olmalı. Köprü bağlantı kurulana kadar yeniden dener.
+3. obs-overlay/kumanda.html dosyasını tarayıcıda aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz.
+4. Sohbette !rota 1, !rota 2, !rota 3 oyları iki platformdan toplanır. Her kullanıcı her platformda bir güncel oya sahiptir; yeni oy önceki oyunu değiştirir. Kumandada mesajı “Anons yap” ile seçip ekranda öne çıkarabilirsin. “Öne çıkan anlar” alanına yayın sırasında kısa notlar ekleyebilirsin.
+5. Açılış sahnesi sohbete yazanları radar listesinde gösterir. Mola sahnesi oyun, dönüş notu ve öne çıkan anları; kapanış sahnesi mesaj, takip, abonelik sayılarını ve notları gösterir. Bunlar köprü başladıktan sonra gelen olaylardır. Geçmiş platform istatistikleri veya otomatik Twitch klipleri içe aktarılmaz.
+
+show-config.json ilk açılıştaki metinleri belirler. Değişen yayın verileri .show-state.json içinde yerel olarak saklanır ve Git'e eklenmez. Dosyada sohbet kullanıcı adları ve mesajları olabilir; paylaşma. Kumandadaki “Yeni yayın başlat” düğmesi bu oturum verilerini sıfırlar. Canlı mesajlar HTML olarak işlenmez, yalnızca düz metin olarak gösterilir. ?sample=1 ile sahnelerde örnek interaktif içerik görülebilir; OBS'ye normal dosya adresini ekle.
+
+## Pusulalı sahne geçişi
+
+pusula-gecis.webm, OBS Stinger geçişinde kullanılacak 1280 × 720, 60 FPS ve şeffaf VP9 videodur. OBS sahne geçişlerine yeni bir Stinger ekle, dosyayı seç ve Transition Point değerini 600 ms yap. Tam örtme anında sahne değişir. OBS sahne/kaynak sırası bu paket tarafından değiştirilmez. Videoyu yeniden üretmek istersen önce python -m pip install Pillow, ardından python obs-overlay/make-stinger.py çalıştır. [OBS Stinger açıklaması](https://obsproject.com/kb/track-matte-stinger-transitions) geçiş noktasını açıklar.
+
 ## Önizleme görselleri
 
 Bu iki görsel yalnızca örnek oyun/kamera yerleşimi içindir; normal OBS katmanında gösterilmez. Temsili kameradaki kişi yayıncıyı temsil etmez.
