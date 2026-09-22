@@ -14,7 +14,7 @@ body{background:#070b12}
 .grain{position:absolute;inset:0;z-index:1;opacity:.16;background-image:linear-gradient(rgba(153,216,240,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(153,216,240,.14) 1px,transparent 1px);background-size:3.5vw 3.5vw;mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);animation:gridDrift 45s linear infinite}
 
 /* sea — canvas-drawn waves + ships riding them, see sea.js */
-.sea-canvas{position:absolute;left:0;right:0;bottom:7%;height:20%;z-index:2;width:100%;pointer-events:none}
+.sea-canvas{position:absolute;left:0;right:0;bottom:0;height:28%;z-index:2;width:100%;pointer-events:none}
 .topline{position:absolute;top:3%;left:2%;right:2%;height:1px;background:linear-gradient(90deg,var(--twitch),var(--blue) 38%,var(--pink) 65%,var(--kick));box-shadow:0 0 1.3vw rgba(34,174,240,.48);z-index:3}
 .corner{position:absolute;width:4%;height:7%;z-index:3;opacity:.8;border:2px solid rgba(200,235,255,.35)}
 .corner.tl{top:3%;left:2%;border-right:0;border-bottom:0}.corner.tr{top:3%;right:2%;border-left:0;border-bottom:0}.corner.bl{bottom:3%;left:2%;border-top:0;border-right:0}.corner.br{bottom:3%;right:2%;border-top:0;border-left:0}
