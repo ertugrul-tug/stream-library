@@ -19,7 +19,7 @@ body{background:#070b12}
 .wave.wave-back{opacity:.09;bottom:2%}
 .ship-track{position:absolute;left:-16%;pointer-events:none}
 .ship-track .ship{display:block;color:var(--motion-accent,var(--blue))}
-.ship-track .hull{fill:currentColor;opacity:.6}
+.ship-track .hull{fill:currentColor;opacity:.6;stroke:currentColor;stroke-width:.6;stroke-opacity:.35}
 .ship-track .mast{stroke:currentColor;stroke-width:1;opacity:.55}
 .ship-track .sail,.ship-track .flag{fill:currentColor;opacity:.46}
 .ship-galleon{bottom:5.5%}.ship-galleon .ship{width:6.2vw;opacity:.5}
