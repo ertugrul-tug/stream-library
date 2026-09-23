@@ -18,5 +18,29 @@
 .show-end{right:5.5%;top:22%;width:23%;max-height:25%;overflow:hidden}.show-end .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65vw;margin-bottom:1vw}.show-end .stat{border-top:1px solid rgba(255,255,255,.15);padding-top:.4vw}.show-end .stat strong{font-family:var(--font-mono,'JetBrains Mono',monospace);font-variant-numeric:tabular-nums;font-size:1.4vw;font-weight:600}.show-end .stat span{display:block;color:#bccbd8;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.6vw;letter-spacing:.1em}.show-end .highlight{font-size:.78vw;line-height:1.4;margin:.35vw 0;overflow-wrap:anywhere}
 .chat-scene .show-spotlight{left:5%;right:53%;bottom:4%;text-align:left}.chat-scene .show-vote{left:5%;top:58%;width:33%}
 .overlay .show-spotlight{left:29%;right:29%;bottom:5%;padding:.65vw 1vw}.overlay .show-spotlight .show-text{font-size:.9vw}.overlay .show-vote{left:3.7%;top:27%;width:18%;padding:.8vw}.overlay .show-vote .vote-row{font-size:.58vw}
+.show-score{right:4.1%;top:23.5%;width:15%;padding:.8vw 1vw;display:none;--heat:0;transition:border-color .5s,box-shadow .5s}
+.show-score.active{display:block;animation:showIn .45s cubic-bezier(.2,.8,.2,1) both}
+.show-score .score-line{display:flex;align-items:baseline;gap:.3vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-variant-numeric:tabular-nums}
+.show-score .score-line b{font-size:1.9vw;font-weight:600;line-height:1}.show-score .score-line b.w{color:#5cf0a0}.show-score .score-line b.l{color:#ff3d7f}
+.show-score .score-line small{font-size:.62vw;letter-spacing:.14em;color:#a8b7c6;margin-right:.8vw}
+.show-score .score-dots{display:flex;gap:.5vw;margin-top:.65vw}
+.show-score .score-dots i{width:.8vw;height:.8vw;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06)}
+.show-score .score-dots i.w{background:#5cf0a0;border-color:#5cf0a0;box-shadow:0 0 .6vw rgba(92,240,160,.65)}
+.show-score .score-dots i.l{background:#ff3d7f;border-color:#ff3d7f;box-shadow:0 0 .6vw rgba(255,61,127,.55)}
+.show-score .score-dots i.new{animation:dotPop .7s cubic-bezier(.2,1.6,.4,1) both}
+.show-score .score-streak{margin-top:.6vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.6vw;font-weight:700;letter-spacing:.13em;color:#a8b7c6;white-space:nowrap}
+.show-score.bump{animation:scoreBump .55s cubic-bezier(.2,1.5,.4,1)}
+.show-score.fire{border-color:rgba(255,150,50,.85);box-shadow:0 1vw 3vw rgba(0,0,0,.3),0 0 calc(1.2vw * var(--heat)) rgba(255,110,20,.55),inset 0 0 calc(.8vw * var(--heat)) rgba(255,120,30,.18)}
+.show-score.fire .score-streak{color:#ffc36b;text-shadow:0 0 .4vw #ff7a00,0 0 1vw #ff3d00;animation:flicker 1.3s steps(1) infinite}
+.show-score::before,.show-score::after{content:"";position:absolute;left:6%;right:6%;bottom:calc(100% - .5vw);height:calc(1.5vw * var(--heat));pointer-events:none;opacity:0;transform-origin:50% 100%;filter:blur(.12vw);transition:opacity .4s}
+.show-score::before{background:radial-gradient(22% 95% at 12% 100%,#ffe9a3 0%,#ff8a1f 42%,transparent 72%),radial-gradient(20% 100% at 38% 100%,#fff4c4 0%,#ff6a00 45%,transparent 74%),radial-gradient(22% 85% at 63% 100%,#ffe9a3 0%,#ff4d1a 45%,transparent 72%),radial-gradient(20% 100% at 88% 100%,#fff4c4 0%,#ff8a1f 42%,transparent 72%)}
+.show-score::after{background:radial-gradient(18% 80% at 25% 100%,#fff 0%,#ffb13b 35%,transparent 70%),radial-gradient(16% 90% at 52% 100%,#fff 0%,#ff7a1a 40%,transparent 72%),radial-gradient(18% 75% at 76% 100%,#fff 0%,#ffb13b 35%,transparent 70%)}
+.show-score.fire::before{opacity:.95;animation:flame .32s ease-in-out infinite alternate}
+.show-score.fire::after{opacity:.8;animation:flame2 .47s ease-in-out infinite alternate}
+@keyframes flame{0%{transform:scaleY(.82) skewX(-4deg)}100%{transform:scaleY(1.15) skewX(4deg)}}
+@keyframes flame2{0%{transform:scaleY(1.1) skewX(5deg) translateX(-2%)}100%{transform:scaleY(.8) skewX(-5deg) translateX(2%)}}
+@keyframes flicker{0%,100%{opacity:1}42%{opacity:.82}47%{opacity:1}71%{opacity:.9}}
+@keyframes dotPop{0%{transform:scale(0)}60%{transform:scale(1.7)}100%{transform:scale(1)}}
+@keyframes scoreBump{0%{transform:scale(1)}35%{transform:scale(1.06)}100%{transform:scale(1)}}
 @keyframes showIn{from{opacity:0;transform:translateY(1.2vw) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(prefers-reduced-motion:reduce){.show-card,.show-crew .crew-person{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.show-card,.show-crew .crew-person,.show-score::before,.show-score::after,.show-score .score-streak,.show-score .score-dots i{animation:none!important}}

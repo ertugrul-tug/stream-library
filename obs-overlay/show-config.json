@@ -1,7 +1,7 @@
 {
-  "game": "Bu akşamki oyun",
+  "game": "League of Legends",
   "returnMessage": "Birazdan güvertede görüşürüz",
-  "routes": ["Ana göreve devam", "Yan görev keşfi", "Mürettebat seçsin"],
+  "routes": ["Ranked'e devam", "ARAM ile ısınalım", "Şampiyonu sohbet seçsin"],
 
   "discordWebhook": "",
 
