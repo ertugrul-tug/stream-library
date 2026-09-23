@@ -27,6 +27,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import os
 import re
 import socket
 import threading
@@ -56,6 +57,18 @@ if LOCAL_CONFIG_FILE.exists():
 DISCORD_WEBHOOK = str(CONFIG.get("discordWebhook") or "").strip()
 OBS_URL = str((CONFIG.get("obs") or {}).get("url") or "ws://127.0.0.1:4455")
 OBS_PASSWORD = str((CONFIG.get("obs") or {}).get("password") or "")
+
+# When OBS is on this Windows PC, reuse its local WebSocket password in
+# memory. This keeps the secret out of the repo and makes scene buttons
+# work without copying the password into show-config.local.json.
+if not OBS_PASSWORD and OBS_URL in ("ws://127.0.0.1:4455", "ws://localhost:4455"):
+    try:
+        obs_config_path = Path(os.environ["APPDATA"]) / "obs-studio/plugin_config/obs-websocket/config.json"
+        obs_config = json.loads(obs_config_path.read_text(encoding="utf-8"))
+        if obs_config.get("auth_required"):
+            OBS_PASSWORD = str(obs_config.get("server_password") or "")
+    except (KeyError, OSError, ValueError):
+        pass
 
 sb_conn = {"ws": None}
 obs_conn = {"ws": None}

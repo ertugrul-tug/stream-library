@@ -9,7 +9,7 @@
     "url": "ws://127.0.0.1:4455",
     "password": ""
   },
-  "obsScenes": ["Yayın Başlıyor", "Ana Yayın", "Kısa Mola", "Yayın Bitti"],
+  "obsScenes": ["Yayın Başlıyor", "Sahne", "Sohbet Güvertesi", "Kısa Mola", "Yayın Bitti"],
 
   "schedule": {
     "Açılış sohbet": "20:30",

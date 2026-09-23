@@ -12,7 +12,7 @@
   const log = kind === 'break' ? card('show-log','SEYİR DEFTERİ') : null;
   const end = kind === 'end' ? card('show-end','BU SEFERİN ÖZETİ') : null;
   const spotlight = kind === 'chat' || kind === 'overlay' ? card('show-spotlight','KAPTANIN ANONSU') : null;
-  const vote = kind === 'chat' || kind === 'overlay' ? card('show-vote','SONRAKİ ROTA') : null;
+  const vote = kind === 'overlay' ? card('show-vote','SONRAKİ ROTA') : null;
   const div = (parent, cls, content) => { const e=document.createElement('div'); e.className=cls; e.textContent=content; parent.append(e); return e; };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function countUp(el, target) {
