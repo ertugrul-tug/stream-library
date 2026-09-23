@@ -162,6 +162,14 @@
     color:var(--pink);letter-spacing:-.01em;
   }
   .hero-stage p.lede{color:var(--ink-dim);font-size:16.5px;max-width:56ch;margin:0 auto 34px;}
+  .tonight-pill{
+    display:inline-flex;align-items:center;gap:10px;margin:0 auto 20px;padding:10px 20px 10px 15px;
+    border-radius:100px;background:color-mix(in srgb,var(--c,var(--blue)) 14%,transparent);
+    border:1px solid color-mix(in srgb,var(--c,var(--blue)) 45%,transparent);
+    font-family:var(--font-mono);font-size:13.5px;font-weight:700;letter-spacing:.01em;color:var(--ink);
+  }
+  .tonight-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--blue));flex:none;box-shadow:0 0 0 0 color-mix(in srgb,var(--c,var(--blue)) 55%,transparent);animation:live-pulse 1.8s ease-out infinite;}
+  @media (prefers-reduced-motion:reduce){ .tonight-pill .dot{animation:none;} }
   .scroll-cue{
     position:relative;z-index:1;margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;
     font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
@@ -439,7 +447,8 @@
         <div class="eyebrow">Twitch · YouTube · Kick · Türkçe Oynanış</div>
         <h1>KAPTAN QEDY</h1>
         <h2 class="sub">GERİ DÖNÜYOR</h2>
-        <p class="lede" id="heroLede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
+        <div class="tonight-pill" id="tonightPill"><span class="dot"></span><span id="tonightText"></span></div>
+        <p class="lede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
       </div>
       <div class="scroll-cue" id="hsCue"><span>Kaydır</span><span class="chev">▾</span></div>
     </div>
@@ -667,17 +676,18 @@
       badge.textContent = 'BUGÜN';
       card.appendChild(badge);
     });
-    var lede = document.getElementById('heroLede');
+    var pill = document.getElementById('tonightPill');
+    var pillText = document.getElementById('tonightText');
     var todayCard = todayCards[0];
-    if(!lede || !todayCard) return;
-    var dayName = todayCard.querySelector('.dd').textContent;
+    if(!pill || !pillText || !todayCard) return;
+    pill.style.setProperty('--c', todayCard.style.getPropertyValue('--c'));
     var theme = todayCard.querySelector('.dt').textContent;
     if(!todayCard.classList.contains('off')){
-      lede.textContent = 'Bu akşam ' + dayName.toLowerCase() + ' teması: ' + theme + ' — 20:30\'da güvertedeyiz.';
+      pillText.textContent = 'Bu akşamki rota: ' + theme + ' — 20:30\'da demir alıyoruz';
     } else if(new Date().getDay() === 6){
-      lede.textContent = 'Bugün kaptan da dinleniyor — yarın YouTube\'da yeni bölüm.';
+      pillText.textContent = 'Bu akşam kaptan da dinleniyor — yarın YouTube\'da yeni bölüm';
     } else {
-      lede.textContent = 'Bugün YouTube günü — haftanın en iyileri kanalda seni bekliyor.';
+      pillText.textContent = 'Bugün YouTube günü — haftanın en iyileri kanalda';
     }
   })();
 
