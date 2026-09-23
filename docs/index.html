@@ -258,11 +258,18 @@
   .scrub .week-track{flex-wrap:nowrap;gap:20px;padding-inline:6vw;will-change:transform;}
 
   .day{
+    position:relative;
     background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 18px;
     display:flex;flex-direction:column;gap:10px;min-height:230px;flex:1 1 160px;min-width:160px;
     transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
   .day:hover{transform:translateY(-5px) perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--c);box-shadow:0 16px 34px -14px var(--c);}
+  .day.today{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 16px 34px -18px var(--c);}
+  .today-badge{
+    position:absolute;top:-11px;right:14px;padding:3px 10px;border-radius:100px;
+    background:var(--c);color:#08111c;font-family:var(--font-mono);font-size:10px;font-weight:800;
+    letter-spacing:.08em;box-shadow:0 4px 12px -2px var(--c);
+  }
   .day .dd{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);}
   .day .dtime{
     display:flex;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);
@@ -432,7 +439,7 @@
         <div class="eyebrow">Twitch · YouTube · Kick · Türkçe Oynanış</div>
         <h1>KAPTAN QEDY</h1>
         <h2 class="sub">GERİ DÖNÜYOR</h2>
-        <p class="lede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
+        <p class="lede" id="heroLede">Uzun bir sessizlikten sonra güverteye dönüyoruz. Pazartesi'den Cuma'ya her akşam 20:30'da yeni bir tema, aynı gemi, aynı mürettebat.</p>
       </div>
       <div class="scroll-cue" id="hsCue"><span>Kaydır</span><span class="chev">▾</span></div>
     </div>
@@ -483,13 +490,13 @@
     <div class="week-scrub">
       <div class="week-stage" id="weekStage">
         <div class="week-track stagger" id="weekTrack">
-          <div class="day" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
-          <div class="day" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
-          <div class="day" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
-          <div class="day" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
-          <div class="day" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>geç</span></div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
-          <div class="day off" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dtime"><span>—</span></div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
-          <div class="day off" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dtime"><span>—</span></div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
+          <div class="day" data-dow="1" style="--c:var(--d-serbest)"><div class="dd">Pazartesi</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Serbest</div><div class="de">O günkü keyfe göre — ne çekerse</div></div>
+          <div class="day" data-dow="2" style="--c:var(--d-hikaye)"><div class="dd">Salı</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Hikayeli</div><div class="de">Baldur's Gate 3 ile uzun soluklu macera</div></div>
+          <div class="day" data-dow="3" style="--c:var(--d-comp)"><div class="dd">Çarşamba</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Competitive</div><div class="de">Rekabet modu açık</div></div>
+          <div class="day" data-dow="4" style="--c:var(--d-surv)"><div class="dd">Perşembe</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>23:30</span></div><div class="dt">Survival</div><div class="de">Hayatta kalma modu</div></div>
+          <div class="day" data-dow="5" style="--c:var(--d-team)"><div class="dd">Cuma</div><div class="dtime"><span>20:30</span><span>21:00</span><span>23:00</span><span>geç</span></div><div class="dt">Toplu Ekip</div><div class="de">Ekip ruhu, gece geç saatlere kadar</div></div>
+          <div class="day off" data-dow="6" style="--c:var(--d-rest)"><div class="dd">Cumartesi</div><div class="dtime"><span>—</span></div><div class="dt">Dinlenme</div><div class="de">Kaptan da dinlenir</div></div>
+          <div class="day off" data-dow="0" style="--c:var(--d-yt)"><div class="dd">Pazar</div><div class="dtime"><span>—</span></div><div class="dt">YouTube</div><div class="de">Haftanın en iyileri</div></div>
         </div>
       </div>
     </div>
@@ -648,6 +655,31 @@
     zipCards[1].style.transform = 'translateX(' + offset.toFixed(1) + 'px)';
     zipCards[1].style.opacity = t.toFixed(3);
   }
+
+  // Day-aware: highlight today's card and rewrite the hero line, so the
+  // page actually looks different Wednesday vs Thursday — not just on scroll.
+  (function(){
+    var todayCards = document.querySelectorAll('.day[data-dow="' + new Date().getDay() + '"]');
+    todayCards.forEach(function(card){
+      card.classList.add('today');
+      var badge = document.createElement('span');
+      badge.className = 'today-badge';
+      badge.textContent = 'BUGÜN';
+      card.appendChild(badge);
+    });
+    var lede = document.getElementById('heroLede');
+    var todayCard = todayCards[0];
+    if(!lede || !todayCard) return;
+    var dayName = todayCard.querySelector('.dd').textContent;
+    var theme = todayCard.querySelector('.dt').textContent;
+    if(!todayCard.classList.contains('off')){
+      lede.textContent = 'Bu akşam ' + dayName.toLowerCase() + ' teması: ' + theme + ' — 20:30\'da güvertedeyiz.';
+    } else if(new Date().getDay() === 6){
+      lede.textContent = 'Bugün kaptan da dinleniyor — yarın YouTube\'da yeni bölüm.';
+    } else {
+      lede.textContent = 'Bugün YouTube günü — haftanın en iyileri kanalda seni bekliyor.';
+    }
+  })();
 
   var ticking = false;
   function onScroll(){
