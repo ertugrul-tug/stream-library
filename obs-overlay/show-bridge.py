@@ -106,6 +106,7 @@ def defaults():
         "routes": [clean(x, 65) for x in CONFIG.get("routes", [])][:3],
         "routesVisible": True,
         "matches": [], "scoreVisible": True,
+        "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -128,7 +129,15 @@ def snapshot():
     result = dict(state)
     result["voteCounts"] = [sum(v == i for v in state["votes"].values()) for i in range(len(state["routes"]))]
     result.pop("votes", None)
+    p = state["prediction"]
+    w = sum(v == "W" for v in p["votes"].values())
+    l = sum(v == "L" for v in p["votes"].values())
+    result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
     return result
+
+
+PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "W",
+                 "m": "L", "l": "L", "kaybet": "L", "kaybeder": "L"}
 
 
 async def publish():
@@ -235,6 +244,11 @@ async def streamer_bot():
                                 index = int(match.group(1)) - 1
                                 if index < len(state["routes"]):
                                     state["votes"][platform + ":" + name.casefold()] = index
+                            guess = re.fullmatch(r"!tahmin\s+(\S+)", message, re.IGNORECASE)
+                            if guess and state["prediction"]["status"] == "open":
+                                pick = PREDICT_WORDS.get(guess.group(1).casefold())
+                                if pick:
+                                    state["prediction"]["votes"][platform + ":" + name.casefold()] = pick
                         elif kind == "Follow":
                             state["stats"][platform]["follow"] += 1
                         elif kind in ("Sub", "ReSub", "GiftSub", "Subscription", "Resubscription", "GiftSubscription"):
@@ -350,10 +364,24 @@ async def client(ws):
                     if result not in ("W", "L"):
                         continue
                     state["matches"] = (state["matches"] + [result])[-50:]
+                    p = state["prediction"]
+                    if p["status"] in ("open", "locked"):
+                        p.update(status="done", result=result, matchCount=len(state["matches"]))
                 elif action == "undoMatch":
                     if not state["matches"]:
                         continue
+                    p = state["prediction"]
+                    if p["status"] == "done" and p["matchCount"] == len(state["matches"]):
+                        p.update(status="locked", result=None)
                     state["matches"] = state["matches"][:-1]
+                elif action == "predictOpen":
+                    state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
+                elif action == "predictLock":
+                    if state["prediction"]["status"] != "open":
+                        continue
+                    state["prediction"]["status"] = "locked"
+                elif action == "predictClear":
+                    state["prediction"]["status"] = "off"
                 elif action == "resetMatches":
                     state["matches"] = []
                 elif action == "toggleScoreVisible":

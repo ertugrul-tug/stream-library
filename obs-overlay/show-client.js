@@ -15,6 +15,8 @@
   const vote = kind === 'overlay' ? card('show-vote','SONRAKİ ROTA') : null;
   const score = kind === 'overlay' ? card('show-score','BU AKŞAMKİ SERİ') : null;
   let scoreSig = null;
+  const predict = kind === 'overlay' ? card('show-predict','MAÇ TAHMİNİ') : null;
+  let predictDoneSig = null, predictDoneAt = 0;
   function tally(matches) {
     const m = matches || [], last = m[m.length-1];
     let streak = 0;
@@ -81,6 +83,30 @@
       });
       div(vote,'show-small','TWITCH + KICK · !rota 1 / 2 / 3');
     }
+    if(predict) {
+      const p=s.prediction || {status:'off'}, w=p.w||0, l=p.l||0, total=w+l;
+      if(p.status==='done') {
+        const sig=[p.result,w,l].join(':');
+        if(sig!==predictDoneSig){ predictDoneSig=sig; predictDoneAt=Date.now(); setTimeout(()=>predict.classList.remove('active'),30000); }
+      } else predictDoneSig=null;
+      const expired = p.status==='done' && Date.now()-predictDoneAt>=30000;
+      predict.classList.toggle('active', p.status!=='off' && !expired && !(p.status==='done' && !total));
+      predict.dataset.status=p.status;
+      predict.querySelectorAll('.predict-bar,.predict-legend,.show-small,.predict-result').forEach(n=>n.remove());
+      if(p.status==='done' && total) {
+        const right=p.result==='W'?w:l, pct=Math.round(100*right/total);
+        div(predict,'predict-result',(pct>=50?'✅ ':'❌ ')+`Sohbetin %${pct}'i bildi`);
+      }
+      const bar=div(predict,'predict-bar','');
+      const wi=document.createElement('i'); wi.className='w'; wi.style.width=(total?100*w/total:50)+'%';
+      const li=document.createElement('i'); li.className='l'; li.style.width=(total?100*l/total:50)+'%';
+      bar.append(wi,li);
+      const legend=div(predict,'predict-legend','');
+      const lw=document.createElement('span'); lw.className='w'; lw.textContent=`GALİBİYET ${total?Math.round(100*w/total):0}%`;
+      const ll=document.createElement('span'); ll.className='l'; ll.textContent=`${total?Math.round(100*l/total):0}% MAĞLUBİYET`;
+      legend.append(lw,ll);
+      div(predict,'show-small', p.status==='open' ? `!tahmin G  ·  !tahmin M   —   ${total} tahmin` : p.status==='locked' ? `🔒 Tahminler kilitlendi · ${total} tahmin` : `Maç sonucu: ${p.result==='W'?'GALİBİYET':'MAĞLUBİYET'}`);
+    }
     if(score) {
       const t=tally(s.matches);
       score.classList.toggle('active', t.m.length>0 && s.scoreVisible!==false);
@@ -113,7 +139,7 @@
       }
     }
   }
-  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan'},{platform:'kick',name:'YesilLiman'},{platform:'twitch',name:'Denizci42'}],highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}}};
+  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan'},{platform:'kick',name:'YesilLiman'},{platform:'twitch',name:'Denizci42'}],highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}}};
   if(sample) render(demo); else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
