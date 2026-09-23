@@ -264,7 +264,9 @@ def _post_discord_sync(url, content, allowed_mentions=None):
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        # Discord's Cloudflare rejects urllib's default User-Agent with 403 / error 1010.
+        headers={"Content-Type": "application/json",
+                 "User-Agent": "DiscordBot (https://github.com/ertugrul-tug/stream-library, 1.0)"},
         method="POST",
     )
     urllib.request.urlopen(req, timeout=6).close()
@@ -277,7 +279,7 @@ async def post_discord(text, allowed_mentions=None):
         await asyncio.to_thread(_post_discord_sync, DISCORD_WEBHOOK, text, allowed_mentions)
         return True
     except Exception as exc:
-        print(f"Discord webhook hatası: {type(exc).__name__}", flush=True)
+        print(f"Discord webhook hatası: {type(exc).__name__} {getattr(exc, 'code', '')}", flush=True)
         return False
 
 
