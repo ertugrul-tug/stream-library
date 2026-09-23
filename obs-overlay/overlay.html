@@ -41,6 +41,7 @@
   .message .badge{font-family:var(--font-mono);font-size:.44vw;letter-spacing:.1em;color:var(--platform);border:1px solid var(--platform);border-radius:.22vw;padding:.11vw .27vw}
   .message .name{color:var(--platform)}
   .message .body{font-size:.72vw;font-weight:400;line-height:1.4;color:#e3ebf2}
+  .message .body .emote{height:1.6em;width:auto;vertical-align:middle;margin:-.2em .08em}
   .lower{position:absolute;bottom:3%;left:4.15%;right:4.15%;display:flex;align-items:center;gap:1vw;font-family:var(--font-mono);font-size:.58vw;letter-spacing:.16em;text-transform:uppercase;color:#a8b7c6}
   .lower .line{height:1px;flex:1;background:linear-gradient(90deg,rgba(34,174,240,.65),rgba(255,61,127,.65),rgba(83,252,24,.65))}
   .alert{position:absolute;top:12.5%;width:23%;min-height:10%;transform:translateY(-1vw) scale(.94);opacity:0;pointer-events:none;display:flex;align-items:center;gap:.8vw;padding:.85vw 1.05vw;border:1px solid var(--accent);border-radius:.8vw;background:linear-gradient(120deg,rgba(8,15,24,.93),rgba(22,18,29,.9));box-shadow:0 18px 45px rgba(0,0,0,.48),0 0 28px color-mix(in srgb,var(--accent) 24%,transparent);transition:transform .5s cubic-bezier(.2,1.4,.3,1),opacity .3s;z-index:5}
@@ -79,6 +80,7 @@
   <div class="preview-tools"><button id="demoTwitch">Twitch mesajı</button><button id="demoKick">Kick mesajı</button><button id="demoFollow">Twitch takip</button><button id="demoKickFollow">Kick takip</button><button id="demoBits">Twitch bit</button><button id="demoSub">Twitch abone</button><button id="demoKickSub">Kick abone</button></div>
   <div class="preview-status" id="previewStatus">Canlı bağlantı bekleniyor</div>
 </div>
+<script src="emotes.js"></script>
 <script>
 (() => {
   'use strict';
@@ -100,15 +102,15 @@
     const platform = String(event.platform || '').toLowerCase();
     if (!colors[platform]) return;
     const name = safeText(event.name || event.user, 32);
-    const body = safeText(event.text || event.message, 240);
-    if (!name || !body) return;
+    const parts = event.parts || qedyEmotes.parse(null, safeText(event.text || event.message, 240));
+    if (!name || !qedyEmotes.hasContent(parts)) return;
     const item = document.createElement('div');
     item.className = 'message';
     item.style.setProperty('--platform', colors[platform]);
     const meta = document.createElement('div'); meta.className = 'meta';
     const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = platform.toUpperCase();
     const username = document.createElement('span'); username.className = 'name'; username.textContent = name;
-    const content = document.createElement('div'); content.className = 'body'; content.textContent = body;
+    const content = document.createElement('div'); content.className = 'body'; qedyEmotes.render(content, parts, 240);
     meta.append(badge, username); item.append(meta, content); messages.append(item);
     while (messages.children.length > maxMessages) messages.firstElementChild.remove();
   }
@@ -179,7 +181,7 @@
     const data = payload?.data || {};
     if (!colors[source]) return;
     if (type === 'ChatMessage') {
-      push({type:'chat', platform:source, name:data.user?.name || data.user?.login, text:data.text});
+      push({type:'chat', platform:source, name:data.user?.name || data.user?.login, text:data.text, parts:qedyEmotes.parse(data)});
     } else if (type === 'Follow') {
       const follower = source === 'twitch' ? data.targetUser : data.user;
       push({type:'follow', platform:source, name:follower?.name || follower?.login});
@@ -214,8 +216,8 @@
     document.getElementById('demoKickSub').onclick = () => fromStreamerBot({event:{source:'Kick',type:'Subscription'},data:{user:{name:'YesilAbone'}}});
   }
   if (sample) {
-    fromStreamerBot({event:{source:'Twitch',type:'ChatMessage'},data:{user:{name:'MaviKaptan'},text:'Selam mürettebat! Yayın çok iyi görünüyor ⚓'}});
-    fromStreamerBot({event:{source:'Kick',type:'ChatMessage'},data:{user:{name:'YesilLiman'},text:'Kick tarafı da burada, iki liman tek chat!'}});
+    fromStreamerBot({event:{source:'Twitch',type:'ChatMessage'},data:{user:{name:'MaviKaptan'},text:'Selam mürettebat! Kappa Yayın çok iyi görünüyor ⚓',emotes:[{name:'Kappa',imageUrl:'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0'}]}});
+    fromStreamerBot({event:{source:'Kick',type:'ChatMessage'},data:{user:{name:'YesilLiman'},text:'Kick tarafı da burada [emote:37226:KEKW] iki liman tek chat!'}});
     fromStreamerBot({event:{source:'Twitch',type:'Cheer'},data:{user:{name:'MaviDestekci'},bits:250}});
     fromStreamerBot({event:{source:'Kick',type:'Subscription'},data:{user:{name:'YesilAbone'}}});
   }

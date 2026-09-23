@@ -20,6 +20,7 @@ html,body{background:transparent}
 .badge{font-family:var(--font-mono);font-size:.55vw;letter-spacing:.14em;color:var(--platform);border:1px solid var(--platform);border-radius:.25vw;padding:.18vw .42vw}
 .name{color:var(--platform)}
 .body{font-size:1vw;line-height:1.38;color:#e8eef3}
+.body .emote{height:1.7em;width:auto;vertical-align:middle;margin:-.2em .08em}
 @keyframes rise{from{opacity:0;transform:translateY(.7vw)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.message{animation:none}}
 </style></head>
@@ -30,6 +31,7 @@ html,body{background:transparent}
 <section class="chat-panel" aria-label="Ortak sohbet"><div class="messages" id="messages" role="log" aria-live="polite"></div></section>
 <footer class="footer"><span>MÜRETTEBAT SOHBETİ</span><span class="line"></span><span>CANLI YAYIN</span></footer>
 </main>
+<script src="emotes.js"></script>
 <script>
 (() => {
   'use strict';
@@ -39,16 +41,17 @@ html,body{background:transparent}
   const colors = { twitch:'#9146ff', kick:'#53fc18' };
   const list = document.getElementById('messages');
   const clean = (value, limit) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g,'').slice(0,limit);
-  function add(platform,name,text) {
+  function add(platform,name,text,parts) {
     platform = String(platform || '').toLowerCase();
     if (!colors[platform]) return;
-    name = clean(name,32); text = clean(text,300);
-    if (!name || !text) return;
+    name = clean(name,32);
+    parts = parts || qedyEmotes.parse(null, clean(text,300));
+    if (!name || !qedyEmotes.hasContent(parts)) return;
     const item=document.createElement('div'); item.className='message'; item.style.setProperty('--platform',colors[platform]);
     const meta=document.createElement('div'); meta.className='meta';
     const badge=document.createElement('span'); badge.className='badge'; badge.textContent=platform.toUpperCase();
     const user=document.createElement('span'); user.className='name'; user.textContent=name;
-    const body=document.createElement('div'); body.className='body'; body.textContent=text;
+    const body=document.createElement('div'); body.className='body'; qedyEmotes.render(body,parts,300);
     meta.append(badge,user); item.append(meta,body); list.append(item);
     while(list.children.length>9) list.firstElementChild.remove();
   }
@@ -56,7 +59,7 @@ html,body{background:transparent}
     if (payload?.event?.type !== 'ChatMessage') return;
     const platform=String(payload.event.source || '').toLowerCase();
     const data=payload.data || {};
-    add(platform,data.user?.name || data.user?.login,data.text);
+    add(platform,data.user?.name || data.user?.login,data.text,qedyEmotes.parse(data));
   }
   function connect() {
     let socket;
@@ -70,7 +73,7 @@ html,body{background:transparent}
   if(sample) {
     add('twitch','MaviKaptan','Herkese selam, bu akşam ne oynuyoruz?');
     add('kick','YesilLiman','Kick tayfası da güvertede! 👋');
-    add('twitch','Denizci42','Yeni sahne çok iyi olmuş.');
+    add('twitch','Denizci42','Yeni sahne çok iyi olmuş. PogChamp Kappa',qedyEmotes.parse({text:'Yeni sahne çok iyi olmuş. PogChamp Kappa',emotes:[{name:'Kappa',imageUrl:'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0'},{name:'PogChamp',imageUrl:'https://static-cdn.jtvnw.net/emoticons/v2/305954156/default/dark/2.0'}]}));
     add('kick','KaptanDostu','İki sohbetin burada birleşmesi harika.');
     add('twitch','YildizRota','Haydi başlayalım! ⚓');
   }

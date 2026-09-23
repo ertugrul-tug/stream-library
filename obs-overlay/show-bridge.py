@@ -89,8 +89,22 @@ def lan_ip():
         s.close()
 
 
+class StaticHandler(SimpleHTTPRequestHandler):
+    # Served to the whole LAN: never expose secrets (show-config.local.json) or saved state (.show-state.json).
+    def send_head(self):
+        name = os.path.basename(self.translate_path(self.path).rstrip("\\/")).lower()
+        if name.startswith(".") or name.endswith((".local.json", ".py", ".pyc")):
+            self.send_error(404)
+            return None
+        return super().send_head()
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+
 def start_static_server():
-    handler = partial(SimpleHTTPRequestHandler, directory=str(ROOT))
+    handler = partial(StaticHandler, directory=str(ROOT))
     httpd = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
@@ -107,6 +121,7 @@ def defaults():
         "routesVisible": True,
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
+        "predictionHistory": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -133,7 +148,41 @@ def snapshot():
     w = sum(v == "W" for v in p["votes"].values())
     l = sum(v == "L" for v in p["votes"].values())
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
+    result["summaryText"] = summary_text()
     return result
+
+
+def best_streak(matches):
+    best = run = 0
+    for m in matches:
+        run = run + 1 if m == "W" else 0
+        best = max(best, run)
+    return best
+
+
+def summary_text():
+    lines = ["⚓ Bu akşamki sefer bitti, teşekkürler mürettebat!"]
+    if state["game"]:
+        lines.append(f"🎮 {state['game']}")
+    m = state["matches"]
+    if m:
+        wins = m.count("W")
+        line = f"🏆 {wins}G · {len(m) - wins}M"
+        if best_streak(m) >= 2:
+            line += f" · en uzun seri {best_streak(m)}🔥"
+        lines.append(line)
+    history = state["predictionHistory"]
+    total = sum(h["total"] for h in history)
+    if total:
+        right = sum(h["right"] for h in history)
+        lines.append(f"🔮 Sohbet tahminleri: %{round(100 * right / total)} isabet ({len(history)} maç, {total} tahmin)")
+    t, k = state["stats"]["twitch"], state["stats"]["kick"]
+    lines.append(f"💬 {t['chat'] + k['chat']} mesaj · 👋 {t['follow'] + k['follow']} yeni takipçi · ⭐ {t['sub'] + k['sub']} abonelik")
+    if state["highlights"]:
+        lines.append("")
+        lines.extend(f"✦ {h}" for h in state["highlights"])
+    lines += ["", "Bir sonraki seferde görüşürüz! 🐾"]
+    return "\n".join(lines)
 
 
 PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "W",
@@ -148,6 +197,57 @@ async def publish():
             await ws.send(message)
         except Exception:
             CLIENTS.discard(ws)
+
+
+KICK_EMOTE = re.compile(r"\[emote:(\d+):([^\]\s]{1,64})\]")
+
+
+def https_url(value):
+    value = str(value or "")
+    return value if value.startswith("https://") and len(value) < 400 else ""
+
+
+def text_parts(text):
+    out, last = [], 0
+    for m in KICK_EMOTE.finditer(text):
+        if m.start() > last:
+            out.append({"t": text[last:m.start()]})
+        out.append({"e": m.group(2), "u": f"https://files.kick.com/emotes/{m.group(1)}/fullsize"})
+        last = m.end()
+    if last < len(text):
+        out.append({"t": text[last:]})
+    return out
+
+
+def chat_parts(data, text):
+    """Mirror of emotes.js parse(): Streamer.bot `parts`, else `emotes` names, else Kick inline tokens."""
+    parts = data.get("parts")
+    if isinstance(parts, list) and parts:
+        out = []
+        for p in parts:
+            if not isinstance(p, dict):
+                continue
+            url = https_url(p.get("imageUrl"))
+            if url and p.get("type") != "text":
+                out.append({"e": clean(p.get("text") or p.get("name"), 64), "u": url})
+            else:
+                out.extend(text_parts(re.sub(r"[\x00-\x1f\x7f]", "", str(p.get("text") or ""))[:300]))
+        return out[:60]
+    names = {}
+    for e in data.get("emotes") or []:
+        if isinstance(e, dict) and e.get("name") and https_url(e.get("imageUrl")):
+            names[str(e["name"])] = https_url(e["imageUrl"])
+    out = []
+    for seg in text_parts(text):
+        if "u" in seg or not names:
+            out.append(seg)
+            continue
+        for tok in re.split(r"(\s+)", seg["t"]):
+            if tok in names:
+                out.append({"e": tok, "u": names[tok]})
+            elif tok:
+                out.append({"t": tok})
+    return out[:60]
 
 
 def person(data):
@@ -234,7 +334,8 @@ async def streamer_bot():
                             message = clean(data.get("text") or data.get("message"), 300)
                             if not name or not message:
                                 continue
-                            item = {"platform": platform, "name": name, "text": message, "id": f"{platform}-{datetime.now().timestamp()}"}
+                            item = {"platform": platform, "name": name, "text": message, "parts": chat_parts(data, message),
+                                    "id": f"{platform}-{datetime.now().timestamp()}"}
                             state["chat"] = (state["chat"] + [item])[-30:]
                             state["stats"][platform]["chat"] += 1
                             if not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
@@ -367,12 +468,19 @@ async def client(ws):
                     p = state["prediction"]
                     if p["status"] in ("open", "locked"):
                         p.update(status="done", result=result, matchCount=len(state["matches"]))
+                        total = len(p["votes"])
+                        if total:
+                            right = sum(v == result for v in p["votes"].values())
+                            state["predictionHistory"].append({"right": right, "total": total, "matchCount": len(state["matches"])})
                 elif action == "undoMatch":
                     if not state["matches"]:
                         continue
                     p = state["prediction"]
                     if p["status"] == "done" and p["matchCount"] == len(state["matches"]):
                         p.update(status="locked", result=None)
+                    history = state["predictionHistory"]
+                    if history and history[-1]["matchCount"] == len(state["matches"]):
+                        history.pop()
                     state["matches"] = state["matches"][:-1]
                 elif action == "predictOpen":
                     state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
@@ -384,6 +492,7 @@ async def client(ws):
                     state["prediction"]["status"] = "off"
                 elif action == "resetMatches":
                     state["matches"] = []
+                    state["predictionHistory"] = []
                 elif action == "toggleScoreVisible":
                     state["scoreVisible"] = not state["scoreVisible"]
                 elif action == "resetShow":
@@ -402,6 +511,9 @@ async def client(ws):
                         content += f"\n\n<@&{DISCORD_LIVE_ROLE}>"
                     mentions = {"parse": [], "roles": [DISCORD_LIVE_ROLE] if DISCORD_LIVE_ROLE else []}
                     await notify_discord(ws, await post_discord(content, mentions), "Canlı duyurusu")
+                    continue
+                elif action == "discordSummary":
+                    await notify_discord(ws, await post_discord(summary_text(), {"parse": []}), "Yayın özeti")
                     continue
                 elif action == "obsSetScene":
                     await obs_set_scene(clean(msg.get("scene"), 80))
