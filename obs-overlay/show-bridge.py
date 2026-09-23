@@ -55,6 +55,9 @@ if LOCAL_CONFIG_FILE.exists():
     # show-config.json, which is tracked in a public repo. Gitignored.
     CONFIG.update(json.loads(LOCAL_CONFIG_FILE.read_text(encoding="utf-8")))
 DISCORD_WEBHOOK = str(CONFIG.get("discordWebhook") or "").strip()
+DISCORD_LIVE = CONFIG.get("discordLive") or {}
+DISCORD_LIVE_MESSAGE = str(DISCORD_LIVE.get("message") or "").strip()
+DISCORD_LIVE_ROLE = re.sub(r"\D", "", str(DISCORD_LIVE.get("roleId") or ""))
 OBS_URL = str((CONFIG.get("obs") or {}).get("url") or "ws://127.0.0.1:4455")
 OBS_PASSWORD = str((CONFIG.get("obs") or {}).get("password") or "")
 
@@ -145,25 +148,41 @@ def person(data):
 
 # ---------------------------------------------------------------- Discord --
 
-def _post_discord_sync(url, content):
+def _post_discord_sync(url, content, allowed_mentions=None):
+    payload = {"content": content}
+    if allowed_mentions is not None:
+        payload["allowed_mentions"] = allowed_mentions
     req = urllib.request.Request(
         url,
-        data=json.dumps({"content": content}).encode("utf-8"),
+        data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
     urllib.request.urlopen(req, timeout=6).close()
 
 
-async def post_discord(text):
+async def post_discord(text, allowed_mentions=None):
     if not DISCORD_WEBHOOK or not text:
         return False
     try:
-        await asyncio.to_thread(_post_discord_sync, DISCORD_WEBHOOK, text)
+        await asyncio.to_thread(_post_discord_sync, DISCORD_WEBHOOK, text, allowed_mentions)
         return True
     except Exception as exc:
         print(f"Discord webhook hatası: {type(exc).__name__}", flush=True)
         return False
+
+
+async def notify_discord(ws, ok, what):
+    if ok:
+        text = f"{what} Discord'a gönderildi ✓"
+    elif not DISCORD_WEBHOOK:
+        text = "Discord webhook ayarlı değil · show-config.local.json > discordWebhook"
+    else:
+        text = f"{what} gönderilemedi · köprü penceresine bak"
+    try:
+        await ws.send(json.dumps({"type": "notice", "ok": ok, "text": text}))
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------- Streamer.bot --
@@ -347,8 +366,15 @@ async def client(ws):
                 elif action == "discordAnnounce":
                     text = clean(msg.get("text"), 500)
                     if text:
-                        await post_discord(text)
+                        await notify_discord(ws, await post_discord(text), "Anons")
                     continue  # no state change to publish
+                elif action == "discordGoLive":
+                    content = DISCORD_LIVE_MESSAGE
+                    if DISCORD_LIVE_ROLE:
+                        content += f"\n\n<@&{DISCORD_LIVE_ROLE}>"
+                    mentions = {"parse": [], "roles": [DISCORD_LIVE_ROLE] if DISCORD_LIVE_ROLE else []}
+                    await notify_discord(ws, await post_discord(content, mentions), "Canlı duyurusu")
+                    continue
                 elif action == "obsSetScene":
                     await obs_set_scene(clean(msg.get("scene"), 80))
                     continue

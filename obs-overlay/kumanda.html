@@ -88,6 +88,9 @@ button.mini{font-size:13px;padding:10px 14px;min-height:40px}
 .score-streak{font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-top:8px}
 .row .result{flex:1;min-height:64px;font-size:17px}
 button.win{border-color:#3f9b6a;background:#173c2b}
+button.live{border-color:#7a82ff;background:#2b2f73}
+button:disabled{opacity:.55;cursor:default}
+.notice{margin:8px 0 0;font-size:13px;min-height:1em}.notice.ok{color:var(--ok)}.notice.err{color:#ffb0b5}
 .mod{display:flex;gap:6px}
 .mod button{padding:8px 10px;min-height:0;font-size:12px}
 </style></head><body>
@@ -111,7 +114,7 @@ button.win{border-color:#3f9b6a;background:#173c2b}
 <section><h2>Maç serisi</h2><div class="score-summary" id="scoreSummary"></div><div class="score-streak" id="scoreStreak"></div><div class="row"><button id="addWin" class="result win">✅ Galibiyet</button><button id="addLoss" class="result danger">❌ Mağlubiyet</button></div><div class="row"><button id="undoMatch" class="mini">↩ Son maçı geri al</button><button id="toggleScoreVisible" class="mini">Yayında göster/gizle</button><button id="resetMatches" class="mini danger">Seriyi sıfırla</button></div><p><small>Kart ilk maç girilince oyun sahnesinde belirir; 2+ galibiyet serisinde alev alır.</small></p></section>
 <section><h2>Seyir defteri</h2><label for="game">OYNANAN OYUN</label><input id="game" maxlength="80" autocomplete="off"><div id="gameMatches" class="matches"></div><label for="returnMessage">MOLA DÖNÜŞ NOTU</label><input id="returnMessage" maxlength="100"><div class="row"><button id="saveDetails">Kaydet</button></div></section>
 <section><h2>Sonraki rota · sohbet oylaması</h2><p>Twitch ve Kick sohbetinde <b>!rota 1</b>, <b>!rota 2</b> veya <b>!rota 3</b>. Her hesap için son oy sayılır.</p><label for="route1">1. ROTA</label><input id="route1" maxlength="65"><label for="route2">2. ROTA</label><input id="route2" maxlength="65"><label for="route3">3. ROTA</label><input id="route3" maxlength="65"><div class="row"><button id="saveRoutes">Rotaları kaydet · oyları sıfırla</button><button id="resetVotes" class="mini">Sadece oyları sıfırla</button><button id="toggleRoutesVisible" class="mini">Yayında göster/gizle</button></div><div id="votes"></div></section>
-<section><h2>Discord anonsu</h2><label for="discordText">MESAJ</label><div class="row"><input id="discordText" maxlength="500" placeholder="Yayın açıldı, gel!"><button id="discordSend">Gönder</button></div></section>
+<section><h2>Discord anonsu</h2><div class="row"><button id="discordLive" class="result live">📣 Canlıyım · Mürettebatı çağır</button></div><p class="notice" id="discordNotice"></p><label for="discordText">ÖZEL MESAJ</label><div class="row"><input id="discordText" maxlength="500" placeholder="Yayın açıldı, gel!"><button id="discordSend">Gönder</button></div></section>
 <section><h2>Ortak sohbet · kaptanın anonsu</h2><p>Twitch ve Kick mesajlarından birini seç. Seçilen mesaj ekranda anons olarak görünür.</p><div class="row"><button id="clearSpotlight" class="mini">Anonsu kaldır</button></div><div id="chat"></div></section>
 <section><h2>Öne çıkan anlar ve özet</h2><div class="row"><input id="highlight" maxlength="100" placeholder="Örn. Gizli bölüm bulundu"><button id="addHighlight">Ekle</button></div><div id="highlights"></div><div id="metrics"></div><div class="row"><button id="resetShow" class="danger">Yeni yayın başlat · istatistikleri sıfırla</button></div><p><small>Yayın verisi bilgisayarda .show-state.json içinde tutulur.</small></p></section>
 </div>
@@ -125,12 +128,13 @@ function connect(){
   // bridge printed on startup.
   const wsUrl = 'ws://' + (location.hostname || '127.0.0.1') + ':8765/';
   try{socket=new WebSocket(wsUrl)}catch(_){setTimeout(connect,3000);return}
-  socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='state')render(m.state)}catch(_){}};
+  socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='state')render(m.state);else if(m.type==='notice'){const n=$('discordNotice');n.textContent=m.text;n.className='notice '+(m.ok?'ok':'err');if(!m.ok)$('discordLive').disabled=false}}catch(_){}};
   socket.onopen=()=>{$('statusBridge').textContent='Bağlandı · Streamer.bot bekleniyor'};
   socket.onclose=()=>{const st=$('statusBridge');st.textContent='Köprü kapalı · yeniden bağlanıyor';st.classList.remove('on');setTimeout(connect,3000)};
 }
 connect();$('saveDetails').onclick=()=>send({action:'setDetails',game:$('game').value,returnMessage:$('returnMessage').value});$('saveRoutes').onclick=()=>send({action:'setRoutes',routes:[1,2,3].map(i=>$('route'+i).value)});$('resetVotes').onclick=()=>send({action:'resetVotes'});$('toggleRoutesVisible').onclick=()=>send({action:'toggleRoutesVisible'});$('clearSpotlight').onclick=()=>send({action:'clearSpotlight'});$('addHighlight').onclick=()=>{send({action:'addHighlight',title:$('highlight').value});$('highlight').value=''};$('resetShow').onclick=()=>{if(confirm('Yeni yayın için sohbet, oylar, anons ve istatistikler sıfırlansın mı?'))send({action:'resetShow'})};
 $('addWin').onclick=()=>send({action:'addMatch',result:'W'});$('addLoss').onclick=()=>send({action:'addMatch',result:'L'});$('undoMatch').onclick=()=>send({action:'undoMatch'});$('toggleScoreVisible').onclick=()=>send({action:'toggleScoreVisible'});$('resetMatches').onclick=()=>{if(confirm('Bu akşamki maç serisi sıfırlansın mı?'))send({action:'resetMatches'})};
+$('discordLive').onclick=()=>{if(!confirm('Canlı duyurusu Discord\'a gönderilsin ve Mürettebat etiketlensin mi?'))return;const b=$('discordLive');b.disabled=true;$('discordNotice').textContent='Gönderiliyor…';$('discordNotice').className='notice';send({action:'discordGoLive'});setTimeout(()=>{b.disabled=false},60000)};
 $('discordSend').onclick=()=>{const text=$('discordText').value.trim();if(!text)return;send({action:'discordAnnounce',text});$('discordText').value=''};
 
 // segment indicator + OBS scene buttons: both read from show-config.json,

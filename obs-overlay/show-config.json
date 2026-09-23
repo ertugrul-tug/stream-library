@@ -4,6 +4,10 @@
   "routes": ["Ranked'e devam", "ARAM ile ısınalım", "Şampiyonu sohbet seçsin"],
 
   "discordWebhook": "",
+  "discordLive": {
+    "message": "Hadi bütün patiler güverteye!!!\nhttps://www.twitch.tv/kaptanqedy\nhttps://kick.com/kaptanqedy",
+    "roleId": ""
+  },
 
   "obs": {
     "url": "ws://127.0.0.1:4455",
