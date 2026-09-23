@@ -18,20 +18,31 @@ h1{font-family:var(--font-display);font-size:22px;margin:0}
 h2{font-family:var(--font-display);font-weight:700;font-size:15px;margin:0 0 14px;color:var(--blue);letter-spacing:.02em}
 p,small{color:var(--muted)}
 
-/* sticky status bar — always visible while scrolling on a phone */
+/* sticky header — topbar + scene buttons stay visible while scrolling on a phone,
+   since switching scenes fast during a live show is the most time-critical action */
+.sticky-head{position:sticky;top:0;z-index:20;background:rgba(8,14,24,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .topbar{
-  position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 12px;
   padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));
-  background:rgba(8,14,24,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
 }
 .topbar h1{font-size:16px;white-space:nowrap}
 .conn{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .pill{
   display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:600;
   letter-spacing:.04em;padding:6px 11px;border-radius:100px;background:#33241f;color:#ffc49c;white-space:nowrap;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;
 }
 .pill.on{background:#173c2b;color:var(--ok)}
 .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* scene-switch buttons: big, icon-led, so they're tappable at a glance mid-stream */
+.scene-bar{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 16px}
+@media(min-width:820px){ .scene-bar{grid-template-columns:repeat(4,1fr)} }
+.scene-btn{
+  min-height:92px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;font-size:14px;line-height:1.2;padding:12px 8px;
+}
+.scene-btn .ic{font-size:34px;line-height:1}
 
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
 @media(max-width:820px){ .grid{grid-template-columns:1fr} }
@@ -75,14 +86,17 @@ button.mini{font-size:13px;padding:10px 14px;min-height:40px}
 .mod button{padding:8px 10px;min-height:0;font-size:12px}
 </style></head><body>
 
-<header class="topbar">
-  <h1>⚓ Kumanda</h1>
-  <div class="conn">
-    <span class="pill" id="segmentPill">—</span>
-    <span class="pill" id="statusObs">OBS bekleniyor</span>
-    <span class="pill" id="statusBridge">Köprü bekleniyor</span>
-  </div>
-</header>
+<div class="sticky-head">
+  <header class="topbar">
+    <h1>⚓ Kumanda</h1>
+    <div class="conn">
+      <span class="pill" id="segmentPill">—</span>
+      <span class="pill" id="statusObs">OBS bekleniyor</span>
+      <span class="pill" id="statusBridge">Köprü bekleniyor</span>
+    </div>
+  </header>
+  <div class="scene-bar" id="sceneBar"></div>
+</div>
 
 <div class="wrap">
 <p><small>Bu sayfayı OBS'e kaynak olarak ekleme — sadece kendi tarayıcında (bilgisayar veya telefon, aynı wifi) açık tut.</small></p>
@@ -90,7 +104,7 @@ button.mini{font-size:13px;padding:10px 14px;min-height:40px}
 <div class="grid">
 <section><h2>Seyir defteri</h2><label for="game">OYNANAN OYUN</label><input id="game" maxlength="80" autocomplete="off"><div id="gameMatches" class="matches"></div><label for="returnMessage">MOLA DÖNÜŞ NOTU</label><input id="returnMessage" maxlength="100"><div class="row"><button id="saveDetails">Kaydet</button></div></section>
 <section><h2>Sonraki rota · sohbet oylaması</h2><p>Twitch ve Kick sohbetinde <b>!rota 1</b>, <b>!rota 2</b> veya <b>!rota 3</b>. Her hesap için son oy sayılır.</p><label for="route1">1. ROTA</label><input id="route1" maxlength="65"><label for="route2">2. ROTA</label><input id="route2" maxlength="65"><label for="route3">3. ROTA</label><input id="route3" maxlength="65"><div class="row"><button id="saveRoutes">Rotaları kaydet · oyları sıfırla</button><button id="resetVotes" class="mini">Sadece oyları sıfırla</button><button id="toggleRoutesVisible" class="mini">Yayında göster/gizle</button></div><div id="votes"></div></section>
-<section><h2>Sahne · anons</h2><label>OBS SAHNESİ</label><div class="row" id="obsScenes"></div><label for="discordText">DISCORD ANONSU</label><div class="row"><input id="discordText" maxlength="500" placeholder="Yayın açıldı, gel!"><button id="discordSend">Gönder</button></div></section>
+<section><h2>Discord anonsu</h2><label for="discordText">MESAJ</label><div class="row"><input id="discordText" maxlength="500" placeholder="Yayın açıldı, gel!"><button id="discordSend">Gönder</button></div></section>
 <section><h2>Ortak sohbet · kaptanın anonsu</h2><p>Twitch ve Kick mesajlarından birini seç. Seçilen mesaj ekranda anons olarak görünür.</p><div class="row"><button id="clearSpotlight" class="mini">Anonsu kaldır</button></div><div id="chat"></div></section>
 <section><h2>Öne çıkan anlar ve özet</h2><div class="row"><input id="highlight" maxlength="100" placeholder="Örn. Gizli bölüm bulundu"><button id="addHighlight">Ekle</button></div><div id="highlights"></div><div id="metrics"></div><div class="row"><button id="resetShow" class="danger">Yeni yayın başlat · istatistikleri sıfırla</button></div><p><small>Yayın verisi bilgisayarda .show-state.json içinde tutulur.</small></p></section>
 </div>
@@ -125,11 +139,20 @@ fetch('show-config.json').then(r=>r.json()).then(cfg=>{
   }
   updateSegment();setInterval(updateSegment,30000);
 
-  const scenesBox=$('obsScenes');
+  const sceneIcon=name=>{
+    const n=name.toLowerCase();
+    if(n.includes('başlıyor'))return'▶️';
+    if(n.includes('mola'))return'⏸️';
+    if(n.includes('bitti'))return'⏹️';
+    if(n.includes('ana'))return'🎥';
+    return'🎬';
+  };
+  const sceneBar=$('sceneBar');
   (cfg.obsScenes||[]).forEach(name=>{
-    const b=el('button',name,'mini');
+    const b=el('button','','scene-btn');
+    b.append(el('span',sceneIcon(name),'ic'),el('span',name));
     b.onclick=()=>send({action:'obsSetScene',scene:name});
-    scenesBox.append(b);
+    sceneBar.append(b);
   });
 }).catch(()=>{});
 
