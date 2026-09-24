@@ -165,7 +165,7 @@ def defaults():
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
-        "lolAuto": True, "lolGame": None, "title": "",
+        "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -242,31 +242,109 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
 
 
+# ------------------------------------------------------------- chat bot --
+# Streamer.bot Actions "QedySayTwitch" / "QedySayKick" post %message% to that platform's chat.
+# They post from the broadcaster account, so the same text comes back as a ChatMessage event:
+# _said remembers what we sent for a minute so those echoes aren't counted as chat.
+
+SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
+HELP_TEXT = "⚓ Komutlar: !rota 1/2/3 (sonraki rotayı seç) · !tahmin G / !tahmin M (maç tahmini, açıkken) · !rütbe (puanın ve rütben)"
+_said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
+
+
+async def _say(platform, text):
+    result = await sb_do_action(SAY_ACTIONS[platform], {"message": text})
+    if result != "ok" and (platform, result) not in _say_warned:
+        _say_warned.add((platform, result))
+        print(f"Sohbet botu ({platform}): {result} · Streamer.bot'ta {SAY_ACTIONS[platform]} action'ına bak", flush=True)
+
+
+def say(text, platform=None):
+    if not state.get("botChat", True) or not text:
+        return
+    text = text[:450]
+    _said[clean(text, 300)] = time.time()
+    for p in ([platform] if platform else SAY_ACTIONS):
+        task = asyncio.get_running_loop().create_task(_say(p, text))
+        _bot_tasks.add(task)
+        task.add_done_callback(_bot_tasks.discard)
+
+
+def is_own_echo(message):
+    now = time.time()
+    for text, at in list(_said.items()):
+        if now - at > 60:
+            _said.pop(text, None)
+    return message in _said
+
+
+def pct_tr(n):
+    """'%50'si', '%70'i', '%30'u' — the possessive suffix follows how the number is read aloud."""
+    n = int(n)
+    if n == 100:
+        return "%100'ü"
+    tens = {0: "ı", 10: "u", 20: "si", 30: "u", 40: "ı", 50: "si", 60: "ı", 70: "i", 80: "i", 90: "ı"}
+    ones = {1: "i", 2: "si", 3: "ü", 4: "ü", 5: "i", 6: "sı", 7: "si", 8: "i", 9: "u"}
+    return f"%{n}'{ones[n % 10] if n % 10 else tens[n]}"
+
+
+def cooldown(key, seconds):
+    now = time.time()
+    if now - _cmd_last.get(key, 0) < seconds:
+        return False
+    _cmd_last[key] = now
+    return True
+
+
+def rank_text(platform, name):
+    entry = crew_db.get(f"{platform}:{name.casefold()}") or {"points": 0, "streams": 0}
+    points = entry["points"]
+    upcoming = next(((floor, rank) for floor, rank in RANKS if floor > points), None)
+    tail = f" · {upcoming[1]} için {upcoming[0] - points} puan kaldı" if upcoming else " · en yüksek rütbe!"
+    return f"@{name} ⚓ {rank_for(points)} · {points} puan · {entry['streams']} yayın{tail}"
+
+
+def announce_routes():
+    if state["routes"] and state["routesVisible"]:
+        say("🧭 Sonraki rotayı sen seç: " + " · ".join(f"!rota {i + 1} {r}" for i, r in enumerate(state["routes"])))
+
+
 def add_match(result):
     state["matches"] = (state["matches"] + [result])[-50:]
     p = state["prediction"]
+    guessed = ""
     if p["status"] in ("open", "locked"):
         p.update(status="done", result=result, matchCount=len(state["matches"]))
         total = len(p["votes"])
         if total:
             right = sum(v == result for v in p["votes"].values())
             state["predictionHistory"].append({"right": right, "total": total, "matchCount": len(state["matches"])})
+            guessed = f" · 🔮 Sohbetin {pct_tr(round(100 * right / total))} bildi ({right}/{total})"
+    m = state["matches"]
+    streak = next((i for i, x in enumerate(reversed(m)) if x != result), len(m))
+    fire = f" · 🔥 {streak} galibiyet serisi!" if result == "W" and streak >= 2 else ""
+    head = "✅ Galibiyet!" if result == "W" else "❌ Mağlubiyet."
+    say(f"{head} Bu akşam {m.count('W')}G {m.count('L')}M{fire}{guessed}")
 
 
 def predict_open():
     state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
+    say("🔮 Maç tahmini açıldı! Sonucu bil: !tahmin G (galibiyet) · !tahmin M (mağlubiyet)")
 
 
 def predict_lock():
-    if state["prediction"]["status"] != "open":
+    p = state["prediction"]
+    if p["status"] != "open":
         return False
-    state["prediction"]["status"] = "locked"
+    p["status"] = "locked"
+    w = sum(v == "W" for v in p["votes"].values())
+    say(f"🔒 Tahminler kapandı · {w} kişi galibiyet, {len(p['votes']) - w} kişi mağlubiyet dedi.")
     return True
 
 
@@ -425,6 +503,7 @@ def sb_action_notice(action_name, result, ok_text):
     return {"ok": ok_text,
             "missing": f"Streamer.bot'ta '{action_name}' action'ı yok · kurulum gerekli",
             "offline": "Streamer.bot bağlı değil",
+            "empty": f"Streamer.bot'taki '{action_name}' action'ı boş · içine adım ekle",
             }.get(result, f"Streamer.bot '{action_name}' çalıştırılamadı")
 
 
@@ -461,7 +540,7 @@ async def streamer_bot():
                         name = person(data)
                         if kind == "ChatMessage":
                             message = clean(data.get("text") or data.get("message"), 300)
-                            if not name or not message:
+                            if not name or not message or is_own_echo(message):
                                 continue
                             item = {"platform": platform, "name": name, "text": message, "parts": chat_parts(data, message),
                                     "id": f"{platform}-{datetime.now().timestamp()}"}
@@ -471,6 +550,7 @@ async def streamer_bot():
                             if new_rank:
                                 state["rankUp"] = {"platform": platform, "name": name, "rank": new_rank,
                                                    "at": int(time.time() * 1000)}
+                                say(f"🎖️ {name} rütbe atladı: artık {new_rank}!", platform)
                             if not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
                                 state["crew"] = (state["crew"] + [{"platform": platform, "name": name}])[-24:]
                             match = re.fullmatch(r"!rota\s+([1-3])", message, re.IGNORECASE)
@@ -483,6 +563,11 @@ async def streamer_bot():
                                 pick = PREDICT_WORDS.get(guess.group(1).casefold())
                                 if pick:
                                     state["prediction"]["votes"][platform + ":" + name.casefold()] = pick
+                            command = message.split()[0].casefold()
+                            if command in ("!rütbe", "!rutbe", "!rank") and cooldown(f"rank:{platform}:{name.casefold()}", 20):
+                                say(rank_text(platform, name), platform)
+                            elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
+                                say(HELP_TEXT, platform)
                         elif kind == "Follow":
                             state["stats"][platform]["follow"] += 1
                         elif kind in ("Sub", "ReSub", "GiftSub", "Subscription", "Resubscription", "GiftSubscription"):
@@ -672,6 +757,12 @@ async def client(ws):
                         continue
                     state["routes"] = [clean(x, 65) for x in routes[:3] if clean(x, 65)]
                     state["votes"] = {}
+                    announce_routes()
+                elif action == "announceRoutes":
+                    announce_routes()
+                    continue
+                elif action == "toggleBotChat":
+                    state["botChat"] = not state["botChat"]
                 elif action == "spotlight":
                     match = next((x for x in state["chat"] if x["id"] == msg.get("id")), None)
                     state["spotlight"] = match
@@ -779,8 +870,15 @@ async def client(ws):
                     name = clean(msg.get("name"), 32)
                     kind = msg.get("type")
                     if platform in ("twitch", "kick") and name and kind in ("timeout", "ban"):
-                        action_name = "ModTimeout" if kind == "timeout" else "ModBan"
-                        result = await sb_do_action(action_name, {"platform": platform, "user": name})
+                        action_name = ("ModTimeout" if kind == "timeout" else "ModBan") + platform.capitalize()
+                        # An Action with no sub-actions still answers "ok", so check it actually does something.
+                        listing = await sb_request({"request": "GetActions"}) or {}
+                        found = next((a for a in listing.get("actions") or [] if a.get("name") == action_name), None)
+                        if found and not found.get("subaction_count"):
+                            result = "empty"
+                        else:
+                            result = await sb_do_action(action_name, {"platform": platform, "user": name,
+                                                                      "duration": 600, "reason": "Kaptan Qedy kumandası"})
                         await send_notice(ws, result == "ok", sb_action_notice(action_name, result, f"{name} · {kind} gönderildi ✓"))
                     continue
                 else:

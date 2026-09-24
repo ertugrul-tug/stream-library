@@ -39,6 +39,8 @@
     for (let i = m.length-1; i >= 0 && m[i] === last; i--) streak++;
     return { m, wins: m.filter(x=>x==='W').length, losses: m.filter(x=>x==='L').length, last, streak };
   }
+  // '%50'si', '%70'i', '%30'u' — same rule as pct_tr() in show-bridge.py
+  const pctTr = n => n === 100 ? "%100'ü" : `%${n}'${n % 10 ? {1:'i',2:'si',3:'ü',4:'ü',5:'i',6:'sı',7:'si',8:'i',9:'u'}[n % 10] : {0:'ı',10:'u',20:'si',30:'u',40:'ı',50:'si',60:'ı',70:'i',80:'i',90:'ı'}[n]}`;
   const div = (parent, cls, content) => { const e=document.createElement('div'); e.className=cls; e.textContent=content; parent.append(e); return e; };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function countUp(el, target) {
@@ -123,7 +125,7 @@
       predict.querySelectorAll('.predict-bar,.predict-legend,.show-small,.predict-result').forEach(n=>n.remove());
       if(p.status==='done' && total) {
         const right=p.result==='W'?w:l, pct=Math.round(100*right/total);
-        div(predict,'predict-result',(pct>=50?'✅ ':'❌ ')+`Sohbetin %${pct}'i bildi`);
+        div(predict,'predict-result',(pct>=50?'✅ ':'❌ ')+`Sohbetin ${pctTr(pct)} bildi`);
       }
       const bar=div(predict,'predict-bar','');
       const wi=document.createElement('i'); wi.className='w'; wi.style.width=(total?100*w/total:50)+'%';
