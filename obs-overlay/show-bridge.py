@@ -30,6 +30,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import threading
 import time
 import urllib.request
@@ -164,6 +165,7 @@ def defaults():
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
+        "lolAuto": True, "lolGame": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -239,8 +241,46 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
                  "m": "L", "l": "L", "kaybet": "L", "kaybeder": "L"}
 
 
+def reset_show():
+    keep = {k: state[k] for k in ("game", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame")}
+    state.clear()
+    state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
+    state.update(keep)
+
+
+def add_match(result):
+    state["matches"] = (state["matches"] + [result])[-50:]
+    p = state["prediction"]
+    if p["status"] in ("open", "locked"):
+        p.update(status="done", result=result, matchCount=len(state["matches"]))
+        total = len(p["votes"])
+        if total:
+            right = sum(v == result for v in p["votes"].values())
+            state["predictionHistory"].append({"right": right, "total": total, "matchCount": len(state["matches"])})
+
+
+def predict_open():
+    state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
+
+
+def predict_lock():
+    if state["prediction"]["status"] != "open":
+        return False
+    state["prediction"]["status"] = "locked"
+    return True
+
+
+def live_message(game, note=""):
+    lines = DISCORD_LIVE_MESSAGE.split("\n") if DISCORD_LIVE_MESSAGE else []
+    extra = ([f"🎮 Bu akşam: {game}"] if game else []) + ([note] if note else [])
+    content = "\n".join(lines[:1] + extra + lines[1:])
+    if DISCORD_LIVE_ROLE:
+        content += f"\n\n<@&{DISCORD_LIVE_ROLE}>"
+    return content, {"parse": [], "roles": [DISCORD_LIVE_ROLE] if DISCORD_LIVE_ROLE else []}
+
+
 async def publish():
-    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame")}, ensure_ascii=False, indent=2), encoding="utf-8")
     message = json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False)
     for ws in tuple(CLIENTS):
         try:
@@ -503,6 +543,78 @@ async def obs_client():
             await asyncio.sleep(3)
 
 
+# ------------------------------------------------------ League of Legends --
+# Riot's Live Client Data API runs on this PC only while a game is loaded (no API key).
+# It uses a self-signed certificate, so verification is off for this localhost call only.
+
+LOL_CONFIG = CONFIG.get("lolAuto") or {}
+LOL_URL = str(LOL_CONFIG.get("url") or "https://127.0.0.1:2999/liveclientdata/")
+LOL_LOCK_AFTER = int(LOL_CONFIG.get("lockAfterSec") or 180)
+LOL_SKIP_MODES = {"PRACTICETOOL", "TUTORIAL", "TUTORIAL_MODULE_1", "TUTORIAL_MODULE_2", "TUTORIAL_MODULE_3"}
+_lol_ssl = ssl.create_default_context()
+_lol_ssl.check_hostname = False
+_lol_ssl.verify_mode = ssl.CERT_NONE
+
+
+def _lol_get(path):
+    with urllib.request.urlopen(LOL_URL + path, timeout=1.5, context=_lol_ssl) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+async def lol_watcher():
+    game = None  # the game currently loaded in the client, or None
+    while True:
+        await asyncio.sleep(2)
+        if not state["lolAuto"]:
+            game = None
+            if state["lolGame"]:
+                state["lolGame"] = None
+                await publish()
+            continue
+        try:
+            stats = await asyncio.to_thread(_lol_get, "gamestats")
+            if "gameTime" not in stats:
+                raise ValueError("loading")
+            events = (await asyncio.to_thread(_lol_get, "eventdata")).get("Events") or []
+        except Exception:
+            if game is not None or state["lolGame"]:
+                game = None
+                state["lolGame"] = None
+                await publish()
+            continue
+        mode, gtime, changed = str(stats.get("gameMode") or ""), float(stats.get("gameTime") or 0), False
+        if game is None:
+            try:
+                player = await asyncio.to_thread(_lol_get, "activeplayername")
+            except Exception:
+                player = ""
+            if not player and gtime < 30:
+                continue  # may just not be ready yet during load; decide once the game is clearly running
+            # Spectator/replay has no active player; practice tool isn't a real match.
+            game = {"skip": not player or mode in LOL_SKIP_MODES, "matchCount": len(state["matches"]),
+                    "done": False, "locked": gtime >= LOL_LOCK_AFTER}
+            if not game["skip"] and gtime < LOL_LOCK_AFTER and state["prediction"]["status"] in ("off", "done"):
+                predict_open()
+            changed = True
+        if not game["skip"]:
+            end = next((e for e in events if e.get("EventName") == "GameEnd"), None)
+            if end and not game["done"]:
+                game["done"] = True
+                result = {"Win": "W", "Lose": "L"}.get(end.get("Result"))
+                if result and len(state["matches"]) == game["matchCount"]:  # skip if entered by hand already
+                    add_match(result)
+                changed = True
+            elif not game["locked"] and gtime >= LOL_LOCK_AFTER:
+                game["locked"] = True
+                changed = predict_lock() or changed
+        info = {"mode": mode, "minute": int(gtime // 60), "done": game["done"], "skip": game["skip"]}
+        if info != state["lolGame"]:
+            state["lolGame"] = info
+            changed = True
+        if changed:
+            await publish()
+
+
 # --------------------------------------------------------------- clients --
 
 async def client(ws):
@@ -556,14 +668,7 @@ async def client(ws):
                     result = msg.get("result")
                     if result not in ("W", "L"):
                         continue
-                    state["matches"] = (state["matches"] + [result])[-50:]
-                    p = state["prediction"]
-                    if p["status"] in ("open", "locked"):
-                        p.update(status="done", result=result, matchCount=len(state["matches"]))
-                        total = len(p["votes"])
-                        if total:
-                            right = sum(v == result for v in p["votes"].values())
-                            state["predictionHistory"].append({"right": right, "total": total, "matchCount": len(state["matches"])})
+                    add_match(result)
                 elif action == "undoMatch":
                     if not state["matches"]:
                         continue
@@ -575,11 +680,12 @@ async def client(ws):
                         history.pop()
                     state["matches"] = state["matches"][:-1]
                 elif action == "predictOpen":
-                    state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
+                    predict_open()
                 elif action == "predictLock":
-                    if state["prediction"]["status"] != "open":
+                    if not predict_lock():
                         continue
-                    state["prediction"]["status"] = "locked"
+                elif action == "toggleLolAuto":
+                    state["lolAuto"] = not state["lolAuto"]
                 elif action == "predictClear":
                     state["prediction"]["status"] = "off"
                 elif action == "resetMatches":
@@ -588,20 +694,30 @@ async def client(ws):
                 elif action == "toggleScoreVisible":
                     state["scoreVisible"] = not state["scoreVisible"]
                 elif action == "resetShow":
-                    previous = {k: state[k] for k in ("game", "returnMessage", "routes", "connection", "obsConnection")}
-                    state.clear()
-                    state.update(defaults())
-                    state.update(previous)
+                    reset_show()
+                elif action == "startShow":
+                    game = clean(msg.get("game"), 80)
+                    if not game:
+                        continue
+                    routes = msg.get("routes") if isinstance(msg.get("routes"), list) else []
+                    reset_show()
+                    state["game"] = game
+                    state["returnMessage"] = clean(msg.get("returnMessage"), 100) or state["returnMessage"]
+                    state["routes"] = [clean(x, 65) for x in routes[:3] if clean(x, 65)]
+                    await publish()
+                    if msg.get("announce"):
+                        content, mentions = live_message(game, clean(msg.get("note"), 200))
+                        await notify_discord(ws, await post_discord(content, mentions), "Yeni yayın hazır · canlı duyurusu")
+                    else:
+                        await ws.send(json.dumps({"type": "notice", "ok": True, "text": "Yeni yayın hazır ✓"}))
+                    continue
                 elif action == "discordAnnounce":
                     text = clean(msg.get("text"), 500)
                     if text:
                         await notify_discord(ws, await post_discord(text), "Anons")
                     continue  # no state change to publish
                 elif action == "discordGoLive":
-                    content = DISCORD_LIVE_MESSAGE
-                    if DISCORD_LIVE_ROLE:
-                        content += f"\n\n<@&{DISCORD_LIVE_ROLE}>"
-                    mentions = {"parse": [], "roles": [DISCORD_LIVE_ROLE] if DISCORD_LIVE_ROLE else []}
+                    content, mentions = live_message(state["game"])
                     await notify_discord(ws, await post_discord(content, mentions), "Canlı duyurusu")
                     continue
                 elif action == "discordSummary":
@@ -638,7 +754,7 @@ async def main():
         print(f"  Telefon/tablet  : http://{ip}:{HTTP_PORT}/kumanda.html  (aynı wifi'de olmalı)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client())
+        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher())
 
 
 if __name__ == "__main__":

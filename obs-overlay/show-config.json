@@ -9,6 +9,15 @@
     "roleId": ""
   },
 
+  "routePresets": {
+    "League of Legends": ["Ranked'e devam", "ARAM ile ısınalım", "Şampiyonu sohbet seçsin"],
+    "Minecraft": ["Madene inelim", "Üssü büyütelim", "Nether'a sefer"],
+    "Baldur's Gate 3": ["Ana göreve devam", "Yan görev keşfi", "Kararı sohbet versin"]
+  },
+  "lolAuto": {
+    "lockAfterSec": 180
+  },
+
   "obs": {
     "url": "ws://127.0.0.1:4455",
     "password": ""
