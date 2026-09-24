@@ -40,6 +40,7 @@ from pathlib import Path
 
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
+from websockets.exceptions import ConnectionClosed
 
 ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".show-state.json"
@@ -506,8 +507,8 @@ async def obs_client():
 
 async def client(ws):
     CLIENTS.add(ws)
-    await ws.send(json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False))
     try:
+        await ws.send(json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False))
         async for raw in ws:
             try:
                 msg = json.loads(raw)
@@ -622,6 +623,8 @@ async def client(ws):
                 await publish()
             except (ValueError, TypeError, KeyError, json.JSONDecodeError):
                 continue
+    except ConnectionClosed:
+        pass  # phones drop the socket abruptly when the screen locks; the page reconnects on its own
     finally:
         CLIENTS.discard(ws)
 
