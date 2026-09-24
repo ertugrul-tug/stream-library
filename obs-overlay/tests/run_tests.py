@@ -311,6 +311,27 @@ async def run(sb, obs, tmp):
         await p.act("questionDone", id=q.get("id"))
         check("soru kuyruğu: göster ve cevaplandı", shown and not state()["questions"] and state()["spotlight"] is None)
 
+        print("\nBirlikte oyna sırası")
+        n = len(sb.said)
+        await sb.chat("twitch", "Ali", "!oyna")
+        await p.drain()
+        check("sıra kapalıyken !oyna reddedildi", not state()["playQueue"] and any("kapalı" in t for t in sb.said_since(n)))
+        await p.act("queueToggle")
+        await sb.chat("twitch", "Ali", "!oyna AliTR#123")
+        await sb.chat("kick", "Veli", "!oyna")
+        await sb.chat("twitch", "Ali", "!oyna")
+        await p.drain()
+        q = state()["playQueue"]
+        check("sıraya iki kişi girdi, tekrar yazan çiftlenmedi", [x["name"] for x in q] == ["Ali", "Veli"] and q[0]["ign"] == "AliTR#123", str(q))
+        n = len(sb.said)
+        await p.act("queueNext")
+        check("sıradaki çağrıldı ve bot duyurdu", [x["name"] for x in state()["playQueue"]] == ["Veli"]
+              and any("@Ali sıra sende" in t and "AliTR#123" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+        await sb.chat("kick", "Veli", "!çık")
+        await p.drain()
+        await p.act("queueToggle")
+        check("!çık ile sıradan çıkıldı, sıra kapandı", not state()["playQueue"] and not state()["playQueueOpen"])
+
         print("\nKraken · yarış · baskın")
         await p.act("krakenStart")
         hp = state()["kraken"]["max"]

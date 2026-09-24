@@ -198,7 +198,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False},
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -322,7 +322,7 @@ def archive_night():
 
 def reset_show():
     archive_night()
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -334,7 +334,7 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -728,6 +728,12 @@ async def streamer_bot():
                                 buy(platform, name, MARKET_ALIASES[command])
                             elif command == "!market" and cooldown(f"market:{platform}:{name.casefold()}", 20):
                                 say(market_text(platform, name), platform)
+                            elif command == "!oyna":
+                                queue_join(platform, name, message.split(None, 1)[1] if " " in message else "")
+                            elif command in ("!sıram", "!siram") and cooldown(f"sira:{platform}:{name.casefold()}", 15):
+                                say(queue_position_text(platform, name), platform)
+                            elif command in ("!çık", "!cik", "!çik"):
+                                queue_leave(platform, name)
                             elif command == "!soru":
                                 ask_question(platform, name, message.split(None, 1)[1] if " " in message else "")
                             elif command in ("!koleksiyon", "!kolleksiyon") and cooldown(f"coll:{platform}:{name.casefold()}", 20):
@@ -1092,6 +1098,51 @@ def auto_marker(note):
     _spawn(run())
 
 
+# !oyna: viewers queue up to play with the host (community nights); the panel calls them one by one.
+
+def _queue_index(platform, name):
+    key = f"{platform}:{name.casefold()}"
+    return next((i for i, x in enumerate(state["playQueue"]) if f"{x['platform']}:{x['name'].casefold()}" == key), -1)
+
+
+def queue_join(platform, name, ign):
+    key = f"{platform}:{name.casefold()}"
+    if not state["playQueueOpen"]:
+        if cooldown(f"qclosed:{key}", 60):
+            say(f"@{name} birlikte oynama sırası şu an kapalı, açılınca duyuracağız ⚓", platform)
+        return
+    at = _queue_index(platform, name)
+    if at >= 0:
+        if cooldown(f"qdup:{key}", 20):
+            say(f"@{name} zaten sıradasın ({at + 1}. sıra).", platform)
+        return
+    if len(state["playQueue"]) >= 30:
+        return
+    state["playQueue"].append({"id": f"p{time.time()}", "platform": platform, "name": name, "ign": clean(ign, 40)})
+    say(f"🎮 @{name} sıraya girdin ({len(state['playQueue'])}. sıra). Çıkmak için !çık", platform)
+
+
+def queue_position_text(platform, name):
+    at = _queue_index(platform, name)
+    return f"@{name} {at + 1}. sıradasın, önünde {at} kişi var." if at >= 0 else f"@{name} sırada değilsin." + (" !oyna ile girebilirsin." if state["playQueueOpen"] else "")
+
+
+def queue_leave(platform, name):
+    at = _queue_index(platform, name)
+    if at >= 0:
+        state["playQueue"].pop(at)
+
+
+def queue_call(entry_id):
+    entry = next((x for x in state["playQueue"] if x["id"] == entry_id), None)
+    if not entry:
+        return
+    state["playQueue"].remove(entry)
+    state["playCalled"] = {**entry, "at": int(time.time() * 1000)}
+    ign = f" (oyun içi: {entry['ign']})" if entry["ign"] else ""
+    say(f"🎮 @{entry['name']} sıra sende{ign}! Lobiye gel, kaptan seni bekliyor ⚓", entry["platform"])
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1447,6 +1498,20 @@ async def client(ws):
                     _spawn(rehearsal())
                     await send_notice(ws, True, "🎬 Prova başladı · ~25 sn, sohbete bir şey yazılmaz")
                     continue
+                elif action == "queueToggle":
+                    state["playQueueOpen"] = not state["playQueueOpen"]
+                    say("🎮 Birlikte oynama sırası açıldı! Sıraya girmek için !oyna OyunİçiAdın yaz" if state["playQueueOpen"]
+                        else "🎮 Oynama sırası kapandı, sıradakiler bekliyor olmaya devam ediyor.")
+                elif action == "queueNext":
+                    if not state["playQueue"]:
+                        continue
+                    queue_call(state["playQueue"][0]["id"])
+                elif action == "queueCall":
+                    queue_call(msg.get("id"))
+                elif action == "queueRemove":
+                    state["playQueue"] = [x for x in state["playQueue"] if x["id"] != msg.get("id")]
+                elif action == "queueClear":
+                    state["playQueue"], state["playCalled"] = [], None
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":

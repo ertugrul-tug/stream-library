@@ -23,8 +23,8 @@
   let games = null;
   if (kind !== 'end') {  // game scene, chat scene, and the start/break screens (viewers fish and race while waiting)
     const lane = document.createElement('div'); lane.className = 'show-events'; root.append(lane);
-    games = { raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA') };
-    lane.append(games.raid, games.kraken, games.race, games.fish);
+    games = { raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA'), queue: card('show-queue','BİRLİKTE OYNA') };
+    lane.append(games.raid, games.kraken, games.race, games.fish, games.queue);
     if (rankUp) lane.append(rankUp);
   }
   let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
@@ -253,6 +253,12 @@
     window.qedyRanks = ranks;
     sfxEnabled = s.sfx !== false;
     if (games) renderEffects(s.effects);
+    if (games) {
+      const q = s.playQueue || [], open = !!s.playQueueOpen, qc = games.queue;
+      qc.classList.toggle('active', open);
+      qc.querySelectorAll('.queue-line').forEach(n => n.remove());
+      if (open) div(qc, 'queue-line', `!oyna yaz · sırada ${q.length} kişi` + (q[0] ? ` · sıradaki: ${q[0].name}` : ''));
+    }
     if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
