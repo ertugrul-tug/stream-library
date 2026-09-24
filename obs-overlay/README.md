@@ -68,6 +68,7 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 ### Kumandada neler var
 
+- **Sahneye duyarlı:** Köprü OBS sahne değişikliklerini dinler. Kumandada yayındaki sahnenin düğmesi kırmızı çerçeveli görünür. Bot "Kısa Mola"ya geçince mola duyurusu, moladan dönünce "Güverteye döndük", "Yayın Başlıyor"da ısınma çağrısı, "Yayın Bitti"de teşekkür ve ganimet kralını yazar (aynı tür için 2 dk'da bir).
 - **Yayın sağlığı:** Üst çubuğun altında "🔴 CANLI 1:23:45 · 5.9 Mbps · kayıp %0.1" (bitrate son ~15 sn, kare kaybı son 1 dk). Yayındayken OBS'teki mikrofon (Mic/Aux) sessizdeyse yanıp sönen kırmızı "🎙️ MİKROFON KAPALI" bandı, kare kaybı %1'i geçerse turuncu bağlantı uyarısı çıkar.
 - **Üst çubuk:** OBS ve Bot (Streamer.bot) durum noktaları, şu anki segment, sahne düğmeleri: 🎮 Sahne · 💭 Sohbet Güvertesi · ▶️ Yayın Başlıyor · ⏸️ Kısa Mola · ⏹️ Yayın Bitti (`show-config.json > obsScenes`; obs-websocket v5 gerekir).
 - **🎬 Anı işaretle:** VOD zamanını OBS'ten alıp notla kaydeder, yayın sonu özetine girer ve Streamer.bot `QedyClip`'i tetikler (Twitch klibi + linki Twitch/Kick sohbetine).

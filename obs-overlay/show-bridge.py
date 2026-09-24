@@ -195,7 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [],
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "",
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -288,7 +288,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -468,7 +468,7 @@ def live_message(game, note=""):
 
 
 async def publish():
-    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
     message = json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False)
     for ws in tuple(CLIENTS):
         try:
@@ -767,7 +767,7 @@ async def obs_client():
             async with connect(OBS_URL, open_timeout=3, max_size=2**20) as ws:
                 hello = json.loads(await ws.recv())
                 d = hello.get("d", {})
-                identify = {"rpcVersion": d.get("rpcVersion", 1), "eventSubscriptions": 0}
+                identify = {"rpcVersion": d.get("rpcVersion", 1), "eventSubscriptions": 1 << 2}  # Scenes events
                 auth = d.get("authentication")
                 if auth:
                     identify["authentication"] = obs_auth_string(OBS_PASSWORD, auth["salt"], auth["challenge"])
@@ -778,10 +778,15 @@ async def obs_client():
                 obs_conn["ws"] = ws
                 state["obsConnection"] = "connected"
                 await publish()
+                _spawn(load_current_scene())
                 async for raw in ws:
                     try:
                         d = json.loads(raw).get("d") or {}
                     except ValueError:
+                        continue
+                    if d.get("eventType") == "CurrentProgramSceneChanged":
+                        on_scene((d.get("eventData") or {}).get("sceneName"))
+                        await publish()
                         continue
                     future = obs_pending.get(d.get("requestId"))
                     if future and not future.done():
@@ -794,6 +799,37 @@ async def obs_client():
             print(f"OBS bekleniyor: {type(exc).__name__}", flush=True)
             await asyncio.sleep(3)
 
+
+
+async def load_current_scene():
+    reply = await obs_request("GetCurrentProgramScene") or {}
+    name = reply.get("currentProgramSceneName") or reply.get("sceneName")
+    if name:
+        state["scene"] = name  # just remember it; no chat line for the scene we connected into
+        await publish()
+
+
+def on_scene(name):
+    """Scene-aware host lines: break, back on deck, starting soon, goodbye."""
+    if not name or name == state["scene"]:
+        return
+    previous, state["scene"] = state["scene"], name
+    lowered = name.casefold()
+    kind = "mola" if "mola" in lowered else "bitti" if "bitti" in lowered else "basliyor" if "başlıyor" in lowered else "oyun"
+    if kind == "oyun" and "mola" not in previous.casefold():
+        return  # only "back from break" is worth saying among in-show switches
+    if not cooldown(f"scene:{kind}", 120):
+        return
+    if kind == "mola":
+        say("⏸️ Kısa mola! Birazdan güvertedeyiz — bu arada !olta atıp ganimet toplayın 🎣")
+    elif kind == "basliyor":
+        say("▶️ Yayın birazdan başlıyor! Beklerken !olta ile ısının, yelkenler fora 🎣")
+    elif kind == "oyun":
+        say("⚓ Güverteye döndük! Kaldığımız yerden devam.")
+    else:
+        king = loot_king()
+        crown = f" 👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})." if king else ""
+        say(f"⏹️ Bu akşamlık bu kadar, teşekkürler mürettebat!{crown} Bir sonraki seferde görüşürüz 🐾")
 
 # ------------------------------------------------------------ mini games --
 # Olta (!olta), Kraken (!saldır) and Yelken yarışı (!katıl). The bridge owns the rules; the overlay only draws state.
