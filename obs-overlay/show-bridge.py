@@ -195,6 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}},
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -230,6 +231,7 @@ def snapshot():
     result["topCrew"] = [{"platform": e["platform"], "name": e["name"], "points": e["points"],
                           "streams": e["streams"], "rank": rank_for(e["points"])} for e in top]
     result["schedule"] = CONFIG.get("schedule") or {}
+    result["lootKing"] = loot_king()
     return result
 
 
@@ -257,6 +259,15 @@ def summary_text():
     if total:
         right = sum(h["right"] for h in history)
         lines.append(f"🔮 Sohbet tahminleri: %{round(100 * right / total)} isabet ({len(history)} maç, {total} tahmin)")
+    n = state["night"]
+    games = ([f"🎣 {n['casts']} olta"] if n["casts"] else []) \
+        + ([f"🐙 Kraken {n['krakenWon']}/{n['krakenWon'] + n['krakenLost']}"] if n["krakenWon"] + n["krakenLost"] else []) \
+        + ([f"⛵ {n['races']} yarış"] if n["races"] else [])
+    if games:
+        lines.append(" · ".join(games))
+    king = loot_king()
+    if king:
+        lines.append(f"👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})")
     t, k = state["stats"]["twitch"], state["stats"]["kick"]
     lines.append(f"💬 {t['chat'] + k['chat']} mesaj · 👋 {t['follow'] + k['follow']} yeni takipçi · ⭐ {t['sub'] + k['sub']} abonelik")
     if state["highlights"]:
@@ -325,6 +336,59 @@ def pct_tr(n):
     tens = {0: "ı", 10: "u", 20: "si", 30: "u", 40: "ı", 50: "si", 60: "ı", 70: "i", 80: "i", 90: "ı"}
     ones = {1: "i", 2: "si", 3: "ü", 4: "ü", 5: "i", 6: "sı", 7: "si", 8: "i", 9: "u"}
     return f"%{n}'{ones[n % 10] if n % 10 else tens[n]}"
+
+
+
+# ------------------------------------------------------------- hosting --
+# Welcome people on their first message of the show and drop a rotating tip while chat is active.
+
+QUIET_NAMES = {"nightbot", "streamelements", "moobot", "streamlabs", "fossabot", "wizebot", "botrix", "kickbot", "sery_bot"}
+BROADCASTERS = set()  # this channel's own account names, filled from Streamer.bot
+_greet_times, _chat_since_tip = [], [0]
+TIPS = [
+    "🎣 Canın sıkıldı mı? !olta yaz, bakalım denizden ne çıkacak. Altın sandık seni bekliyor!",
+    "🎖️ Sohbette yazdıkça rütben yükselir: Miço → Tayfa → … → İkinci Kaptan. Nerede olduğunu !rütbe ile gör.",
+    HELP_TEXT,
+]
+
+
+async def load_broadcasters():
+    reply = await sb_request({"request": "GetBroadcaster"}) or {}
+    for info in (reply.get("platforms") or {}).values():
+        for key in ("broadcastUser", "broadcastUserName", "broadcasterLogin", "broadcasterUserName"):
+            if info.get(key):
+                BROADCASTERS.add(str(info[key]).casefold())
+
+
+def greet(platform, name, is_new):
+    lowered = name.casefold()
+    if lowered in QUIET_NAMES or lowered in BROADCASTERS:
+        return
+    now = time.time()
+    _greet_times[:] = [t for t in _greet_times if now - t < 60]
+    if len(_greet_times) >= 6:  # a raid shouldn't turn into a wall of greetings
+        return
+    _greet_times.append(now)
+    entry = crew_db.get(f"{platform}:{lowered}") or {}
+    if is_new:
+        say(f"⚓ Güverteye hoş geldin @{name}! İlk seferin 🎉 Neler yapabileceğini görmek için !komutlar yaz.", platform)
+    else:
+        say(f"⚓ Tekrar hoş geldin @{name} · {rank_for(entry.get('points', 0))} · {entry.get('streams', 1)}. seferin!", platform)
+
+
+async def tips_loop():
+    every = int((CONFIG.get("tips") or {}).get("everyMinutes") or 15)
+    turn = 0
+    while True:
+        await asyncio.sleep(every * 60)
+        if _chat_since_tip[0] >= 3:
+            say(TIPS[turn % len(TIPS)])
+            turn += 1
+        _chat_since_tip[0] = 0
+
+
+def loot_king():
+    return max(state["night"]["loot"].values(), key=lambda x: x["loot"], default=None)
 
 
 def cooldown(key, seconds):
@@ -557,6 +621,7 @@ async def streamer_bot():
                 state["connection"] = "connected"
                 await publish()
                 await ws.send(json.dumps({"request": "Subscribe", "id": "qedy-show-bridge", "events": events}))
+                _spawn(load_broadcasters())
                 async for raw in ws:
                     try:
                         payload = json.loads(raw)
@@ -581,7 +646,12 @@ async def streamer_bot():
                                     "id": f"{platform}-{datetime.now().timestamp()}"}
                             state["chat"] = (state["chat"] + [item])[-30:]
                             state["stats"][platform]["chat"] += 1
+                            previous = crew_db.get(f"{platform}:{name.casefold()}")
+                            first_today = not previous or previous.get("show") != state["started"]
                             new_rank = award_chat(platform, name, state["started"])
+                            _chat_since_tip[0] += 1
+                            if first_today and not message.startswith("!"):
+                                greet(platform, name, previous is None)
                             if new_rank:
                                 state["rankUp"] = {"platform": platform, "name": name, "rank": new_rank,
                                                    "at": int(time.time() * 1000)}
@@ -744,6 +814,9 @@ def add_loot(platform, name, points, best=None):
     entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
     entry["name"] = name
     entry["loot"] = entry.get("loot", 0) + points
+    if platform in ("twitch", "kick"):
+        night = state["night"]["loot"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "loot": 0})
+        night["loot"] += points
     if best and best["points"] > (entry.get("best") or {}).get("points", -1):
         entry["best"] = best
     CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
@@ -763,6 +836,7 @@ def cast_line(platform, name):
     item, emoji, points, _ = random.choices(LOOT, weights=[x[3] for x in LOOT])[0]
     rarity = "efsane" if points >= 40 else "nadir" if points >= 15 else "sıradan"
     total = add_loot(platform, name, points, {"name": item, "emoji": emoji, "points": points})
+    state["night"]["casts"] += 1
     state["catches"] = (state["catches"] + [{"id": f"f{time.time()}", "platform": platform, "name": name,
                                              "item": item, "emoji": emoji, "points": points, "rarity": rarity}])[-12:]
     if points >= 25:
@@ -816,8 +890,11 @@ def kraken_finish(won, retreat=False):
     if won:
         for h in k["hits"].values():
             add_loot(h["platform"], h["name"], min(40, 10 + h["dmg"]) + (25 if h["name"] == k["killer"] else 0))
+        state["night"]["krakenWon"] += 1
         say(f"🐙 KRAKEN YENİLDİ! Son vuruş: {k['killer']} (+25 bonus) · saldıran {len(k['hits'])} kişiye ganimet dağıtıldı!")
     else:
+        if not retreat:
+            state["night"]["krakenLost"] += 1
         say("🐙 Kraken geri çekildi." if retreat else "🐙 Kraken kaçtı… Bir dahaki sefere daha sert vurun!")
     _clear_later("kraken", k["id"], 10)
 
@@ -896,6 +973,7 @@ def race_end(cancelled=False, reason=""):
         medals = ["🥇", "🥈", "🥉"]
         for i, key in enumerate(r["podium"][:3]):
             add_loot(boats[key]["platform"], boats[key]["name"], [50, 25, 10][i])
+        state["night"]["races"] += 1
         say("🏁 Yarış bitti! " + " · ".join(f"{medals[i]} {boats[k]['name']}" for i, k in enumerate(r["podium"][:3]))
             + " · ganimetler dağıtıldı!")
     _clear_later("race", r["id"], 12)
@@ -1175,7 +1253,7 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random())
+        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop())
 
 
 if __name__ == "__main__":
