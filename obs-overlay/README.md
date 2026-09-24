@@ -55,34 +55,60 @@ Katman yerel olarak window.qedyOverlay.push(event) ile de test edilebilir:
 
 Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin olarak gösterilir. Chat kutusu son yedi mesajı tutar.
 
-## İnteraktif yayın paketi
+## İnteraktif yayın paketi (köprü + kumanda)
 
-show-bridge.py, Streamer.bot WebSocket sunucusundan Twitch ve Kick olaylarını alıp sahneler arasında ortak bir yayın durumu tutar. Köprünün WebSocket'i (8765) ve kumanda.html'i servis eden HTTP sunucusu (8766) artık bu bilgisayarın tüm ağ arayüzlerinde dinliyor — yani **aynı wifi'deki telefon veya tabletten de** kumandayı açabilirsin. Streamer.bot için kullanılan 127.0.0.1:8080 portunu değiştirme. kumanda.html OBS kaynağı değildir, sadece kendi tarayıcında (bilgisayar veya telefon) açık tutulur. Köprü yoksa mevcut ortak sohbet ve bildirimler doğrudan Streamer.bot üzerinden çalışmaya devam eder; yeni interaktif alanlar canlı veri alamaz.
+`show-bridge.py` ("köprü") Streamer.bot'tan Twitch ve Kick olaylarını alır, OBS'le ve Discord'la konuşur ve tüm sahnelere ortak bir yayın durumu dağıtır. `kumanda.html` bu köprünün kontrol paneli; OBS kaynağı değildir, kendi tarayıcında (bilgisayar ya da aynı wifi'deki telefon) açık tutulur.
 
-**Güvenlik notu:** Bu, kumandayı ev ağındaki herkesin erişebileceği hale getirir (internete değil, sadece aynı wifi'ye açık). Şu anki aksiyonlar arasında artık timeout/ban gibi moderasyon da var; kumanda bilerek PIN/şifre korumasız bırakıldı, bu yüzden yalnızca güvendiğin bir ev ağındayken kullan. PIN eklemek ileride ayrı bir adım.
+### Başlatma
 
-1. Bir kere: python -m pip install -r obs-overlay/requirements.txt
-2. Yayından önce start-show.cmd dosyasına çift tıkla veya python obs-overlay/show-bridge.py çalıştır. Açılan "Qedy Show Bridge" penceresi telefon için kullanılacak LAN adresini yazdırır, o pencereyi açık bırak. Streamer.bot WebSocket Server da açık olmalı. Köprü bağlantı kurulana kadar yeniden dener.
-3. Kumanda otomatik açılır (http://127.0.0.1:8766/kumanda.html). Telefondan/tabletten aynı wifi'deyken "Qedy Show Bridge" penceresindeki `http://<LAN-IP>:8766/kumanda.html` adresini aç. Üstteki durum Streamer.bot bağlı olduğunda yeşile döner. Oyunu, mola notunu ve rota seçeneklerini buradan yaz. Oyun kutusuna yazarken 624 oyunluk Steam kütüphaneni eşleştiren öneriler çıkar.
-4. Sohbette !rota 1, !rota 2, !rota 3 oyları iki platformdan toplanır. Her kullanıcı her platformda bir güncel oya sahiptir; yeni oy önceki oyunu değiştirir. Kumandada mesajı “Anons yap” ile seçip ekranda öne çıkarabilirsin. Her sohbet mesajının yanındaki ⏱/⛔ düğmeleri, o kullanıcı için Streamer.bot'ta tanımladığın "ModTimeout"/"ModBan" adlı Action'ı tetikler — köprü Twitch/Kick'e doğrudan bağlanmaz, gerçek timeout/ban işlemini o Action yapar. “Öne çıkan anlar” alanına yayın sırasında kısa notlar ekleyebilirsin.
-5. Üst çubuktaki rozet, show-config.json > schedule zaman çizelgesine göre şu anki segmenti gösterir (örn. “Tema bloğu · 21:00”). “Sahne · anons” bölümündeki düğmeler show-config.json > obsScenes listesindeki her sahneye OBS'de geçiş yapar (obs-websocket v5 gerekir, aşağıya bak); yanındaki kutu show-config.json > discordWebhook adresine kısa bir duyuru mesajı gönderir.
-6. Açılış sahnesi sohbete yazanları radar listesinde gösterir. Mola sahnesi oyun, dönüş notu ve öne çıkan anları; kapanış sahnesi mesaj, takip, abonelik sayılarını ve notları gösterir. Bunlar köprü başladıktan sonra gelen olaylardır. Geçmiş platform istatistikleri veya otomatik Twitch klipleri içe aktarılmaz.
+1. Bir kere: `python -m pip install -r obs-overlay/requirements.txt`
+2. Masaüstündeki **Kaptan Qedy Yayın** kısayoluna (ya da `start-show.cmd`'ye) çift tıkla. Streamer.bot kapalıysa açar, köprüyü "Qedy Show Bridge" penceresinde başlatır (zaten açıksa ikinci kopyayı açmaz) ve kumandayı tarayıcıda açar. OBS'i kendin aç.
+3. Köprü penceresi telefon adresini (`http://<LAN-IP>:8766/kumanda.html`) ve **telefon PIN'ini** yazar. Pencereyi yayın bitene kadar kapatma.
+4. Kumandada **🚀 Yeni yayın**: oyunu listeden seç (LoL, TFT, Minecraft, BG3 hazır; "➕ Başka oyun…" 627 oyunluk kütüphanede arar), rotalar ve yayın başlığı oyuna göre dolar. **Başlat** yayını sıfırlar (rütbe puanları kalır), Twitch + Kick başlık/kategoriyi günceller ve Discord'a canlı duyurusunu atar. Her yayına bununla başla; "yayındaki ilk mesaj" rütbe bonusu buna bağlı.
 
-show-config.json ilk açılıştaki metinleri, rota/segment/sahne listelerini belirler ve Git'e eklenir (public repo). **Gerçek Discord webhook adresini ve OBS şifresini bu dosyaya yazma.** Bunun yerine aynı klasörde `show-config.local.json` adında yeni bir dosya oluştur (Git'e eklenmez, .gitignore'da), içine sadece değiştirmek istediğin alanları yaz:
+### Kumandada neler var
+
+- **Üst çubuk:** OBS ve Bot (Streamer.bot) durum noktaları, şu anki segment, sahne düğmeleri: 🎮 Sahne · 💭 Sohbet Güvertesi · ▶️ Yayın Başlıyor · ⏸️ Kısa Mola · ⏹️ Yayın Bitti (`show-config.json > obsScenes`; obs-websocket v5 gerekir).
+- **🎬 Anı işaretle:** VOD zamanını OBS'ten alıp notla kaydeder, yayın sonu özetine girer ve Streamer.bot `QedyClip`'i tetikler (Twitch klibi + linki Twitch/Kick sohbetine).
+- **Maç serisi:** ✅/❌ ile skor, son 5 maç noktaları, 2+ galibiyet serisinde oyun sahnesinde alev. **Maç tahmini:** sohbet `!tahmin G` / `!tahmin M` yazar, kilitleyince oylar durur, sonuç girilince "Sohbetin %70'i bildi" 30 sn ekranda kalır.
+- **LoL otomatik takip:** Riot'un yerel Live Client Data API'si (127.0.0.1:2999, anahtarsız) okunur. Maç yüklenince tahmin açılır, 3. dakikada (`lolAuto.lockAfterSec`) kilitlenir, maç bitince G/M kendiliğinden girilir. İzleyici modu, Practice Tool ve TFT sayılmaz; elle girilen sonuç tekrarlanmaz. Kumandadan kapatılabilir.
+- **Rota oylaması:** sohbet `!rota 1/2/3`; kaydedince bot seçenekleri sohbete yazar, "🧭 Sohbete hatırlat" tekrar yazar.
+- **Sohbet botu:** tahmin açılış/kilit/sonucu, maç sonucu ve seri, rütbe atlama duyuruları; `!rütbe` ve `!komutlar` sorulan platformda cevaplanır (kişi başı bekleme süreli). Botun kendi mesajları geri geldiğinde sayılmaz. "🤖 Bot konuşuyor · sustur" ile kapatılır.
+- **Ortak sohbet:** mesajı "Anons yap" ile ekranda öne çıkar; ⏱ timeout (10 dk) ve ⛔ ban.
+- **Discord:** 📣 Canlıyım (oyun satırlı duyuru), 📊 yayın sonu özeti (önizlemeli), özel mesaj.
+- **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır.
+
+### Streamer.bot action'ları
+
+Köprü Twitch/Kick'e doğrudan bağlanmaz; bu işleri Streamer.bot'taki aşağıdaki action'lara yaptırır. Action yoksa ya da içi boşsa kumanda bunu söyler.
+
+| Action | Köprünün gönderdiği | İçinde olması gereken |
+| --- | --- | --- |
+| `QedyStreamInfo` | `%title%`, `%game%` | Twitch Set Title / Set Game, Kick Set Title / Set Category |
+| `QedyClip` | `%note%` | Twitch Create Clip (başlık `%note%`) → If `createClipSuccess` = True → Twitch + Kick mesajı (`%createClipUrl%`) |
+| `QedySayTwitch`, `QedySayKick` | `%message%` | O platforma Send Message |
+| `ModTimeoutTwitch`, `ModTimeoutKick` | `%user%`, `%duration%` (600), `%reason%` | O platformda Timeout User |
+| `ModBanTwitch`, `ModBanKick` | `%user%`, `%reason%` | O platformda Ban User |
+
+Streamer.bot WebSocket Server: 127.0.0.1, port 8080, endpoint `/`, Auto Start açık, Enforce Authentication kapalı.
+
+### Güvenlik ve yerel ayarlar
+
+Köprünün WebSocket'i (8765) ve dosya sunucusu (8766) ev ağına açıktır ki telefondan kullanılabilsin. **Bu bilgisayardan açılan kumanda PIN sormaz; başka cihazlar köprü penceresinde yazan PIN'i bir kez girer** (4 hane girilince otomatik gönderilir, cihaz hatırlar). PIN'siz bağlantı durumu izleyebilir (OBS sahneleri böyle çalışır) ama hiçbir düğmeyi çalıştıramaz; 5 yanlış denemeden sonra o cihaz 1 dakika bekler. Dosya sunucusu `show-config.local.json`, `.show-state.json`, `.crew.json` ve `.py` dosyalarını hiçbir zaman vermez.
+
+`show-config.json` Git'e girer (public repo): oyun/rota hazır listeleri (`routePresets`), başlık şablonları (`titleTemplates`, `{game}` yer tutuculu), sahneler, segment saatleri, LoL ayarları. **Gizli değerleri buraya yazma.** Onlar aynı klasörde Git'e girmeyen `show-config.local.json`'a gider; bu dosya varsa üstüne yazılır:
 
 ```json
-{ "discordWebhook": "https://discord.com/api/webhooks/...", "obs": { "password": "..." } }
+{ "discordWebhook": "https://discord.com/api/webhooks/...", "pin": "1234" }
 ```
 
-Bu dosya varsa show-config.json üzerine yazılır (merge). OBS tarafında Tools > obs-websocket Settings'ten sunucuyu aç, portu (varsayılan 4455) ve şifreyi show-config.json > obs.url / show-config.local.json > obs.password ile eşle.
+`pin` yoksa köprü ilk açılışta rastgele 4 haneli bir PIN üretip buraya yazar. OBS şifresi gerekmez: köprü bu bilgisayardaki obs-websocket ayarından okur.
 
-Değişen yayın verileri .show-state.json içinde yerel olarak saklanır ve Git'e eklenmez. Dosyada sohbet kullanıcı adları ve mesajları olabilir; paylaşma. Kumandadaki “Yeni yayın başlat” düğmesi bu oturum verilerini sıfırlar. Canlı mesajlar HTML olarak işlenmez, yalnızca düz metin olarak gösterilir. ?sample=1 ile sahnelerde örnek interaktif içerik görülebilir; OBS'ye normal dosya adresini ekle.
+Yayın verisi `.show-state.json`'da, rütbe puanları `.crew.json`'da yerel tutulur (Git'e girmez, sohbet kullanıcı adları içerir; paylaşma). Canlı mesajlar HTML olarak işlenmez; Twitch ve Kick emoteleri görsel olarak gösterilir (`emotes.js`).
 
-### Klip işareti, mürettebat rütbeleri, segment şeridi
+### Sahnelerdeki kartlar
 
-- **Klip işareti:** Kumandadaki "🎬 Anı işaretle" o anın VOD zamanını OBS'ten (yayın açıkken) alıp isteğe bağlı bir notla listeler; liste yayın sonu özetine de girer. Streamer.bot'ta "QedyClip" adlı bir Action oluşturursan (örn. Twitch "Create Clip" alt aksiyonuyla) düğme onu da tetikler — yoksa sadece işaret kaydedilir.
-- **Mürettebat rütbeleri:** Sohbette bir yayındaki ilk mesaj +10, sonraki her mesaj +1 puan (30 sn arayla, spam puan kazandırmaz). Puanlar .crew.json içinde yayınlar arası saklanır (Git'e eklenmez, ağa servis edilmez). Rütbeler: Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Açılış sahnesinin radarında isimlerin yanında rütbe görünür; biri rütbe atlayınca oyun sahnesinde 6 sn'lik bir bildirim çıkar. "Yeni seferde ilk mesaj" bonusu için her yayına kumandadaki "Yeni yayın başlat" ile başla.
-- **Segment şeridi:** Oyun sahnesinin üst çizgisinde show-config.json > schedule'a göre "ŞİMDİ · Tema bloğu · SIRADAKİ · Günlük sohbet 23:00" gösterilir. Kumandadaki Seyir defteri bölümünden gizlenip açılabilir.
+Açılış sahnesi sohbete yazanları rütbeleriyle radar listesinde gösterir. Oyun sahnesinde rota oylaması, maç serisi, maç tahmini, rütbe atlama bildirimi ve segment şeridi ("ŞİMDİ · Tema bloğu · SIRADAKİ · Günlük sohbet 23:00") vardır; kartlar ancak kullanıldıklarında görünür. Mola sahnesi oyun, dönüş notu, skor ve öne çıkan anları; kapanış sahnesi mesaj/takip/abonelik sayılarını, skor, rekor seri ve tahmin isabetini gösterir. `?sample=1` ile her sahne örnek içerikle önizlenir; OBS'e normal dosya adresini ekle. OBS önbelleği eski sayfayı tutarsa kaynak özelliklerinden "Mevcut sayfanın önbelleğini yenile".
 
 ## Pusulalı sahne geçişi
 

@@ -1,12 +1,12 @@
 # Handoff — Kaptan Qedy Comeback Sitesi
 
-_Son güncelleme: 21 Eylül 2026, iş bilgisayarından. Eve geçince buradan devam._
+_Son güncelleme: 25 Eylül 2026, ev bilgisayarından. Diğer bilgisayara geçince buradan devam._
 
 ## Canlı linkler
 
 - **Ana sayfa (izleyici vitrini):** https://ertugrul-tug.github.io/stream-library/
 - **Captain on the Bridge (plan/checklist):** https://ertugrul-tug.github.io/stream-library/captain-on-the-bridge/
-- **Kütüphane (624 oyun, aranabilir):** https://ertugrul-tug.github.io/stream-library/kutuphane/
+- **Kütüphane (627 oyun: 624 Steam + LoL, TFT, Minecraft; aranabilir):** https://ertugrul-tug.github.io/stream-library/kutuphane/
 - **Repo:** https://github.com/ertugrul-tug/stream-library
 
 ## Eve geçince ilk yapılacak
@@ -40,11 +40,25 @@ GitHub Pages her push'ta otomatik build alıyor (~30-60 sn), build'i beklemeden 
    - Sayfalar arası native View Transitions (Chrome/Edge'de crossfade, desteklemeyen tarayıcıda sorunsuz normal geçiş)
    - Her şey `prefers-reduced-motion` ve JS'siz durumda güvenli statik hale düşüyor (`.scrub` / `.js` class gating)
 
+## Yayın sistemi (22–25 Eylül'de kuruldu)
+
+Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
+
+- **Başlatma:** Masaüstündeki "Kaptan Qedy Yayın" kısayolu → Streamer.bot + köprü + kumanda açılır, OBS'i elle aç. Kumandada **🚀 Yeni yayın** → oyun seç → Başlat (yayını sıfırlar, Twitch/Kick başlık+kategori, Discord duyurusu).
+- **Kumanda:** Bu bilgisayarda PIN sormaz; telefonda PIN (köprü penceresinde yazar, `show-config.local.json > pin`).
+- **LoL:** Maçlar Riot'un yerel API'sinden otomatik takip ediliyor (tahmin aç/kilitle, G/M gir). TFT sayılmaz.
+- **Sohbet botu:** Tahmin, maç sonucu, rütbe duyuruları; `!rütbe`, `!komutlar`.
+- **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
+- **OBS (24 Eylül):** Twitch+Kick 6000 kbps (8000'den indi), NVENC p5, dinamik bitrate açık. Donma sonrası ilk yayında 0 kare kaybı. Yükleme ~50 Mbps, kablolu.
+- **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları.
+
 ## Açık maddeler
 
-- [ ] **Instagram hesabı kararı** — @ertugrul_tug mi @kaptan_qedy mi "yayıncı" hesabı olacak, kullanıcıya bırakıldı
-- [ ] **İlk ay sonu check-in** (~20 Ekim) — `planning/metrics-log.md` doldurulup 3 aylık hedefler gözden geçirilmeli
-- [ ] Lansman (22 Eylül Salı 20:30) sonrası gerçek yayın deneyimine göre animasyon/tempo ince ayarı gerekebilir
+- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori değişiyor mu (Twitch "Set Game" adımı `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 Anı işaretle → sohbete klip linki düşüyor mu · LoL maç sonucu kendiliğinden giriliyor mu · bot mesajları ve `!rütbe`
+- [ ] **Mürettebat rol ID'si** — gelirse `show-config.json > discordLive.roleId`, Discord duyuruları rolü etiketler
+- [ ] **Instagram hesabı kararı** — @ertugrul_tug mi @kaptan_qedy mi; `social/` altındaki reel bu karara bağlı bekliyor
+- [ ] **Pazar 27 Eylül:** `planning/metrics-log.md` 1. hafta satırı
+- [ ] **İlk ay sonu check-in** (~20 Ekim) — metrikler + 3 aylık hedefler
 
 ## Teknik notlar (devam ederken hatırlanacak)
 

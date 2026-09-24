@@ -108,6 +108,9 @@ dialog{border:1px solid var(--line);border-radius:16px;background:linear-gradien
 dialog::backdrop{background:rgba(3,6,12,.7);backdrop-filter:blur(3px)}
 dialog h2{font-size:18px}
 dialog input+input{margin-top:8px}
+#pinInput{font:700 28px var(--font-mono);letter-spacing:.5em;text-align:center}
+#pinInput.shake{animation:shake .4s;border-color:var(--danger)}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 label.check{display:flex;align-items:center;gap:10px;margin-top:16px;font:600 15px var(--font-body);letter-spacing:0;color:var(--ink)}
 label.check input{width:22px;height:22px;accent-color:#7a82ff}
 </style></head><body>
@@ -124,6 +127,14 @@ label.check input{width:22px;height:22px;accent-color:#7a82ff}
   <p class="notice" id="topNotice"></p>
   <div class="scene-bar" id="sceneBar"></div>
 </div>
+
+<dialog id="pinDlg"><form id="pinForm">
+<h2>🔒 Kumanda PIN'i</h2>
+<p><small>"Qedy Show Bridge" penceresinde yazan PIN. Bu cihaz bir dahaki sefere hatırlar.</small></p>
+<input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off">
+<p class="notice err" id="pinErr"></p>
+<div class="row"><button type="submit" class="result live">Gir</button></div>
+</form></dialog>
 
 <dialog id="newShowDlg"><form id="newShowForm">
 <h2>🚀 Yeni yayın</h2>
@@ -155,13 +166,31 @@ label.check input{width:22px;height:22px;accent-color:#7a82ff}
 <script src="emotes.js"></script>
 <script>
 (()=>{'use strict';let socket,state,initialized=false;const $=id=>document.getElementById(id);const send=body=>{if(socket?.readyState===1)socket.send(JSON.stringify(body))};const el=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;n.className=cls||'';return n};function render(s){state=s;if(!initialized){$('game').value=s.game||'';$('returnMessage').value=s.returnMessage||'';(s.routes||[]).forEach((v,i)=>{$('route'+(i+1)).value=v});initialized=true}const votes=$('votes');votes.replaceChildren();(s.routes||[]).forEach((r,i)=>votes.append(el('p',`${i+1}. ${r} · ${(s.voteCounts||[])[i]||0} oy`)));const rv=$('toggleRoutesVisible');rv.textContent=s.routesVisible===false?'Yayında gizli · göster':'Yayında görünür · gizle';rv.classList.toggle('danger',s.routesVisible===false);const chat=$('chat');chat.replaceChildren();(s.chat||[]).slice(-15).reverse().forEach(m=>{const row=el('div','','chat-item'),main=el('div','','main'),meta=el('div',m.platform.toUpperCase()+' · '+m.name,'badge '+m.platform),body=el('p',m.text),_e=m.parts&&window.qedyEmotes?qedyEmotes.render(body,m.parts,300):0,spot=el('button','Anons yap','mini'),mod=el('div','','mod'),timeout=el('button','⏱','mini danger'),ban=el('button','⛔','mini danger');spot.onclick=()=>send({action:'spotlight',id:m.id});timeout.title='Timeout';timeout.onclick=()=>send({action:'modAction',platform:m.platform,name:m.name,type:'timeout'});ban.title='Ban';ban.onclick=()=>send({action:'modAction',platform:m.platform,name:m.name,type:'ban'});mod.append(timeout,ban);main.append(meta,body);row.append(main,spot,mod);chat.append(row)});const highlights=$('highlights');highlights.replaceChildren();(s.highlights||[]).forEach((h,i)=>{const row=el('div','','highlight'),button=el('button','Sil','mini');button.onclick=()=>send({action:'removeHighlight',index:i});row.append(el('span',h),button);highlights.append(row)});const t=s.stats?.twitch||{},k=s.stats?.kick||{};const metrics=$('metrics');metrics.replaceChildren();[['Twitch mesaj',t.chat],['Kick mesaj',k.chat],['Takip',(t.follow||0)+(k.follow||0)],['Abonelik',(t.sub||0)+(k.sub||0)],['Bit',t.bits],['Kicks',k.kicks]].forEach(([label,value])=>{const box=el('div','','metric');box.append(el('strong',String(value||0)),el('span',label));metrics.append(box)});const m=s.matches||[],w=m.filter(x=>x==='W').length,last=m[m.length-1];let streak=0;for(let i=m.length-1;i>=0&&m[i]===last;i--)streak++;const sum=$('scoreSummary');sum.replaceChildren(el('span',w+'G','w'),el('span',(m.length-w)+'M','l'));const dots=el('span','','sdots'),recent=m.slice(-5);for(let i=0;i<5;i++){const r=recent[i-(5-recent.length)];dots.append(el('i','',r?(r==='W'?'w':'l'):''))}sum.append(dots);$('scoreStreak').textContent=!m.length?'Henüz maç yok':last==='W'&&streak>=2?`🔥 ${streak} galibiyet serisi · yayında alev açık`:`Son maç: ${last==='W'?'galibiyet':'mağlubiyet'}${streak>=2?` · ${streak} üst üste`:''}`;const p=s.prediction||{status:'off'},pw=p.w||0,pl=p.l||0;$('predictStatus').textContent=({off:'Kapalı',open:`Açık · ${pw} G / ${pl} M`,locked:`Kilitli · ${pw} G / ${pl} M`,done:`Sonuçlandı (${p.result==='W'?'galibiyet':'mağlubiyet'}) · ${pw} G / ${pl} M`})[p.status]||'';$('predictLock').disabled=p.status!=='open';$('summaryPreview').textContent=s.summaryText||'';const mk=$('markers');mk.replaceChildren();(s.markers||[]).map((x,i)=>[x,i]).reverse().forEach(([x,i])=>{const row=el('div','','highlight'),b=el('button','Sil','mini');b.onclick=()=>send({action:'removeMarker',index:i});row.append(el('span',`${x.vod?'⏱ '+x.vod:'🕘 '+x.time} · ${x.note||'işaret'}`),b);mk.append(row)});const tc=$('topCrew');tc.replaceChildren();(s.topCrew||[]).forEach((c,i)=>{const row=el('div','','highlight'),left=el('span','');left.append(el('b',`${i+1}. `),el('span',c.name+' ','badge '+c.platform),document.createTextNode(c.rank));row.append(left,el('span',`${c.points} puan · ${c.streams} yayın`,'badge'));tc.append(row)});if(!(s.topCrew||[]).length)tc.append(el('p','Henüz kimse yok — sohbete yazan herkes burada birikecek.'));const sg=$('toggleSegmentVisible');sg.textContent=s.segmentVisible===false?'Segment şeridi gizli · göster':'Segment şeridi görünür · gizle';sg.classList.toggle('danger',s.segmentVisible===false);const lg=s.lolGame,ls=$('lolStatus');ls.textContent=s.lolAuto===false?'🤖 LoL otomatik takip kapalı':!lg?'🤖 LoL otomatik · maç bekleniyor':lg.skip?(lg.mode==='TFT'?'🤖 TFT maçı · sonucu elle gir':'🤖 İzleyici/antrenman modu · sayılmıyor'):lg.done?'🤖 Maç bitti · sonuç girildi':`🤖 Maçta · ${lg.minute}. dk${lg.minute<3?' · tahmin açık':''}`;$('toggleLolAuto').textContent=s.lolAuto===false?'Otomatiği aç':'Otomatiği kapat';const bc=$('toggleBotChat');bc.textContent=s.botChat===false?'🤖 Bot sessiz · konuştur':'🤖 Bot konuşuyor · sustur';bc.classList.toggle('danger',s.botChat===false);const sv=$('toggleScoreVisible');sv.textContent=s.scoreVisible===false?'Yayında gizli · göster':'Yayında görünür · gizle';sv.classList.toggle('danger',s.scoreVisible===false);const st=$('statusBridge');st.textContent='Bot';st.title=s.connection==='connected'?'Streamer.bot bağlı':'Köprü açık · Streamer.bot bekleniyor';st.classList.remove('err');st.classList.toggle('on',s.connection==='connected');const so=$('statusObs');so.title=s.obsConnection==='connected'?'OBS bağlı':'OBS bekleniyor';so.classList.toggle('on',s.obsConnection==='connected')}
+// PIN: only asked when the panel is opened from another device; the PC itself is trusted by the bridge.
+let triedSaved=false,pendingPin='',pinLen=4;
+const store={get:()=>{try{return localStorage.getItem('qedyPin')||''}catch(_){return''}},set:v=>{try{v?localStorage.setItem('qedyPin',v):localStorage.removeItem('qedyPin')}catch(_){}}};
+function onAuth(m){
+  const dlg=$('pinDlg');
+  if(m.length)pinLen=m.length;
+  if(m.ok){if(pendingPin)store.set(pendingPin);pendingPin='';if(dlg.open)dlg.close();return}
+  if(!triedSaved&&store.get()&&m.error!=='wrong'){triedSaved=true;pendingPin=store.get();send({action:'auth',pin:pendingPin});return}
+  if(m.error==='wrong')store.set('');
+  $('pinErr').textContent=m.error==='wrong'?'Yanlış PIN':m.error==='blocked'?'Çok fazla yanlış deneme · 1 dakika bekle':m.error==='needed'?'Bu işlem için PIN gerekli':'';
+  const inp=$('pinInput');
+  if(!dlg.open)dlg.showModal();inp.value='';inp.disabled=false;inp.focus();
+  if(m.error==='wrong'){inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake')}
+}
+const submitPin=()=>{const inp=$('pinInput');pendingPin=inp.value.trim();if(!pendingPin)return;inp.disabled=true;$('pinErr').textContent='';send({action:'auth',pin:pendingPin})};
+$('pinForm').onsubmit=e=>{e.preventDefault();submitPin()};
+$('pinInput').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'');if(e.target.value.length>=pinLen)submitPin()});
 function connect(){
   // Same host the page was loaded from — works whether this is opened on
   // this PC (127.0.0.1 / localhost) or from a phone via the LAN IP the
   // bridge printed on startup.
   const wsUrl = 'ws://' + (location.hostname || '127.0.0.1') + ':8765/';
   try{socket=new WebSocket(wsUrl)}catch(_){setTimeout(connect,3000);return}
-  socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='state')render(m.state);else if(m.type==='notice'){({discord:['discordNotice','topNotice'],marker:['markerNotice','topNotice']}[m.scope]||['topNotice']).forEach(id=>{const n=$(id);n.textContent=m.text;n.className='notice '+(m.ok?'ok':'err')});clearTimeout($('topNotice')._t);$('topNotice')._t=setTimeout(()=>{$('topNotice').textContent=''},8000);if(!m.ok)$('discordLive').disabled=false}}catch(_){}};
+  triedSaved=false;
+  socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='auth')onAuth(m);else if(m.type==='state')render(m.state);else if(m.type==='notice'){({discord:['discordNotice','topNotice'],marker:['markerNotice','topNotice']}[m.scope]||['topNotice']).forEach(id=>{const n=$(id);n.textContent=m.text;n.className='notice '+(m.ok?'ok':'err')});clearTimeout($('topNotice')._t);$('topNotice')._t=setTimeout(()=>{$('topNotice').textContent=''},8000);if(!m.ok)$('discordLive').disabled=false}}catch(_){}};
   socket.onopen=()=>{const st=$('statusBridge');st.textContent='Bot';st.classList.remove('err');st.title='Köprüye bağlandı · Streamer.bot bekleniyor'};
   socket.onclose=()=>{const st=$('statusBridge');st.textContent='Köprü';st.title='Köprü kapalı · yeniden bağlanıyor';st.classList.remove('on');st.classList.add('err');['statusObs'].forEach(id=>$(id).classList.remove('on'));setTimeout(connect,3000)};
 }

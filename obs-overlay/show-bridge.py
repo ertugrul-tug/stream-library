@@ -18,17 +18,19 @@ Three optional integrations, all off until you fill in show-config.json:
     the request, it doesn't touch Twitch/Kick directly.
 
 Security note: this puts the control panel's WebSocket (8765) and
-static files (8766) on your home network. Anyone on the same wifi
-could reach them and trigger these actions, including moderation.
-No PIN gate yet — by choice, for now. Add one before relying on this
-away from a trusted home network.
+static files (8766) on your home network. Anyone on the same wifi can
+open the panel and watch the state, but actions (moderation, Discord,
+scene switching...) need the PIN printed at startup unless the panel
+is opened on this PC. Secrets and saved state are never served.
 """
 import asyncio
 import base64
 import hashlib
+import hmac
 import json
 import os
 import re
+import secrets
 import socket
 import ssl
 import threading
@@ -58,7 +60,32 @@ if LOCAL_CONFIG_FILE.exists():
     # Real secrets (Discord webhook URL, OBS password) go here instead of
     # show-config.json, which is tracked in a public repo. Gitignored.
     CONFIG.update(json.loads(LOCAL_CONFIG_FILE.read_text(encoding="utf-8")))
-DISCORD_WEBHOOK = str(CONFIG.get("discordWebhook") or "").strip()
+
+# Control-panel PIN for devices other than this PC. Generated once into the gitignored local config.
+PIN = re.sub(r"\D", "", str(CONFIG.get("pin") or ""))
+if not PIN:
+    PIN = f"{secrets.randbelow(10000):04d}"
+    _local = json.loads(LOCAL_CONFIG_FILE.read_text(encoding="utf-8")) if LOCAL_CONFIG_FILE.exists() else {}
+    _local["pin"] = PIN
+    LOCAL_CONFIG_FILE.write_text(json.dumps(_local, ensure_ascii=False, indent=2), encoding="utf-8")
+TRUSTED_HOSTS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+_pin_fails = {}  # ip -> [wrong attempts, blocked until]
+
+
+def check_pin(ip, pin):
+    now = time.time()
+    count, until = _pin_fails.get(ip, [0, 0])
+    if now < until:
+        return "blocked"
+    if hmac.compare_digest(pin.encode(), PIN.encode()):
+        _pin_fails.pop(ip, None)
+        return "ok"
+    count += 1
+    _pin_fails[ip] = [0, now + 60] if count >= 5 else [count, 0]
+    return "wrong"
+
+
+DISCORD_WEBHOOK =str(CONFIG.get("discordWebhook") or "").strip()
 DISCORD_LIVE = CONFIG.get("discordLive") or {}
 DISCORD_LIVE_MESSAGE = str(DISCORD_LIVE.get("message") or "").strip()
 DISCORD_LIVE_ROLE = re.sub(r"\D", "", str(DISCORD_LIVE.get("roleId") or ""))
@@ -742,12 +769,24 @@ async def lol_watcher():
 
 async def client(ws):
     CLIENTS.add(ws)
+    # Anyone may watch the state (the OBS overlay pages do), but only this PC or a PIN holder may act.
+    ip = (ws.remote_address or ("",))[0]
+    authed = ip in TRUSTED_HOSTS
     try:
+        await ws.send(json.dumps({"type": "auth", "ok": authed, "required": not authed, "length": len(PIN)}))
         await ws.send(json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False))
         async for raw in ws:
             try:
                 msg = json.loads(raw)
                 action = msg.get("action")
+                if action == "auth":
+                    result = "ok" if authed else check_pin(ip, re.sub(r"\D", "", str(msg.get("pin") or ""))[:12])
+                    authed = result == "ok"
+                    await ws.send(json.dumps({"type": "auth", "ok": authed, "required": not authed, "error": None if authed else result, "length": len(PIN)}))
+                    continue
+                if not authed:
+                    await ws.send(json.dumps({"type": "auth", "ok": False, "required": True, "error": "needed", "length": len(PIN)}))
+                    continue
                 if action == "setDetails":
                     state["game"] = clean(msg.get("game"), 80)
                     state["returnMessage"] = clean(msg.get("returnMessage"), 100)
@@ -899,6 +938,7 @@ async def main():
         print("Qedy Show Bridge hazır:", flush=True)
         print(f"  Bu bilgisayarda : http://127.0.0.1:{HTTP_PORT}/kumanda.html", flush=True)
         print(f"  Telefon/tablet  : http://{ip}:{HTTP_PORT}/kumanda.html  (aynı wifi'de olmalı)", flush=True)
+        print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
         await asyncio.gather(streamer_bot(), obs_client(), lol_watcher())
