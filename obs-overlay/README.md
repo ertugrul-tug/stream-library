@@ -93,6 +93,7 @@ Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi
   - Oyun sesleri (Kraken gürlemesi, vuruş, olta, yarış düdüğü) tarayıcıda sentezlenir; kumandadan kapatılır. Gece sonunda olta/Kraken/yarış sayıları ve "👑 Gecenin ganimet kralı" kapanış ekranına ve Discord özetine girer.
   - Kraken ve yarış aynı anda açılmaz. Ganimet puanları rütbeyi değiştirmez, `.crew.json`'da ayrı tutulur. Süreler `show-config.json > games`'te. Önizleme: `overlay.html?sample` (Kraken) ve `overlay.html?sample=race`.
 - **🎯 Takip hedefi:** Ayarlar sekmesindeki (Seyir defteri) kutuya bu akşamki hedefi yaz (0 = kapalı). Oyun sahnesinin segment şeridinde "🎯 3/5 takipçi" ve ilerleme çubuğu görünür; hedef tutunca ekranda konfeti ve "hedef tamam" şeridi, bot teşekkür eder, Discord özetine girer.
+- **📈 Son yayınlar:** Her "🚀 Yeni yayın"da biten gecenin özeti (oyun, mesaj, takip, abone, skor, baskın, mini oyunlar, ganimet kralı) yerel `.nights.jsonl`'a yazılır ve Ayarlar sekmesinde listelenir. "📋 Haftalık özeti kopyala" son 7 günün toplamını `planning/metrics-log.md` Not sütununa yapıştırılacak tek satır olarak panoya alır.
 - **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır.
 
 ### Streamer.bot action'ları
@@ -121,7 +122,7 @@ Köprünün WebSocket'i (8765) ve dosya sunucusu (8766) ev ağına açıktır ki
 
 `pin` yoksa köprü ilk açılışta rastgele 4 haneli bir PIN üretip buraya yazar. OBS şifresi gerekmez: köprü bu bilgisayardaki obs-websocket ayarından okur.
 
-Yayın verisi `.show-state.json`'da, rütbe puanları `.crew.json`'da yerel tutulur (Git'e girmez, sohbet kullanıcı adları içerir; paylaşma). Canlı mesajlar HTML olarak işlenmez; Twitch ve Kick emoteleri görsel olarak gösterilir (`emotes.js`).
+Yayın verisi `.show-state.json`'da, rütbe puanları `.crew.json`'da, geçmiş yayın özetleri `.nights.jsonl`'da yerel tutulur (Git'e girmez, sohbet kullanıcı adları içerir; paylaşma). Canlı mesajlar HTML olarak işlenmez; Twitch ve Kick emoteleri görsel olarak gösterilir (`emotes.js`).
 
 ### Sahnelerdeki kartlar
 

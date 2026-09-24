@@ -404,6 +404,11 @@ async def run(sb, obs, tmp):
         check("eksik moderasyon action'ı bildirildi", p.notices and "ModBanKick" in p.notices[-1], p.notices[-1:])
         await p.act("discordSummary", wait=1.5)
         summary = HOOK_POSTS[-1]["content"] if HOOK_POSTS else ""
+        await p.act("startShow", wait=1, game="League of Legends", routes=[], announce=False, updateInfo=False)
+        nights = state().get("nights") or []
+        last = nights[-1] if nights else {}
+        check("yeni yayında önceki gece arşivlendi", len(nights) == 1 and last.get("game") == "Minecraft" and last.get("follows") == 2
+              and last.get("chat", 0) > 0 and (tmp / ".nights.jsonl").exists(), str(last))
         check("Discord özeti gece istatistikleriyle gitti", "sefer bitti" in summary and "Kraken 1/1" in summary and "Baskınlar" in summary, summary[:200])
 
 

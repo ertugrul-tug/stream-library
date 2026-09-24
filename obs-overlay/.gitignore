@@ -1,4 +1,5 @@
 .show-state.json
 .crew.json
+.nights.jsonl
 __pycache__/
 show-config.local.json

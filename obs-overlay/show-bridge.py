@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("QEDY_DATA_DIR") or ROOT)
 STATE_FILE = DATA_DIR / ".show-state.json"
 CREW_FILE = DATA_DIR / ".crew.json"  # points/ranks that survive between streams
+NIGHTS_FILE = DATA_DIR / ".nights.jsonl"  # one summary line per past show, for the weekly metrics
 CONFIG_FILE = Path(os.environ.get("QEDY_CONFIG") or ROOT / "show-config.json")
 SB_URL = os.environ.get("QEDY_SB_URL") or "ws://127.0.0.1:8080/"
 WS_PORT = int(os.environ.get("QEDY_WS_PORT") or 8765)
@@ -234,6 +235,7 @@ def snapshot():
                           "streams": e["streams"], "rank": rank_for(e["points"])} for e in top]
     result["schedule"] = CONFIG.get("schedule") or {}
     result["lootKing"] = loot_king()
+    result["nights"] = NIGHTS[-10:]
     return result
 
 
@@ -292,7 +294,34 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
                  "m": "L", "l": "L", "kaybet": "L", "kaybeder": "L"}
 
 
+def load_nights():
+    try:
+        return [json.loads(line) for line in NIGHTS_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except (OSError, ValueError):
+        return []
+
+
+NIGHTS = load_nights()
+
+
+def archive_night():
+    """Before a reset, keep a one-line summary of the show that just ended (skipped if nothing happened)."""
+    t, k = state["stats"]["twitch"], state["stats"]["kick"]
+    if not (t["chat"] + k["chat"] or state["matches"]):
+        return
+    n, m, king = state["night"], state["matches"], loot_king()
+    night = {"date": str(state.get("started", ""))[:10], "game": state["game"],
+             "chat": t["chat"] + k["chat"], "follows": t["follow"] + k["follow"], "subs": t["sub"] + k["sub"],
+             "raids": len(n.get("raids") or []), "wins": m.count("W"), "losses": m.count("L"),
+             "casts": n["casts"], "krakenWon": n["krakenWon"], "races": n["races"],
+             "king": king["name"] if king else "", "markers": len(state["markers"])}
+    NIGHTS.append(night)
+    with NIGHTS_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(night, ensure_ascii=False) + "\n")
+
+
 def reset_show():
+    archive_night()
     keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
