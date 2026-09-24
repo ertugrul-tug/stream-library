@@ -121,6 +121,16 @@ Yayın verisi `.show-state.json`'da, rütbe puanları `.crew.json`'da yerel tutu
 
 Açılış sahnesi sohbete yazanları rütbeleriyle radar listesinde gösterir. Oyun sahnesinde rota oylaması, maç serisi, maç tahmini, rütbe atlama bildirimi ve segment şeridi ("ŞİMDİ · Tema bloğu · SIRADAKİ · Günlük sohbet 23:00") vardır; kartlar ancak kullanıldıklarında görünür. Mola sahnesi oyun, dönüş notu, skor ve öne çıkan anları; kapanış sahnesi mesaj/takip/abonelik sayılarını, skor, rekor seri ve tahmin isabetini gösterir. `?sample=1` ile her sahne örnek içerikle önizlenir; OBS'e normal dosya adresini ekle. OBS önbelleği eski sayfayı tutarsa kaynak özelliklerinden "Mevcut sayfanın önbelleğini yenile".
 
+### Testler
+
+Köprüde bir şey değiştirdikten sonra (ya da yayından önce içini rahatlatmak için):
+
+```bash
+python obs-overlay/tests/run_tests.py
+```
+
+Köprüyü ayrı portlarda ve geçici bir klasörle başlatır; sahte Streamer.bot, OBS, LoL istemcisi ve Discord kullanır. Gerçek sohbete, Discord'a ya da kayıtlı yayın verine dokunmaz, çalışan köprünle de çakışmaz. Güvenlik (PIN, gizli dosyalar), Yeni yayın, sohbet botu, tahmin, olta/market/soru, Kraken/yarış/baskın, OBS sahne ve sağlık, LoL otomasyonu, moderasyon ve Discord özeti uçtan uca denenir; yaklaşık 2 dakika sürer.
+
 ## Pusulalı sahne geçişi
 
 pusula-gecis.webm, OBS Stinger geçişinde kullanılacak 1280 × 720, 60 FPS ve şeffaf VP9 videodur. OBS sahne geçişlerine yeni bir Stinger ekle, dosyayı seç ve Transition Point değerini 600 ms yap. Tam örtme anında sahne değişir. OBS sahne/kaynak sırası bu paket tarafından değiştirilmez. Videoyu yeniden üretmek istersen önce python -m pip install Pillow, ardından python obs-overlay/make-stinger.py çalıştır. [OBS Stinger açıklaması](https://obsproject.com/kb/track-matte-stinger-transitions) geçiş noktasını açıklar.

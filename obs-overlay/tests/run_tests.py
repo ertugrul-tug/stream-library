@@ -1,0 +1,433 @@
+"""End-to-end tests for show-bridge.py.
+
+Starts the bridge on spare ports with a temporary data folder and fake
+Streamer.bot, OBS, LoL client and Discord webhook, then drives it the way
+the control panel and chat would. Nothing reaches real chat, Discord or
+your saved show data.
+
+Run:  python obs-overlay/tests/run_tests.py
+"""
+import asyncio
+import http.server
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import traceback
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+import websockets
+from websockets.asyncio.server import serve
+from websockets.exceptions import ConnectionClosed
+
+HERE = Path(__file__).resolve().parent
+OVERLAY = HERE.parent
+WS, HTTP, SB, OBS, LOL, HOOK = 18765, 18766, 18080, 14455, 12999, 19999
+PIN = "4321"
+
+
+# ------------------------------------------------------------------ fakes --
+
+class FakeStreamerBot:
+    def __init__(self):
+        self.conns, self.said, self.calls = [], [], []
+        self.actions = {n: 1 for n in ("QedySayTwitch", "QedySayKick", "QedyStreamInfo", "QedyClip",
+                                       "ModTimeoutTwitch", "ModBanTwitch", "ModTimeoutKick", "ModBanKick")}
+
+    async def handler(self, ws):
+        self.conns.append(ws)
+        try:
+            await self._serve(ws)
+        except ConnectionClosed:
+            pass  # the bridge is stopped at the end of the run
+
+    async def _serve(self, ws):
+        async for raw in ws:
+            m = json.loads(raw)
+            req = m.get("request")
+            if req == "DoAction":
+                name = m["action"]["name"]
+                self.calls.append((name, m.get("args") or {}))
+                if name.startswith("QedySay"):
+                    self.said.append((name[7:].lower(), m["args"].get("message", "")))
+                ok = name in self.actions
+                await ws.send(json.dumps({"id": m["id"], "status": "ok"} if ok else
+                                         {"id": m["id"], "status": "error", "error": f"The action '{name}' was not found"}))
+            elif req == "GetActions":
+                await ws.send(json.dumps({"id": m["id"], "status": "ok",
+                                          "actions": [{"name": n, "enabled": True, "subaction_count": c} for n, c in self.actions.items()]}))
+            elif req == "GetBroadcaster":
+                await ws.send(json.dumps({"id": m["id"], "status": "ok", "platforms": {"twitch": {"broadcastUser": "KaptanQedy"}}}))
+            elif m.get("id"):
+                await ws.send(json.dumps({"id": m["id"], "status": "ok"}))
+
+    async def chat(self, platform, name, text):
+        await self.conns[-1].send(json.dumps({"event": {"source": platform.capitalize(), "type": "ChatMessage"},
+                                              "data": {"user": {"name": name}, "text": text}}))
+
+    async def event(self, platform, kind, data):
+        await self.conns[-1].send(json.dumps({"event": {"source": platform.capitalize(), "type": kind}, "data": data}))
+
+    def said_since(self, n):
+        return [t for _, t in self.said[n:]]
+
+
+class FakeOBS:
+    def __init__(self):
+        self.scene, self.live, self.muted, self.ws = "Sahne", False, False, None
+        self.bytes = self.frames = 0
+
+    async def handler(self, ws):
+        await ws.send(json.dumps({"op": 0, "d": {"rpcVersion": 1}}))
+        await ws.recv()
+        await ws.send(json.dumps({"op": 2, "d": {"negotiatedRpcVersion": 1}}))
+        self.ws = ws
+        try:
+            await self._serve(ws)
+        except ConnectionClosed:
+            pass
+
+    async def _serve(self, ws):
+        async for raw in ws:
+            d = json.loads(raw)["d"]
+            t = d["requestType"]
+            if t == "GetStreamStatus":
+                if self.live:
+                    self.bytes += 2_000_000
+                    self.frames += 180
+                data = {"outputActive": self.live, "outputTimecode": "00:10:00.000", "outputBytes": self.bytes,
+                        "outputTotalFrames": self.frames, "outputSkippedFrames": 0, "outputCongestion": 0}
+            elif t == "GetSpecialInputs":
+                data = {"mic1": "Mic/Aux"}
+            elif t == "GetInputMute":
+                data = {"inputMuted": self.muted}
+            elif t == "GetCurrentProgramScene":
+                data = {"currentProgramSceneName": self.scene}
+            else:
+                data = {}
+            await ws.send(json.dumps({"op": 7, "d": {"requestType": t, "requestId": d["requestId"],
+                                                     "requestStatus": {"result": True, "code": 100}, "responseData": data}}))
+
+    async def set_scene(self, name):
+        self.scene = name
+        await self.ws.send(json.dumps({"op": 5, "d": {"eventType": "CurrentProgramSceneChanged", "eventData": {"sceneName": name}}}))
+
+
+def serve_http(port, handler_cls):
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler_cls)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC"}
+HOOK_POSTS = []
+
+
+class LolHandler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def _send(self, code, obj):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if not LOL_STATE["up"]:
+            return self._send(404, {"errorCode": "RESOURCE_NOT_FOUND"})
+        path = self.path.rsplit("/", 1)[-1]
+        if path == "gamestats":
+            return self._send(200, {"gameMode": LOL_STATE["mode"], "gameTime": LOL_STATE["time"]})
+        if path == "activeplayername":
+            return self._send(200, "Qedy#TR1")
+        events = [{"EventName": "GameStart"}] + ([{"EventName": "GameEnd", "Result": LOL_STATE["end"]}] if LOL_STATE["end"] else [])
+        return self._send(200, {"Events": events})
+
+
+class HookHandler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        HOOK_POSTS.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+        self.send_response(204)
+        self.end_headers()
+
+
+# ---------------------------------------------------------------- harness --
+
+class Panel:
+    """A control-panel connection to the bridge."""
+
+    def __init__(self, ws):
+        self.ws, self.state, self.notices, self.auth = ws, {}, [], []
+
+    async def drain(self, seconds=0.6):
+        try:
+            while True:
+                m = json.loads(await asyncio.wait_for(self.ws.recv(), seconds))
+                if m["type"] == "state":
+                    self.state = m["state"]
+                elif m["type"] == "notice":
+                    self.notices.append(m["text"])
+                elif m["type"] == "auth":
+                    self.auth.append(m)
+        except asyncio.TimeoutError:
+            pass
+
+    async def act(self, action, wait=0.6, **fields):
+        await self.ws.send(json.dumps({"action": action, **fields}))
+        await self.drain(wait)
+        return self.state
+
+
+async def wait_until(check, timeout, step=0.3):
+    end = time.time() + timeout
+    while time.time() < end:
+        if await check():
+            return True
+        await asyncio.sleep(step)
+    return False
+
+
+RESULTS = []
+
+
+def check(name, ok, detail=""):
+    RESULTS.append((name, bool(ok), detail))
+    print(f"  {'✓' if ok else '✗'} {name}" + (f"  — {detail}" if detail and not ok else ""), flush=True)
+
+
+def lan_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+async def run(sb, obs, tmp):
+    async with websockets.connect(f"ws://127.0.0.1:{WS}/") as ws:
+        p = Panel(ws)
+        await p.drain(1.5)
+        state = lambda: p.state
+
+        print("\nGüvenlik")
+        check("bu bilgisayar PIN'siz yetkili", p.auth and p.auth[0]["ok"])
+        codes = {}
+        for name in ("kumanda.html", "show-config.local.json", ".show-state.json", "show-bridge.py"):
+            try:
+                codes[name] = urllib.request.urlopen(f"http://127.0.0.1:{HTTP}/{name}").status
+            except urllib.error.HTTPError as e:
+                codes[name] = e.code
+        check("dosya sunucusu gizlileri vermiyor", codes == {"kumanda.html": 200, "show-config.local.json": 404,
+                                                            ".show-state.json": 404, "show-bridge.py": 404}, str(codes))
+        ip = lan_ip()
+        if ip and ip != "127.0.0.1":
+            async with websockets.connect(f"ws://{ip}:{WS}/") as lan:
+                phone = Panel(lan)
+                await phone.drain(1)
+                await phone.act("predictOpen")
+                await phone.act("auth", pin="0000")
+                await phone.act("auth", pin=PIN)
+                errors = [a.get("error") for a in phone.auth]
+                check("telefon: PIN'siz işlem ve yanlış PIN reddedilir, doğru PIN kabul", errors[1:] == ["needed", "wrong", None], str(errors))
+
+        print("\nYeni yayın · Streamer.bot · Discord")
+        await p.act("startShow", wait=1.5, game="Minecraft", title="🔴 Test başlığı", updateInfo=True,
+                    routes=["Madene inelim", "Üssü büyütelim", ""], note="Test notu", announce=True)
+        check("yayın sıfırlandı, oyun/rotalar ayarlandı", state()["game"] == "Minecraft" and state()["routes"] == ["Madene inelim", "Üssü büyütelim"])
+        info = [a for n, a in sb.calls if n == "QedyStreamInfo"]
+        check("başlık/kategori Streamer.bot'a gitti", info and info[-1] == {"title": "🔴 Test başlığı", "game": "Minecraft"}, str(info[-1:]))
+        live_post = HOOK_POSTS[-1]["content"] if HOOK_POSTS else ""
+        check("Discord canlı duyurusu oyun ve notla gitti", "Bu akşam: Minecraft" in live_post and "Test notu" in live_post, live_post[:80])
+
+        print("\nSohbet botu")
+        n = len(sb.said)
+        await sb.chat("kick", "Veli", "selam millet")
+        await p.drain()
+        check("yeni izleyici karşılandı", any("Güverteye hoş geldin @Veli" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+        chat_before = state()["stats"]["kick"]["chat"]
+        await sb.chat("kick", "KaptanQedy", sb.said[-1][1])
+        await p.drain()
+        check("botun kendi mesajı sayılmadı", state()["stats"]["kick"]["chat"] == chat_before)
+        n = len(sb.said)
+        await sb.chat("twitch", "Ali", "!rütbe")
+        await p.drain()
+        replies = [(pl, t) for pl, t in sb.said[n:] if "@Ali" in t]
+        check("!rütbe sadece sorulan platformda cevaplandı", replies and all(pl == "twitch" for pl, _ in replies), str(replies))
+
+        print("\nTahmin ve maç")
+        await p.act("predictOpen")
+        await sb.chat("twitch", "Ali", "!tahmin G")
+        await sb.chat("kick", "Veli", "!tahmin m")
+        await p.drain()
+        check("tahmin oyları sayıldı", (state()["prediction"]["w"], state()["prediction"]["l"]) == (1, 1))
+        n = len(sb.said)
+        await p.act("predictLock")
+        await p.act("addMatch", result="W")
+        check("maç sonucu ve isabet duyuruldu", any("Galibiyet" in t and "%50'si" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+
+        print("\nOlta · market · soru")
+        catches = len(state()["catches"])
+        await sb.chat("twitch", "Ali", "!olta")
+        await sb.chat("twitch", "Ali", "!olta")
+        await p.drain()
+        check("olta: ikinci atış bekleme süresine takıldı", len(state()["catches"]) == catches + 1)
+        await sb.chat("twitch", "Zengin", "!konfeti")
+        await p.drain()
+        check("market: yeterli ganimetle efekt oynadı", any(e["type"] == "konfeti" and e["name"] == "Zengin" for e in state()["effects"]))
+        n = len(sb.said)
+        await sb.chat("kick", "Veli", "!top")
+        await p.drain()
+        check("market: yetersiz bakiye bildirildi", any("ganimet lazım" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+        await sb.chat("twitch", "Ali", "!soru Bu akşam hangi dünyada oynuyoruz?")
+        await p.drain()
+        q = state()["questions"][-1] if state()["questions"] else {}
+        await p.act("questionShow", id=q.get("id"))
+        shown = (state()["spotlight"] or {}).get("kind") == "question"
+        await p.act("questionDone", id=q.get("id"))
+        check("soru kuyruğu: göster ve cevaplandı", shown and not state()["questions"] and state()["spotlight"] is None)
+
+        print("\nKraken · yarış · baskın")
+        await p.act("krakenStart")
+        hp = state()["kraken"]["max"]
+
+        async def kraken_done():
+            await sb.chat("twitch", "Ali", "!saldır")
+            await sb.chat("kick", "Veli", "!vur")
+            await p.drain(1.6)
+            return state()["kraken"]["status"] != "active"
+        await wait_until(kraken_done, 60)
+        check(f"Kraken ({hp} can) yenildi", state()["kraken"]["status"] == "won", state()["kraken"]["status"])
+        await p.act("raceStart")
+        check("Kraken ekrandayken yarış engellendi", p.notices and "etkinlik" in p.notices[-1])
+        await asyncio.sleep(10.5)
+        await p.drain()
+        await p.act("raceStart")
+        await sb.chat("twitch", "Ali", "!katıl")
+        await sb.chat("kick", "Veli", "!katil")
+        await p.drain()
+
+        async def race_done():
+            await sb.chat("twitch", "Ali", "rüzgar!")
+            await p.drain(1)
+            return state()["race"] and state()["race"]["status"] == "done"
+        await wait_until(race_done, 60)
+        race = state()["race"] or {}
+        check("yarış bitti, kürsü oluştu", race.get("status") == "done" and len(race.get("podium", [])) == 3, str(race.get("status")))
+        n = len(sb.said)
+        await sb.event("twitch", "Raid", {"user": {"name": "KorsanBey", "login": "korsanbey"}, "viewers": 7})
+        await p.drain()
+        check("baskın karşılandı", (state()["raid"] or {}).get("name") == "KorsanBey" and any("BASKIN" in t for t in sb.said_since(n)))
+
+        print("\nOBS · LoL")
+        n = len(sb.said)
+        await obs.set_scene("Kısa Mola")
+        await p.drain(1)
+        check("molaya geçince bot duyurdu", state()["scene"] == "Kısa Mola" and any("Kısa mola" in t for t in sb.said_since(n)))
+        await obs.set_scene("Sahne")
+        obs.live, obs.muted = True, True
+
+        async def muted_seen():
+            await p.drain(0.5)
+            h = state().get("health") or {}
+            return h.get("live") and h.get("micMuted")
+        check("yayındayken mikrofon kapalı uyarısı", await wait_until(muted_seen, 10))
+        obs.live = obs.muted = False
+        await p.act("predictClear")
+        matches = len(state()["matches"])
+        LOL_STATE.update(up=True, time=5.0, end=None)
+        check("LoL: maç başında tahmin açıldı", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8))
+        LOL_STATE["time"] = 190.0
+        check("LoL: 3. dakikada kilitlendi", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "locked"), 8))
+        LOL_STATE["end"] = "Win"
+        check("LoL: galibiyet kendiliğinden girildi", await wait_until(lambda: _state_is(p, lambda s: len(s["matches"]) == matches + 1 and s["matches"][-1] == "W"), 8))
+        LOL_STATE["up"] = False
+
+        print("\nModerasyon · özet")
+        del sb.actions["ModBanKick"]
+        await p.act("modAction", platform="kick", name="Troll", type="ban")
+        check("eksik moderasyon action'ı bildirildi", p.notices and "ModBanKick" in p.notices[-1], p.notices[-1:])
+        await p.act("discordSummary", wait=1.5)
+        summary = HOOK_POSTS[-1]["content"] if HOOK_POSTS else ""
+        check("Discord özeti gece istatistikleriyle gitti", "sefer bitti" in summary and "Kraken 1/1" in summary and "Baskınlar" in summary, summary[:200])
+
+
+async def _state_is(panel, predicate):
+    await panel.drain(0.5)
+    try:
+        return predicate(panel.state)
+    except (KeyError, TypeError, IndexError):
+        return False
+
+
+async def main():
+    tmp = Path(tempfile.mkdtemp(prefix="qedy-test-"))
+    config = json.loads((OVERLAY / "show-config.json").read_text(encoding="utf-8"))
+    config["obs"] = {"url": f"ws://127.0.0.1:{OBS}/", "password": ""}
+    config["lolAuto"] = {"url": f"http://127.0.0.1:{LOL}/liveclientdata/", "lockAfterSec": 180}
+    config["games"] = {"fishCooldownSec": 60, "kraken": {"durationSec": 60, "randomMinMinutes": 999, "randomMaxMinutes": 999, "raidMinViewers": 99},
+                       "race": {"joinSec": 2, "maxBoats": 8}}
+    config["tips"] = {"everyMinutes": 999}
+    (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+    (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/"}), encoding="utf-8")
+    (tmp / ".crew.json").write_text(json.dumps({"twitch:zengin": {"platform": "twitch", "name": "Zengin", "points": 0, "streams": 1,
+                                                                   "show": None, "last": 0, "loot": 500}}), encoding="utf-8")
+    sb, obs = FakeStreamerBot(), FakeOBS()
+    serve_http(LOL, LolHandler)
+    serve_http(HOOK, HookHandler)
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_CONFIG": str(tmp / "show-config.json"),
+           "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
+    log = open(tmp / "bridge.log", "w", encoding="utf-8")
+    async with serve(sb.handler, "127.0.0.1", SB), serve(obs.handler, "127.0.0.1", OBS):
+        bridge = subprocess.Popen([sys.executable, str(OVERLAY / "show-bridge.py")], env=env, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            ready = await wait_until(_bridge_ready, 15)
+            await wait_until(lambda: _true(bool(sb.conns and obs.ws)), 10)
+            if not ready:
+                print("Köprü açılmadı; bridge.log:", (tmp / "bridge.log").read_text(encoding="utf-8")[-2000:])
+                return 1
+            await run(sb, obs, tmp)
+        except Exception:
+            traceback.print_exc()
+            RESULTS.append(("test çalıştırıcısı", False, "istisna"))
+        finally:
+            bridge.terminate()
+            bridge.wait(5)
+            log.close()
+    crashes = (tmp / "bridge.log").read_text(encoding="utf-8").count("Traceback")
+    check("köprü hiç hata dökümü basmadı", crashes == 0, f"{crashes} traceback · {tmp / 'bridge.log'}")
+    failed = [r for r in RESULTS if not r[1]]
+    print(f"\n{len(RESULTS) - len(failed)}/{len(RESULTS)} test geçti")
+    if not failed:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return 1 if failed else 0
+
+
+async def _bridge_ready():
+    try:
+        async with websockets.connect(f"ws://127.0.0.1:{WS}/", open_timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+async def _true(value):
+    return value
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

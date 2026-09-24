@@ -47,16 +47,18 @@ from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
 ROOT = Path(__file__).resolve().parent
-STATE_FILE = ROOT / ".show-state.json"
-CREW_FILE = ROOT / ".crew.json"  # points/ranks that survive between streams
-CONFIG_FILE = ROOT / "show-config.json"
-SB_URL = "ws://127.0.0.1:8080/"
-WS_PORT = 8765
-HTTP_PORT = 8766
+# QEDY_* environment overrides exist for tests/run_tests.py; normal runs use the defaults.
+DATA_DIR = Path(os.environ.get("QEDY_DATA_DIR") or ROOT)
+STATE_FILE = DATA_DIR / ".show-state.json"
+CREW_FILE = DATA_DIR / ".crew.json"  # points/ranks that survive between streams
+CONFIG_FILE = Path(os.environ.get("QEDY_CONFIG") or ROOT / "show-config.json")
+SB_URL = os.environ.get("QEDY_SB_URL") or "ws://127.0.0.1:8080/"
+WS_PORT = int(os.environ.get("QEDY_WS_PORT") or 8765)
+HTTP_PORT = int(os.environ.get("QEDY_HTTP_PORT") or 8766)
 CLIENTS = set()
 
 CONFIG = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-LOCAL_CONFIG_FILE = ROOT / "show-config.local.json"
+LOCAL_CONFIG_FILE = DATA_DIR / "show-config.local.json"
 if LOCAL_CONFIG_FILE.exists():
     # Real secrets (Discord webhook URL, OBS password) go here instead of
     # show-config.json, which is tracked in a public repo. Gitignored.
@@ -381,7 +383,7 @@ def greet(platform, name, is_new):
 
 
 async def tips_loop():
-    every = int((CONFIG.get("tips") or {}).get("everyMinutes") or 15)
+    every = float((CONFIG.get("tips") or {}).get("everyMinutes") or 15)
     turn = 0
     while True:
         await asyncio.sleep(every * 60)
