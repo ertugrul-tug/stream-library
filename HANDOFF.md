@@ -44,17 +44,19 @@ GitHub Pages her push'ta otomatik build alıyor (~30-60 sn), build'i beklemeden 
 
 Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 
-- **Başlatma:** Masaüstündeki "Kaptan Qedy Yayın" kısayolu → Streamer.bot + köprü + kumanda açılır, OBS'i elle aç. Kumandada **🚀 Yeni yayın** → oyun seç → Başlat (yayını sıfırlar, Twitch/Kick başlık+kategori, Discord duyurusu).
-- **Kumanda:** Bu bilgisayarda PIN sormaz; telefonda PIN (köprü penceresinde yazar, `show-config.local.json > pin`).
-- **LoL:** Maçlar Riot'un yerel API'sinden otomatik takip ediliyor (tahmin aç/kilitle, G/M gir). TFT sayılmaz.
-- **Sohbet botu:** Tahmin, maç sonucu, rütbe duyuruları; `!rütbe`, `!komutlar`.
+- **Başlatma:** Masaüstündeki "Kaptan Qedy Yayın" kısayolu → Streamer.bot + köprü + kumanda açılır, OBS'i elle aç. Kumandada **🚀 Yeni yayın** → oyunu listeden seç → Başlat (yayını sıfırlar, Twitch/Kick başlık + kategori, Discord duyurusu).
+- **Kumanda:** Bu bilgisayarda PIN sormaz; telefonda PIN 4444 (`show-config.local.json > pin`). Üstte yayın sağlığı (canlı süre, bitrate, kare kaybı), mikrofon kapalıysa kırmızı uyarı; yayındaki sahne işaretli.
+- **Sohbet botu:** karşılama (yeni/düzenli), 15 dk'da bir ipucu, tahmin/maç/rütbe duyuruları, sahneye göre mola/dönüş/kapanış satırları, baskın karşılama. Komutlar: `!olta` `!ganimet` `!koleksiyon` `!market` (`!martı` `!konfeti` `!top`) `!soru` `!rota` `!tahmin` `!rütbe` `!komutlar`, etkinliklerde `!saldır` `!katıl`.
+- **Mini oyunlar:** olta (koleksiyon, YENİ etiketi), Kraken (kumandadan, rastgele ya da 3+ kişilik baskın sonrası), yelken yarışı, ganimet marketi ekran efektleri. Yayın Başlıyor, oyun, sohbet ve mola sahnelerinde etkinlik şeridi; oyun sesleri.
+- **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
-- **OBS (24 Eylül):** Twitch+Kick 6000 kbps (8000'den indi), NVENC p5, dinamik bitrate açık. Donma sonrası ilk yayında 0 kare kaybı. Yükleme ~50 Mbps, kablolu.
-- **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları.
+- **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
+- **Testler:** `python obs-overlay/tests/run_tests.py` (30 senaryo, ~2 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır.
+- **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları. `.crew.json` (rütbe/ganimet) de bilgisayara özel.
 
 ## Açık maddeler
 
-- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori değişiyor mu (Twitch "Set Game" adımı `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 Anı işaretle → sohbete klip linki düşüyor mu · LoL maç sonucu kendiliğinden giriliyor mu · bot mesajları ve `!rütbe`
+- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori (Twitch "Set Game" `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 klip linki sohbete düşüyor mu · LoL sonucu kendiliğinden · bot mesajları · mini oyunların gerçek sohbetle ilk turu (olta, Kraken dengesi, yarış) · baskın olayının alan adları (Streamer.bot'un gerçek Raid verisiyle)
 - [ ] **Mürettebat rol ID'si** — gelirse `show-config.json > discordLive.roleId`, Discord duyuruları rolü etiketler
 - [ ] **Instagram hesabı kararı** — @ertugrul_tug mi @kaptan_qedy mi; `social/` altındaki reel bu karara bağlı bekliyor
 - [ ] **Pazar 27 Eylül:** `planning/metrics-log.md` 1. hafta satırı
