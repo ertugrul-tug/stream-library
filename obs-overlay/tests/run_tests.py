@@ -461,6 +461,7 @@ async def main():
     config["games"] = {"fishCooldownSec": 60, "kraken": {"durationSec": 60, "randomMinMinutes": 999, "randomMaxMinutes": 999, "raidMinViewers": 99},
                        "race": {"joinSec": 2, "maxBoats": 8}}
     config["tips"] = {"everyMinutes": 999}
+    config["chatLinks"] = {"!site": "⚓ https://ertugrul-tug.github.io/stream-library/", "!discord": ""}  # "" = unset link stays silent
     (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
     (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/"}), encoding="utf-8")
     (tmp / ".crew.json").write_text(json.dumps({"twitch:zengin": {"platform": "twitch", "name": "Zengin", "points": 0, "streams": 1,

@@ -359,6 +359,12 @@
   .plat-label{font-size:12px;color:var(--ink-faint);margin-bottom:14px;position:relative;}
   .plat-desc{font-size:13.5px;color:var(--ink-dim);position:relative;}
 
+  /* güverte: chat games explained */
+  .deck-card{cursor:default;}
+  .deck-card .deck-emoji{font-size:30px;line-height:1;margin-bottom:14px;position:relative;}
+  .cmd{font-family:var(--font-mono);font-size:.9em;padding:1px 7px;border-radius:7px;background:var(--c-soft,var(--blue-soft));color:var(--c,var(--blue));white-space:nowrap;}
+  .deck-foot{margin-top:30px;text-align:center;color:var(--ink-dim);font-size:14.5px;}
+
   /* community */
   .comm-row{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
   .comm-pill{
@@ -405,6 +411,7 @@
       <a href="#program">Program</a>
       <a href="#murettebat">Mürettebat</a>
       <a href="#limanlar">Limanlar</a>
+      <a href="#guverte">Güverte</a>
       <a href="captain-on-the-bridge/">Seyir Defteri</a>
     </nav>
     <div class="nav-actions">
@@ -551,6 +558,55 @@
           <div><span class="yt-figure" data-count="264">0</span><span class="yt-label">video</span></div>
         </div>
       </a>
+    </div>
+  </section>
+
+  <section id="guverte">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Güvertede Neler Var</div>
+        <h2>Sohbet oyunun parçası</h2>
+        <p>Twitch ya da Kick sohbetine yaz, sonucu ekranda gör. Hepsi iki platformda da çalışır.</p>
+      </div>
+      <div class="plat-grid stagger">
+        <div class="plat-card deck-card" style="--c:#22aef0;--c-soft:rgba(34,174,240,.14)">
+          <div class="deck-emoji">🎣</div>
+          <div class="plat-name">Olta</div>
+          <p class="plat-desc">Denizden ne çıkacağı belli olmaz: hamsiden Kraken dişine dokuz ganimet. Hepsini topla, Balıkçı Reisi ol.</p>
+          <div class="plat-desc"><span class="cmd">!olta</span> <span class="cmd">!koleksiyon</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#ff3d7f;--c-soft:rgba(255,61,127,.14)">
+          <div class="deck-emoji">🐙</div>
+          <div class="plat-name">Kraken</div>
+          <p class="plat-desc">Ara sıra gemiye saldırır. Hep birlikte vurursak herkese ganimet, son vuruşu yapana bonus.</p>
+          <div class="plat-desc"><span class="cmd">!saldır</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#5cf0a0;--c-soft:rgba(92,240,160,.14)">
+          <div class="deck-emoji">⛵</div>
+          <div class="plat-name">Yelken yarışı</div>
+          <p class="plat-desc">Gemini denize indir; yarış sırasında sohbette yazdıkça yelkenine rüzgâr dolar.</p>
+          <div class="plat-desc"><span class="cmd">!katıl</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#ffce54;--c-soft:rgba(255,206,84,.16)">
+          <div class="deck-emoji">🛒</div>
+          <div class="plat-name">Ganimet marketi</div>
+          <p class="plat-desc">Biriktirdiğin ganimeti ekranda harca: martı uçur, konfeti patlat, top ateşle.</p>
+          <div class="plat-desc"><span class="cmd">!martı</span> <span class="cmd">!konfeti</span> <span class="cmd">!top</span> <span class="cmd">!ganimet</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#9146ff;--c-soft:rgba(145,70,255,.16)">
+          <div class="deck-emoji">🎖️</div>
+          <div class="plat-name">Rütbeler</div>
+          <p class="plat-desc">Sohbette yazdıkça yükselirsin: Miço, Tayfa, Usta Gemici… ta ki İkinci Kaptan'a kadar.</p>
+          <div class="plat-desc"><span class="cmd">!rütbe</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#53fc18;--c-soft:rgba(83,252,24,.12)">
+          <div class="deck-emoji">🎮</div>
+          <div class="plat-name">Birlikte oyna</div>
+          <p class="plat-desc">Toplu ekip gecelerinde sıraya gir, kaptanla aynı lobide oyna. Aklındakini sormak için soru bırak.</p>
+          <div class="plat-desc"><span class="cmd">!oyna</span> <span class="cmd">!soru</span></div>
+        </div>
+      </div>
+      <p class="deck-foot reveal">Tüm komutlar için yayında <span class="cmd">!komutlar</span> yaz.</p>
     </div>
   </section>
 
