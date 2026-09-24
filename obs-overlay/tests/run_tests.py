@@ -363,6 +363,12 @@ async def run(sb, obs, tmp):
             h = state().get("health") or {}
             return h.get("live") and h.get("micMuted")
         check("yayındayken mikrofon kapalı uyarısı", await wait_until(muted_seen, 10))
+        for _ in range(3):
+            await p.act("addMatch", result="W")
+        await asyncio.sleep(1)
+        await p.drain()
+        auto = [m for m in state()["markers"] if m.get("auto")]
+        check("yayındayken galibiyet serisi otomatik işaretlendi", any("galibiyet serisi" in m["note"] and m["vod"] for m in auto), str(auto))
         obs.live = obs.muted = False
         await p.act("predictClear")
         matches = len(state()["matches"])

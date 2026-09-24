@@ -446,6 +446,8 @@ def add_match(result):
     m = state["matches"]
     streak = next((i for i, x in enumerate(reversed(m)) if x != result), len(m))
     fire = f" · 🔥 {streak} galibiyet serisi!" if result == "W" and streak >= 2 else ""
+    if result == "W" and streak >= 3:
+        auto_marker(f"🔥 {streak} galibiyet serisi")
     head = "✅ Galibiyet!" if result == "W" else "❌ Mağlubiyet."
     say(f"{head} Bu akşam {m.count('W')}G {m.count('L')}M{fire}{guessed}")
 
@@ -917,6 +919,8 @@ def cast_line(platform, name):
             await asyncio.sleep(4)
             say(f"🏆 {name} olta koleksiyonunu tamamladı! 9/9 ganimet · +100 bonus · artık bir Balıkçı Reisi 🎣")
         _spawn(crown())
+    if points >= 60:
+        auto_marker(f"{emoji} {name}: {item}")
     if points >= 25:
         async def brag():
             await asyncio.sleep(4)  # after the overlay's reveal, not before
@@ -976,6 +980,7 @@ def check_goal():
     goal = state["goal"]
     if goal["target"] and not goal["reached"] and follows_tonight() >= goal["target"]:
         goal["reached"] = True
+        auto_marker(f"🎯 Takip hedefi ({goal['target']})")
         state["effects"] = (state["effects"] + [{"id": f"g{time.time()}", "type": "goal", "name": str(goal["target"]), "platform": ""}])[-10:]
         say(f"🎯 Bu akşamki {goal['target']} takipçi hedefimize ulaştık! Teşekkürler mürettebat, yelkenler dolu ⚓")
 
@@ -1043,6 +1048,21 @@ async def rehearsal():
         _rehearsing[0] = False
 
 
+def auto_marker(note):
+    """Mark a highlight's VOD time for the YouTube edit (only while live, not during the rehearsal)."""
+    if _rehearsing[0]:
+        return
+
+    async def run():
+        status = await obs_request("GetStreamStatus")
+        if not status or not status.get("outputActive"):
+            return
+        vod = str(status.get("outputTimecode") or "").split(".")[0]
+        state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note, "auto": True}])[-50:]
+        await publish()
+    _spawn(run())
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1087,6 +1107,7 @@ def kraken_finish(won, retreat=False):
         for h in k["hits"].values():
             add_loot(h["platform"], h["name"], min(40, 10 + h["dmg"]) + (25 if h["name"] == k["killer"] else 0))
         state["night"]["krakenWon"] += 1
+        auto_marker(f"🐙 Kraken yenildi · son vuruş {k['killer']}")
         say(f"🐙 KRAKEN YENİLDİ! Son vuruş: {k['killer']} (+25 bonus) · saldıran {len(k['hits'])} kişiye ganimet dağıtıldı!")
     else:
         if not retreat:
@@ -1170,6 +1191,7 @@ def race_end(cancelled=False, reason=""):
         for i, key in enumerate(r["podium"][:3]):
             add_loot(boats[key]["platform"], boats[key]["name"], [50, 25, 10][i])
         state["night"]["races"] += 1
+        auto_marker(f"⛵ Yarış: 🥇 {boats[r['podium'][0]]['name']}")
         say("🏁 Yarış bitti! " + " · ".join(f"{medals[i]} {boats[k]['name']}" for i, k in enumerate(r["podium"][:3]))
             + " · ganimetler dağıtıldı!")
     _clear_later("race", r["id"], 12)
@@ -1187,6 +1209,7 @@ def on_raid(platform, data):
         return
     state["raid"] = {"id": f"raid{time.time()}", "platform": platform, "name": name, "viewers": viewers}
     state["night"].setdefault("raids", []).append({"name": name, "viewers": viewers})
+    auto_marker(f"🏴‍☠️ Baskın: {name} ({viewers})")
     say(f"🏴‍☠️ BASKIN! {name} {viewers} kişilik tayfasıyla güverteye çıktı! Hoş geldiniz korsanlar ⚓ !komutlar ile neler yapabileceğinizi görün.")
 
     async def follow_up():
