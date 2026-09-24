@@ -11,8 +11,13 @@
 
   "routePresets": {
     "League of Legends": ["Ranked'e devam", "ARAM ile ısınalım", "Şampiyonu sohbet seçsin"],
+    "Teamfight Tactics": ["Ranked'e devam", "Double Up", "Kompu sohbet seçsin"],
     "Minecraft": ["Madene inelim", "Üssü büyütelim", "Nether'a sefer"],
     "Baldur's Gate 3": ["Ana göreve devam", "Yan görev keşfi", "Kararı sohbet versin"]
+  },
+  "titleTemplates": {
+    "*": "🔴 {game} · Kaptan Qedy güvertede!",
+    "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
   },
   "lolAuto": {
     "lockAfterSec": 180

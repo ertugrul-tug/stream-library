@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kaptanın Kütüphanesi</title>
-<meta name="description" content="Kaptan Qedy'nin 624 oyunluk Steam kütüphanesi — bir sonraki Keşif yayınının adayları.">
+<meta name="description" content="Kaptan Qedy'nin 624 oyunluk Steam kütüphanesi ve yayında oynadığı Riot/Minecraft oyunları — bir sonraki Keşif yayınının adayları.">
 <meta name="view-transition" content="same-origin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -100,6 +100,7 @@
     padding:10px;font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--ink-faint);
   }
   .game .name{padding:10px 12px 13px;font-size:12.5px;font-weight:600;line-height:1.35;}
+  .game .name .plat{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:99px;background:var(--pink-soft);color:var(--pink);font-size:10px;font-weight:700;letter-spacing:.04em;vertical-align:1px;}
 
   .js .reveal-card{opacity:0;transform:translateY(16px);transition:opacity .5s ease, transform .5s ease;}
   .js .reveal-card.in{opacity:1;transform:translateY(0);}
@@ -133,7 +134,7 @@
 </header>
 
 <div class="head">
-  <div class="eyebrow">624 Oyun · Keşif Havuzu</div>
+  <div class="eyebrow">627 Oyun · Keşif Havuzu</div>
   <h1>Kaptanın Kütüphanesi</h1>
   <p>Steam'deki tüm gemiler tek limanda. Sıradaki "Keşif" yayınının adayını burada ara — her biri bir sonraki bölümün potansiyel kahramanı.</p>
 </div>
@@ -144,7 +145,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="text" id="search" placeholder="Oyun ara… (ör. Baldur's Gate)" autocomplete="off">
     </div>
-    <span class="count" id="count">624 / 624 oyun</span>
+    <span class="count" id="count">627 / 627 oyun</span>
   </div>
 </div>
 
@@ -184,18 +185,21 @@
     list.forEach(function(g){
       var a = document.createElement('a');
       a.className = 'game reveal-card';
-      a.href = 'https://store.steampowered.com/app/' + g.appid + '/';
+      // Non-Steam entries (LoL, TFT, Minecraft) carry their own url and no appid, so they show the text fallback.
+      a.href = g.appid ? 'https://store.steampowered.com/app/' + g.appid + '/' : g.url;
       a.target = '_blank';
       a.rel = 'noopener';
       a.innerHTML =
         '<div class="thumb">' +
           '<div class="fallback">' + g.name + '</div>' +
-          '<img loading="lazy" alt="" src="https://cdn.cloudflare.steamstatic.com/steam/apps/' + g.appid + '/header.jpg">' +
+          (g.appid ? '<img loading="lazy" alt="" src="https://cdn.cloudflare.steamstatic.com/steam/apps/' + g.appid + '/header.jpg">' : '') +
         '</div>' +
-        '<div class="name">' + g.name + '</div>';
+        '<div class="name">' + g.name + (g.platform ? ' <small class="plat">' + g.platform + '</small>' : '') + '</div>';
       var img = a.querySelector('img');
-      img.addEventListener('load', function(){ img.classList.add('loaded'); });
-      img.addEventListener('error', function(){ img.remove(); });
+      if (img) {
+        img.addEventListener('load', function(){ img.classList.add('loaded'); });
+        img.addEventListener('error', function(){ img.remove(); });
+      }
       grid.appendChild(a);
       if(io) io.observe(a); else a.classList.add('in');
     });

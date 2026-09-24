@@ -165,7 +165,7 @@ def defaults():
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
-        "lolAuto": True, "lolGame": None,
+        "lolAuto": True, "lolGame": None, "title": "",
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -242,7 +242,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -381,25 +381,58 @@ async def notify_discord(ws, ok, what):
     else:
         text = f"{what} gönderilemedi · köprü penceresine bak"
     try:
-        await ws.send(json.dumps({"type": "notice", "ok": ok, "text": text}))
+        await ws.send(json.dumps({"type": "notice", "ok": ok, "text": text, "scope": "discord"}))
     except Exception:
         pass
 
 
 # ---------------------------------------------------------- Streamer.bot --
 
+sb_pending = {}
+
+
+async def sb_request(payload, timeout=3):
+    """Send a Streamer.bot WebSocket request and wait for its reply (None if Streamer.bot is away)."""
+    ws = sb_conn.get("ws")
+    if not ws:
+        return None
+    rid = f"qedy-{time.time()}"
+    future = asyncio.get_running_loop().create_future()
+    sb_pending[rid] = future
+    try:
+        await ws.send(json.dumps({**payload, "id": rid}))
+        return await asyncio.wait_for(future, timeout)
+    except Exception:
+        return None
+    finally:
+        sb_pending.pop(rid, None)
+
+
 async def sb_do_action(action_name, args):
     """Relay a named Action trigger to Streamer.bot. The Action itself (and
     whatever it does to Twitch/Kick) must already exist in Streamer.bot —
-    this bridge never talks to Twitch/Kick directly."""
-    ws = sb_conn.get("ws")
-    if not ws:
-        return False
+    this bridge never talks to Twitch/Kick directly.
+    Returns "ok", "missing" (no such Action), "offline" or "error"."""
+    reply = await sb_request({"request": "DoAction", "action": {"name": action_name}, "args": args})
+    if reply is None:
+        return "offline"
+    if reply.get("status") == "ok":
+        return "ok"
+    return "missing" if "not found" in str(reply.get("error", "")).lower() else "error"
+
+
+def sb_action_notice(action_name, result, ok_text):
+    return {"ok": ok_text,
+            "missing": f"Streamer.bot'ta '{action_name}' action'ı yok · kurulum gerekli",
+            "offline": "Streamer.bot bağlı değil",
+            }.get(result, f"Streamer.bot '{action_name}' çalıştırılamadı")
+
+
+async def send_notice(ws, ok, text, scope=None):
     try:
-        await ws.send(json.dumps({"request": "DoAction", "action": {"name": action_name}, "args": args}))
-        return True
+        await ws.send(json.dumps({"type": "notice", "ok": ok, "text": text, "scope": scope}))
     except Exception:
-        return False
+        pass
 
 
 async def streamer_bot():
@@ -415,6 +448,10 @@ async def streamer_bot():
                 async for raw in ws:
                     try:
                         payload = json.loads(raw)
+                        future = sb_pending.get(payload.get("id"))
+                        if future and not future.done():
+                            future.set_result(payload)
+                            continue
                         event = payload.get("event") or {}
                         platform = clean(event.get("source"), 12).lower()
                         kind = event.get("type")
@@ -550,7 +587,8 @@ async def obs_client():
 LOL_CONFIG = CONFIG.get("lolAuto") or {}
 LOL_URL = str(LOL_CONFIG.get("url") or "https://127.0.0.1:2999/liveclientdata/")
 LOL_LOCK_AFTER = int(LOL_CONFIG.get("lockAfterSec") or 180)
-LOL_SKIP_MODES = {"PRACTICETOOL", "TUTORIAL", "TUTORIAL_MODULE_1", "TUTORIAL_MODULE_2", "TUTORIAL_MODULE_3"}
+# TFT reports through the same API but ends in a placement (1-8), not a win/loss.
+LOL_SKIP_MODES = {"TFT", "PRACTICETOOL", "TUTORIAL", "TUTORIAL_MODULE_1", "TUTORIAL_MODULE_2", "TUTORIAL_MODULE_3"}
 _lol_ssl = ssl.create_default_context()
 _lol_ssl.check_hostname = False
 _lol_ssl.verify_mode = ssl.CERT_NONE
@@ -659,7 +697,9 @@ async def client(ws):
                     vod = str(status.get("outputTimecode") or "").split(".")[0] if status and status.get("outputActive") else None
                     state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note}])[-50:]
                     # Optional: a Streamer.bot Action named "QedyClip" (e.g. Twitch "Create Clip") fires too.
-                    await sb_do_action("QedyClip", {"note": note})
+                    result = await sb_do_action("QedyClip", {"note": note or "Anı"})
+                    clip = sb_action_notice("QedyClip", result, "klip isteği Streamer.bot'a gitti")
+                    await send_notice(ws, result == "ok", f"İşaretlendi ✓ · {clip}", "marker")
                 elif action == "removeMarker":
                     index = int(msg.get("index", -1))
                     if 0 <= index < len(state["markers"]):
@@ -702,14 +742,22 @@ async def client(ws):
                     routes = msg.get("routes") if isinstance(msg.get("routes"), list) else []
                     reset_show()
                     state["game"] = game
+                    state["title"] = clean(msg.get("title"), 140)
                     state["returnMessage"] = clean(msg.get("returnMessage"), 100) or state["returnMessage"]
                     state["routes"] = [clean(x, 65) for x in routes[:3] if clean(x, 65)]
                     await publish()
+                    parts, ok = ["Yeni yayın hazır ✓"], True
+                    if msg.get("updateInfo") and state["title"]:
+                        # Streamer.bot Action "QedyStreamInfo" sets title/category on Twitch + Kick from %title% / %game%.
+                        result = await sb_do_action("QedyStreamInfo", {"title": state["title"], "game": game})
+                        parts.append(sb_action_notice("QedyStreamInfo", result, "başlık/kategori güncellendi ✓"))
+                        ok = ok and result == "ok"
                     if msg.get("announce"):
                         content, mentions = live_message(game, clean(msg.get("note"), 200))
-                        await notify_discord(ws, await post_discord(content, mentions), "Yeni yayın hazır · canlı duyurusu")
-                    else:
-                        await ws.send(json.dumps({"type": "notice", "ok": True, "text": "Yeni yayın hazır ✓"}))
+                        sent = await post_discord(content, mentions)
+                        parts.append("Discord duyurusu gönderildi ✓" if sent else "Discord duyurusu gönderilemedi")
+                        ok = ok and sent
+                    await send_notice(ws, ok, " · ".join(parts))
                     continue
                 elif action == "discordAnnounce":
                     text = clean(msg.get("text"), 500)
@@ -732,7 +780,8 @@ async def client(ws):
                     kind = msg.get("type")
                     if platform in ("twitch", "kick") and name and kind in ("timeout", "ban"):
                         action_name = "ModTimeout" if kind == "timeout" else "ModBan"
-                        await sb_do_action(action_name, {"platform": platform, "user": name})
+                        result = await sb_do_action(action_name, {"platform": platform, "user": name})
+                        await send_notice(ws, result == "ok", sb_action_notice(action_name, result, f"{name} · {kind} gönderildi ✓"))
                     continue
                 else:
                     continue

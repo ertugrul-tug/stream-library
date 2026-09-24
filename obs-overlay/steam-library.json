@@ -1,5 +1,20 @@
 [
   {
+    "name": "League of Legends",
+    "platform": "Riot",
+    "url": "https://www.leagueoflegends.com/"
+  },
+  {
+    "name": "Teamfight Tactics",
+    "platform": "Riot",
+    "url": "https://teamfighttactics.leagueoflegends.com/"
+  },
+  {
+    "name": "Minecraft",
+    "platform": "Minecraft Launcher",
+    "url": "https://www.minecraft.net/"
+  },
+  {
     "appid": 3678970,
     "name": "TBH: Task Bar Hero"
   },
