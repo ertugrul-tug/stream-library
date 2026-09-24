@@ -68,6 +68,8 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 ### Kumandada neler var
 
+Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi, sorular, öne çıkanlar) · 🎮 Oyunlar (mini oyunlar, rota) · 💬 Sohbet (ortak sohbet, rütbeler) · ⚙️ Ayarlar (seyir defteri, Discord). Bekleyen soru sayısı Canlı sekmesinde rozet olarak görünür. Bilgisayarda hepsi aynı sayfadadır.
+
 - **Sahneye duyarlı:** Köprü OBS sahne değişikliklerini dinler. Kumandada yayındaki sahnenin düğmesi kırmızı çerçeveli görünür. Bot "Kısa Mola"ya geçince mola duyurusu, moladan dönünce "Güverteye döndük", "Yayın Başlıyor"da ısınma çağrısı, "Yayın Bitti"de teşekkür ve ganimet kralını yazar (aynı tür için 2 dk'da bir).
 - **Yayın sağlığı:** Üst çubuğun altında "🔴 CANLI 1:23:45 · 5.9 Mbps · kayıp %0.1" (bitrate son ~15 sn, kare kaybı son 1 dk). Yayındayken OBS'teki mikrofon (Mic/Aux) sessizdeyse yanıp sönen kırmızı "🎙️ MİKROFON KAPALI" bandı, kare kaybı %1'i geçerse turuncu bağlantı uyarısı çıkar.
 - **Üst çubuk:** OBS ve Bot (Streamer.bot) durum noktaları, şu anki segment, sahne düğmeleri: 🎮 Sahne · 💭 Sohbet Güvertesi · ▶️ Yayın Başlıyor · ⏸️ Kısa Mola · ⏹️ Yayın Bitti (`show-config.json > obsScenes`; obs-websocket v5 gerekir).
