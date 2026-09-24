@@ -335,7 +335,7 @@ def reset_show():
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
-HELP_TEXT = ("⚓ Komutlar: !site · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !site · !düello @isim miktar · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -727,6 +727,12 @@ async def streamer_bot():
                                 cast_line(platform, name)
                             elif command in CHAT_LINKS and cooldown(f"link:{platform}:{command}", 30):
                                 say(CHAT_LINKS[command], platform)
+                            elif command in ("!düello", "!duello"):
+                                duel_challenge(platform, name, message.split()[1:])
+                            elif command == "!kabul":
+                                duel_answer(platform, name, True)
+                            elif command == "!red":
+                                duel_answer(platform, name, False)
                             elif command in MARKET_ALIASES:
                                 buy(platform, name, MARKET_ALIASES[command])
                             elif command == "!market" and cooldown(f"market:{platform}:{name.casefold()}", 20):
@@ -1183,6 +1189,54 @@ def thank_supporter(platform, name, kind, amount=0):
         add_loot(platform, name, loot)
         unit = "bit" if kind == "bits" else "Kicks"
         say(f"💎 {name} {amount} {unit} gönderdi, teşekkürler! +{loot} ganimet", platform)
+
+
+# !düello @isim [miktar]: a loot wager between two viewers (any platform). 50/50, the winner takes the stake.
+_duels = {}  # target name (casefold) -> pending challenge
+
+
+def _entry(platform, name):
+    return crew_db.get(f"{platform}:{name.casefold()}") or {}
+
+
+def duel_challenge(platform, name, args):
+    target = next((a.lstrip("@") for a in args if not a.isdigit()), "")
+    amount = next((int(a) for a in args if a.isdigit()), 10)
+    if not target or target.casefold() == name.casefold() or not cooldown(f"duel:{platform}:{name.casefold()}", 30):
+        return
+    amount = max(5, min(100, amount))
+    if balance(_entry(platform, name)) < amount:
+        say(f"@{name} ⚔️ {amount} ganimetlik düello için bakiyen yetmiyor ({balance(_entry(platform, name))}).", platform)
+        return
+    _duels[target.casefold()] = {"platform": platform, "name": name, "target": target, "amount": amount, "at": time.time()}
+    say(f"⚔️ {name}, {target}'e {amount} ganimetine düello teklif etti! @{target} 30 sn içinde !kabul ya da !red yaz.")
+
+
+def duel_answer(platform, name, accept):
+    duel = _duels.get(name.casefold())
+    if not duel or time.time() - duel["at"] > 30:
+        _duels.pop(name.casefold(), None)
+        return
+    del _duels[name.casefold()]
+    if not accept:
+        say(f"🏳️ {name} düelloyu reddetti. {duel['name']} kılıcını kınına soktu.")
+        return
+    amount = duel["amount"]
+    if balance(_entry(platform, name)) < amount:
+        say(f"@{name} ⚔️ bu düello için {amount} ganimet lazım, bakiyen {balance(_entry(platform, name))}.", platform)
+        return
+    if balance(_entry(duel["platform"], duel["name"])) < amount:
+        return  # the challenger spent it meanwhile
+    challenger = (duel["platform"], duel["name"])
+    fighters = [challenger, (platform, name)]
+    winner = random.choice(fighters)
+    loser = fighters[1] if winner == fighters[0] else fighters[0]
+    add_loot(winner[0], winner[1], amount)
+    lost = crew_db.setdefault(f"{loser[0]}:{loser[1].casefold()}", {"platform": loser[0], "points": 0, "streams": 0, "show": None, "last": 0})
+    lost["spent"] = lost.get("spent", 0) + amount
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    state["effects"] = (state["effects"] + [{"id": f"d{time.time()}", "type": "duel", "name": f"{winner[1]}|{loser[1]}", "platform": winner[0]}])[-10:]
+    say(f"⚔️ {duel['name']} ile {name} kılıç çekti… kazanan {winner[1]}! +{amount} ganimet 🏆")
 
 
 def recent_chatters(minutes=10):

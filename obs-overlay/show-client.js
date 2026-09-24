@@ -220,6 +220,10 @@
       confetti();
       banner(`🎯 ${x.name} takipçi hedefi tamam!`, '');
       sfx.win();
+    } else if (x.type === 'duel') {
+      const [win, lose] = String(x.name).split('|');
+      banner(`⚔️ ${win} düelloda ${lose}'i yendi!`, x.platform);
+      tone(1800, 0.12, { type: 'square', to: 600, gain: 0.05 }); tone(2200, 0.1, { type: 'square', to: 700, gain: 0.04, delay: 0.14 }); tone(1500, 0.3, { type: 'triangle', gain: 0.05, delay: 0.3 });
     } else if (x.type === 'top') {
       const f = document.createElement('div'); f.className = 'fx-flash'; root.append(f); setTimeout(() => f.remove(), 700);
       if (!reduceMotion) { root.classList.remove('fx-shake'); void root.offsetWidth; root.classList.add('fx-shake'); setTimeout(() => root.classList.remove('fx-shake'), 700); }
