@@ -31,6 +31,7 @@ import os
 import re
 import socket
 import threading
+import time
 import urllib.request
 from datetime import datetime
 from functools import partial
@@ -42,6 +43,7 @@ from websockets.asyncio.server import serve
 
 ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".show-state.json"
+CREW_FILE = ROOT / ".crew.json"  # points/ranks that survive between streams
 CONFIG_FILE = ROOT / "show-config.json"
 SB_URL = "ws://127.0.0.1:8080/"
 WS_PORT = 8765
@@ -75,6 +77,44 @@ if not OBS_PASSWORD and OBS_URL in ("ws://127.0.0.1:4455", "ws://localhost:4455"
 
 sb_conn = {"ws": None}
 obs_conn = {"ws": None}
+obs_pending = {}
+
+# ------------------------------------------------------------ crew ranks --
+# +10 the first time someone chats in a show, +1 per message (30 s cooldown so
+# spamming doesn't farm points). Keyed by platform:name, stored in CREW_FILE.
+RANKS = [(0, "Miço"), (20, "Tayfa"), (60, "Usta Gemici"), (150, "Lostromo"), (350, "Dümenci"), (800, "İkinci Kaptan")]
+
+try:
+    crew_db = json.loads(CREW_FILE.read_text(encoding="utf-8"))
+except (OSError, ValueError):
+    crew_db = {}
+
+
+def rank_for(points):
+    return next(name for floor, name in reversed(RANKS) if points >= floor)
+
+
+def award_chat(platform, name, show_id):
+    """Returns the new rank name if this message pushed the member up a rank, else None."""
+    entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
+    entry["name"] = name
+    before = rank_for(entry["points"])
+    now = time.time()
+    if entry["show"] != show_id:
+        entry["show"] = show_id
+        entry["streams"] += 1
+        entry["points"] += 10
+    if now - entry["last"] >= 30:
+        entry["points"] += 1
+        entry["last"] = now
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    after = rank_for(entry["points"])
+    return after if after != before else None
+
+
+def crew_rank(platform, name):
+    entry = crew_db.get(f"{platform}:{name.casefold()}")
+    return rank_for(entry["points"]) if entry else RANKS[0][1]
 
 
 def lan_ip():
@@ -118,7 +158,8 @@ def defaults():
         "game": clean(CONFIG.get("game"), 80),
         "returnMessage": clean(CONFIG.get("returnMessage"), 100),
         "routes": [clean(x, 65) for x in CONFIG.get("routes", [])][:3],
-        "routesVisible": True,
+        "routesVisible": True, "segmentVisible": True,
+        "markers": [], "rankUp": None,
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
@@ -149,6 +190,11 @@ def snapshot():
     l = sum(v == "L" for v in p["votes"].values())
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
     result["summaryText"] = summary_text()
+    result["crew"] = [{**c, "rank": crew_rank(c["platform"], c["name"])} for c in state["crew"]]
+    top = sorted(crew_db.values(), key=lambda e: e["points"], reverse=True)[:10]
+    result["topCrew"] = [{"platform": e["platform"], "name": e["name"], "points": e["points"],
+                          "streams": e["streams"], "rank": rank_for(e["points"])} for e in top]
+    result["schedule"] = CONFIG.get("schedule") or {}
     return result
 
 
@@ -181,6 +227,9 @@ def summary_text():
     if state["highlights"]:
         lines.append("")
         lines.extend(f"✦ {h}" for h in state["highlights"])
+    if state["markers"]:
+        lines += ["", "🎬 Yayından anlar:"]
+        lines.extend(f"  {m['vod'] or m['time']} — {m['note'] or 'işaret'}" for m in state["markers"])
     lines += ["", "Bir sonraki seferde görüşürüz! 🐾"]
     return "\n".join(lines)
 
@@ -340,6 +389,10 @@ async def streamer_bot():
                                     "id": f"{platform}-{datetime.now().timestamp()}"}
                             state["chat"] = (state["chat"] + [item])[-30:]
                             state["stats"][platform]["chat"] += 1
+                            new_rank = award_chat(platform, name, state["started"])
+                            if new_rank:
+                                state["rankUp"] = {"platform": platform, "name": name, "rank": new_rank,
+                                                   "at": int(time.time() * 1000)}
                             if not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
                                 state["crew"] = (state["crew"] + [{"platform": platform, "name": name}])[-24:]
                             match = re.fullmatch(r"!rota\s+([1-3])", message, re.IGNORECASE)
@@ -383,6 +436,23 @@ def obs_auth_string(password, salt, challenge):
     return base64.b64encode(hashlib.sha256((secret + challenge).encode("utf-8")).digest()).decode("utf-8")
 
 
+async def obs_request(request_type, timeout=2):
+    """Send an obs-websocket request and wait for its response data (None if OBS is away)."""
+    ws = obs_conn.get("ws")
+    if not ws:
+        return None
+    rid = f"qedy-{time.time()}"
+    future = asyncio.get_running_loop().create_future()
+    obs_pending[rid] = future
+    try:
+        await ws.send(json.dumps({"op": 6, "d": {"requestType": request_type, "requestId": rid}}))
+        return await asyncio.wait_for(future, timeout)
+    except Exception:
+        return None
+    finally:
+        obs_pending.pop(rid, None)
+
+
 async def obs_set_scene(name):
     ws = obs_conn.get("ws")
     if not ws or not name:
@@ -415,8 +485,14 @@ async def obs_client():
                 obs_conn["ws"] = ws
                 state["obsConnection"] = "connected"
                 await publish()
-                async for _raw in ws:
-                    pass  # scene switching is fire-and-forget; no responses needed here
+                async for raw in ws:
+                    try:
+                        d = json.loads(raw).get("d") or {}
+                    except ValueError:
+                        continue
+                    future = obs_pending.get(d.get("requestId"))
+                    if future and not future.done():
+                        future.set_result(d.get("responseData") or {})
         except (OSError, TimeoutError, Exception) as exc:
             obs_conn["ws"] = None
             if state["obsConnection"] != "waiting":
@@ -462,6 +538,19 @@ async def client(ws):
                     state["votes"] = {}
                 elif action == "toggleRoutesVisible":
                     state["routesVisible"] = not state["routesVisible"]
+                elif action == "toggleSegmentVisible":
+                    state["segmentVisible"] = not state["segmentVisible"]
+                elif action == "addMarker":
+                    note = clean(msg.get("note"), 80)
+                    status = await obs_request("GetStreamStatus")
+                    vod = str(status.get("outputTimecode") or "").split(".")[0] if status and status.get("outputActive") else None
+                    state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note}])[-50:]
+                    # Optional: a Streamer.bot Action named "QedyClip" (e.g. Twitch "Create Clip") fires too.
+                    await sb_do_action("QedyClip", {"note": note})
+                elif action == "removeMarker":
+                    index = int(msg.get("index", -1))
+                    if 0 <= index < len(state["markers"]):
+                        state["markers"].pop(index)
                 elif action == "addMatch":
                     result = msg.get("result")
                     if result not in ("W", "L"):

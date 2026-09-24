@@ -78,6 +78,12 @@ Bu dosya varsa show-config.json üzerine yazılır (merge). OBS tarafında Tools
 
 Değişen yayın verileri .show-state.json içinde yerel olarak saklanır ve Git'e eklenmez. Dosyada sohbet kullanıcı adları ve mesajları olabilir; paylaşma. Kumandadaki “Yeni yayın başlat” düğmesi bu oturum verilerini sıfırlar. Canlı mesajlar HTML olarak işlenmez, yalnızca düz metin olarak gösterilir. ?sample=1 ile sahnelerde örnek interaktif içerik görülebilir; OBS'ye normal dosya adresini ekle.
 
+### Klip işareti, mürettebat rütbeleri, segment şeridi
+
+- **Klip işareti:** Kumandadaki "🎬 Anı işaretle" o anın VOD zamanını OBS'ten (yayın açıkken) alıp isteğe bağlı bir notla listeler; liste yayın sonu özetine de girer. Streamer.bot'ta "QedyClip" adlı bir Action oluşturursan (örn. Twitch "Create Clip" alt aksiyonuyla) düğme onu da tetikler — yoksa sadece işaret kaydedilir.
+- **Mürettebat rütbeleri:** Sohbette bir yayındaki ilk mesaj +10, sonraki her mesaj +1 puan (30 sn arayla, spam puan kazandırmaz). Puanlar .crew.json içinde yayınlar arası saklanır (Git'e eklenmez, ağa servis edilmez). Rütbeler: Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Açılış sahnesinin radarında isimlerin yanında rütbe görünür; biri rütbe atlayınca oyun sahnesinde 6 sn'lik bir bildirim çıkar. "Yeni seferde ilk mesaj" bonusu için her yayına kumandadaki "Yeni yayın başlat" ile başla.
+- **Segment şeridi:** Oyun sahnesinin üst çizgisinde show-config.json > schedule'a göre "ŞİMDİ · Tema bloğu · SIRADAKİ · Günlük sohbet 23:00" gösterilir. Kumandadaki Seyir defteri bölümünden gizlenip açılabilir.
+
 ## Pusulalı sahne geçişi
 
 pusula-gecis.webm, OBS Stinger geçişinde kullanılacak 1280 × 720, 60 FPS ve şeffaf VP9 videodur. OBS sahne geçişlerine yeni bir Stinger ekle, dosyayı seç ve Transition Point değerini 600 ms yap. Tam örtme anında sahne değişir. OBS sahne/kaynak sırası bu paket tarafından değiştirilmez. Videoyu yeniden üretmek istersen önce python -m pip install Pillow, ardından python obs-overlay/make-stinger.py çalıştır. [OBS Stinger açıklaması](https://obsproject.com/kb/track-matte-stinger-transitions) geçiş noktasını açıklar.

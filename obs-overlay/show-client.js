@@ -17,6 +17,22 @@
   let scoreSig = null;
   const predict = kind === 'overlay' ? card('show-predict','MAÇ TAHMİNİ') : null;
   let predictDoneSig = null, predictDoneAt = 0;
+  const rankUp = kind === 'overlay' ? card('show-rankup','RÜTBE ATLADI') : null;
+  let rankUpShown = 0;
+  let segment = null, lastSchedule = {}, segmentOn = true;
+  if (kind === 'overlay') { segment = document.createElement('div'); segment.className = 'show-segment'; root.append(segment); }
+  function renderSegment() {
+    const rows = Object.entries(lastSchedule).map(([label, t]) => { const [h, m] = String(t).split(':').map(Number); return [label, t, h * 60 + m]; }).sort((a, b) => a[2] - b[2]);
+    const now = new Date(); let mins = now.getHours() * 60 + now.getMinutes();
+    if (mins < 300) mins += 1440; // after midnight still belongs to tonight's show
+    const cur = rows.filter(r => r[2] <= mins).pop(), next = rows.find(r => r[2] > mins);
+    segment.classList.toggle('active', segmentOn && rows.length > 0);
+    segment.replaceChildren();
+    const part = (cls, label, value) => { const s = document.createElement('span'); s.className = cls; s.textContent = label + ' · '; const b = document.createElement('b'); b.textContent = value; s.append(b); segment.append(s); };
+    if (cur) part('now', 'ŞİMDİ', cur[0]);
+    if (next) part('next', 'SIRADAKİ', next[0] + ' ' + next[1]);
+  }
+  if (segment) setInterval(renderSegment, 30000);
   function tally(matches) {
     const m = matches || [], last = m[m.length-1];
     let streak = 0;
@@ -39,7 +55,7 @@
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
       const list=div(crew,'crew-list','');
-      (s.crew || []).slice(-8).reverse().forEach(p=>{const n=div(list,'crew-person '+p.platform,p.name);});
+      (s.crew || []).slice(-8).reverse().forEach(p=>{const n=div(list,'crew-person '+p.platform,p.name);if(p.rank){const r=document.createElement('small');r.className='rank';r.textContent=p.rank;n.append(r);}});
       if (!list.childElementCount) div(crew,'show-small','Sohbete yazanlar burada görünecek.');
     }
     if (log) {
@@ -119,6 +135,16 @@
       legend.append(lw,ll);
       div(predict,'show-small', p.status==='open' ? `!tahmin G  ·  !tahmin M   —   ${total} tahmin` : p.status==='locked' ? `🔒 Tahminler kilitlendi · ${total} tahmin` : `Maç sonucu: ${p.result==='W'?'GALİBİYET':'MAĞLUBİYET'}`);
     }
+    if(segment) { lastSchedule=s.schedule||{}; segmentOn=s.segmentVisible!==false; renderSegment(); }
+    if(rankUp && s.rankUp && s.rankUp.at!==rankUpShown && Date.now()-s.rankUp.at<10000) {
+      rankUpShown=s.rankUp.at;
+      rankUp.querySelectorAll('.rank-name,.rank-title').forEach(n=>n.remove());
+      rankUp.dataset.platform=s.rankUp.platform;
+      div(rankUp,'rank-name',s.rankUp.name);
+      div(rankUp,'rank-title','⚓ '+s.rankUp.rank);
+      rankUp.classList.remove('active'); void rankUp.offsetWidth; rankUp.classList.add('active');
+      clearTimeout(rankUp._t); rankUp._t=setTimeout(()=>rankUp.classList.remove('active'),6000);
+    }
     if(score) {
       const t=tally(s.matches);
       score.classList.toggle('active', t.m.length>0 && s.scoreVisible!==false);
@@ -151,7 +177,7 @@
       }
     }
   }
-  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan'},{platform:'kick',name:'YesilLiman'},{platform:'twitch',name:'Denizci42'}],highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}}};
+  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}}};
   if(sample) render(demo); else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;

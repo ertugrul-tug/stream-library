@@ -1,3 +1,4 @@
 .show-state.json
+.crew.json
 __pycache__/
 show-config.local.json
