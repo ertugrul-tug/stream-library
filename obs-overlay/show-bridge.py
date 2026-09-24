@@ -751,13 +751,20 @@ async def streamer_bot():
                         elif kind == "Follow":
                             state["stats"][platform]["follow"] += 1
                             check_goal()
+                            follower = data.get("targetUser") if platform == "twitch" and isinstance(data.get("targetUser"), dict) else None
+                            thank_supporter(platform, clean((follower or {}).get("name") or (follower or {}).get("login"), 32) or name, "follow")
                         elif kind in ("Sub", "ReSub", "GiftSub", "Subscription", "Resubscription", "GiftSubscription"):
                             state["stats"][platform]["sub"] += 1
+                            thank_supporter(platform, name, "gift" if "Gift" in kind else "sub")
                         elif kind == "Cheer" and platform == "twitch":
-                            state["stats"][platform]["bits"] += int(data.get("bits") or 0)
+                            bits = int(data.get("bits") or 0)
+                            state["stats"][platform]["bits"] += bits
+                            thank_supporter(platform, name, "bits", bits)
                         elif kind == "KicksGifted" and platform == "kick":
                             amount = data.get("kicks") or {}
-                            state["stats"][platform]["kicks"] += int((amount.get("amount") if isinstance(amount, dict) else None) or data.get("amount") or 0)
+                            kicks = int((amount.get("amount") if isinstance(amount, dict) else None) or data.get("amount") or 0)
+                            state["stats"][platform]["kicks"] += kicks
+                            thank_supporter(platform, name, "kicks", kicks)
                         else:
                             continue
                         await publish()
@@ -1141,6 +1148,38 @@ def queue_call(entry_id):
     state["playCalled"] = {**entry, "at": int(time.time() * 1000)}
     ign = f" (oyun içi: {entry['ign']})" if entry["ign"] else ""
     say(f"🎮 @{entry['name']} sıra sende{ign}! Lobiye gel, kaptan seni bekliyor ⚓", entry["platform"])
+
+
+# Supporters: a chat thank-you plus loot, so support also feeds the mini-game economy.
+_follow_batch = {}  # platform -> names waiting for one grouped welcome
+
+
+def thank_supporter(platform, name, kind, amount=0):
+    if not name or _rehearsing[0]:
+        return
+    if kind == "follow":
+        add_loot(platform, name, 10)
+        waiting = _follow_batch.setdefault(platform, [])
+        if name not in waiting:
+            waiting.append(name)
+        if len(waiting) == 1:  # first in a burst: welcome everyone together a few seconds later
+
+            async def flush():
+                await asyncio.sleep(8)
+                names = _follow_batch.pop(platform, [])
+                if names:
+                    shown = ", ".join(names[:3]) + (f" ve {len(names) - 3} kişi daha" if len(names) > 3 else "")
+                    say(f"👋 Güverteye hoş geldin{'iz' if len(names) > 1 else ''} {shown}! Takip için teşekkürler, +10 ganimet 🎣", platform)
+            _spawn(flush())
+    elif kind in ("sub", "gift"):
+        add_loot(platform, name, 50)
+        what = "abonelik hediye etti" if kind == "gift" else "abone oldu"
+        say(f"⭐ {name} {what}, çok teşekkürler! +50 ganimet 🎉", platform)
+    elif amount > 0:
+        loot = max(1, amount // 10)
+        add_loot(platform, name, loot)
+        unit = "bit" if kind == "bits" else "Kicks"
+        say(f"💎 {name} {amount} {unit} gönderdi, teşekkürler! +{loot} ganimet", platform)
 
 
 def recent_chatters(minutes=10):
