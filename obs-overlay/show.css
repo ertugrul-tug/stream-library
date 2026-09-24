@@ -108,6 +108,7 @@
 .show-fish .fish-who{font-size:.8vw;font-weight:800}
 .show-fish .fish-catch{font-size:1.8vw;line-height:1}
 .show-fish .fish-catch.bobbing{animation:fishBob .7s ease-in-out infinite}
+.show-fish .fish-new{padding:.1vw .45vw;border-radius:.3vw;background:#ff3d7f;color:#fff;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.55vw;font-weight:800;letter-spacing:.1em;animation:fishPop .5s cubic-bezier(.2,1.6,.4,1)}
 .show-fish .fish-note{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.66vw;letter-spacing:.06em;color:#cfe0ee}
 .show-fish:not([data-rarity=""]) .fish-catch{animation:fishPop .5s cubic-bezier(.2,1.6,.4,1)}
 .show-fish[data-rarity="nadir"]{border-color:rgba(34,174,240,.85);box-shadow:0 0 1.4vw rgba(34,174,240,.45)}

@@ -302,7 +302,7 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 
@@ -695,6 +695,8 @@ async def streamer_bot():
                                 say(market_text(platform, name), platform)
                             elif command == "!soru":
                                 ask_question(platform, name, message.split(None, 1)[1] if " " in message else "")
+                            elif command in ("!koleksiyon", "!kolleksiyon") and cooldown(f"coll:{platform}:{name.casefold()}", 20):
+                                say(collection_text(platform, name), platform)
                             elif command == "!ganimet" and cooldown(f"loot:{platform}:{name.casefold()}", 20):
                                 say(loot_text(platform, name), platform)
                             elif command in ("!saldır", "!saldir", "!vur"):
@@ -895,10 +897,21 @@ def cast_line(platform, name):
         return False
     item, emoji, points, _ = random.choices(LOOT, weights=[x[3] for x in LOOT])[0]
     rarity = "efsane" if points >= 40 else "nadir" if points >= 15 else "sıradan"
-    total = add_loot(platform, name, points, {"name": item, "emoji": emoji, "points": points})
+    entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
+    caught = entry.setdefault("caught", [])
+    new = item not in caught
+    if new:
+        caught.append(item)
+    complete = new and len(caught) == len(LOOT)
+    total = add_loot(platform, name, points + (100 if complete else 0), {"name": item, "emoji": emoji, "points": points})
     state["night"]["casts"] += 1
     state["catches"] = (state["catches"] + [{"id": f"f{time.time()}", "platform": platform, "name": name,
-                                             "item": item, "emoji": emoji, "points": points, "rarity": rarity}])[-12:]
+                                             "item": item, "emoji": emoji, "points": points, "rarity": rarity, "new": new}])[-12:]
+    if complete:
+        async def crown():
+            await asyncio.sleep(4)
+            say(f"🏆 {name} olta koleksiyonunu tamamladı! 9/9 ganimet · +100 bonus · artık bir Balıkçı Reisi 🎣")
+        _spawn(crown())
     if points >= 25:
         async def brag():
             await asyncio.sleep(4)  # after the overlay's reveal, not before
@@ -939,6 +952,14 @@ def buy(platform, name, item):
     entry["spent"] = entry.get("spent", 0) + price
     CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
     state["effects"] = (state["effects"] + [{"id": f"e{now}", "type": item, "name": name, "platform": platform}])[-10:]
+
+
+def collection_text(platform, name):
+    entry = crew_db.get(f"{platform}:{name.casefold()}") or {}
+    caught = set(entry.get("caught") or [])
+    shelf = " ".join(emoji if item in caught else "❔" for item, emoji, _, _ in LOOT)
+    tail = " · 🏆 Balıkçı Reisi!" if len(caught) == len(LOOT) else " · tamamlayana +100 ganimet"
+    return f"@{name} 🎣 koleksiyon {len(caught)}/{len(LOOT)}: {shelf}{tail}"
 
 
 def recent_chatters(minutes=10):
@@ -1270,6 +1291,15 @@ async def client(ws):
                     race_end(cancelled=True)
                 elif action == "toggleSfx":
                     state["sfx"] = not state["sfx"]
+                elif action == "giveLoot":
+                    platform = clean(msg.get("platform"), 12).lower()
+                    name = clean(msg.get("name"), 32)
+                    if platform not in ("twitch", "kick") or not name:
+                        continue
+                    amount = 10
+                    add_loot(platform, name, amount)
+                    say(f"🎁 Kaptan @{name} tayfasına {amount} ganimet hediye etti!", platform)
+                    await send_notice(ws, True, f"🎁 {name} +{amount} ganimet")
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":

@@ -228,7 +228,7 @@
     const body = div(c, 'fish-body', ''); div(body, 'fish-who', x.name);
     const got = div(body, 'fish-catch bobbing', '🎣'), note = div(body, 'fish-note', 'olta attı…');
     c.classList.add('active');
-    setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; sfx.fish(x.rarity); c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; }, reduceMotion ? 300 : 2600);
+    setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; sfx.fish(x.rarity); c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; if (x.new) div(body, 'fish-new', 'YENİ!'); }, reduceMotion ? 300 : 2600);
     setTimeout(() => { c.classList.remove('active'); setTimeout(() => { fishBusy = false; playFish(); }, 400); }, reduceMotion ? 3500 : 6200);
   }
   function render(s) {
