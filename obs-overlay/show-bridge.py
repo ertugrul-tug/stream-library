@@ -30,6 +30,7 @@ import hmac
 import json
 import os
 import re
+import random
 import secrets
 import socket
 import ssl
@@ -193,6 +194,7 @@ def defaults():
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
+        "catches": [], "kraken": None, "race": None, "krakenRandom": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -221,7 +223,10 @@ def snapshot():
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
     result["summaryText"] = summary_text()
     result["crew"] = [{**c, "rank": crew_rank(c["platform"], c["name"])} for c in state["crew"]]
-    top = sorted(crew_db.values(), key=lambda e: e["points"], reverse=True)[:10]
+    viewers = [e for e in crew_db.values() if e["platform"] in ("twitch", "kick")]
+    top = sorted(viewers, key=lambda e: e["points"], reverse=True)[:10]
+    result["topLoot"] = [{"platform": e["platform"], "name": e["name"], "loot": e.get("loot", 0), "best": e.get("best")}
+                         for e in sorted(crew_db.values(), key=lambda e: e.get("loot", 0), reverse=True)[:5] if e.get("loot")]
     result["topCrew"] = [{"platform": e["platform"], "name": e["name"], "points": e["points"],
                           "streams": e["streams"], "rank": rank_for(e["points"])} for e in top]
     result["schedule"] = CONFIG.get("schedule") or {}
@@ -269,7 +274,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -281,7 +286,8 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = "⚓ Komutlar: !rota 1/2/3 (sonraki rotayı seç) · !tahmin G / !tahmin M (maç tahmini, açıkken) · !rütbe (puanın ve rütben)"
+HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !rota 1/2/3 · !tahmin G / M (açıkken) · !rütbe"
+             " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 
 
@@ -385,7 +391,7 @@ def live_message(game, note=""):
 
 
 async def publish():
-    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race")}, ensure_ascii=False, indent=2), encoding="utf-8")
     message = json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False)
     for ws in tuple(CLIENTS):
         try:
@@ -569,6 +575,8 @@ async def streamer_bot():
                             message = clean(data.get("text") or data.get("message"), 300)
                             if not name or not message or is_own_echo(message):
                                 continue
+                            _active[f"{platform}:{name.casefold()}"] = time.time()
+                            race_boost(platform, name)
                             item = {"platform": platform, "name": name, "text": message, "parts": chat_parts(data, message),
                                     "id": f"{platform}-{datetime.now().timestamp()}"}
                             state["chat"] = (state["chat"] + [item])[-30:]
@@ -593,6 +601,14 @@ async def streamer_bot():
                             command = message.split()[0].casefold()
                             if command in ("!rütbe", "!rutbe", "!rank") and cooldown(f"rank:{platform}:{name.casefold()}", 20):
                                 say(rank_text(platform, name), platform)
+                            elif command in ("!olta", "!balık", "!balik"):
+                                cast_line(platform, name)
+                            elif command == "!ganimet" and cooldown(f"loot:{platform}:{name.casefold()}", 20):
+                                say(loot_text(platform, name), platform)
+                            elif command in ("!saldır", "!saldir", "!vur"):
+                                kraken_hit(platform, name)
+                            elif command in ("!katıl", "!katil"):
+                                race_join(platform, name)
                             elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
                                 say(HELP_TEXT, platform)
                         elif kind == "Follow":
@@ -690,6 +706,199 @@ async def obs_client():
                 await publish()
             print(f"OBS bekleniyor: {type(exc).__name__}", flush=True)
             await asyncio.sleep(3)
+
+
+# ------------------------------------------------------------ mini games --
+# Olta (!olta), Kraken (!saldır) and Yelken yarışı (!katıl). The bridge owns the rules; the overlay only draws state.
+# Loot points ("ganimet") live in crew_db next to rank points but don't change ranks.
+
+GAMES = CONFIG.get("games") or {}
+FISH_COOLDOWN = int(GAMES.get("fishCooldownSec") or 60)
+KRAKEN_CFG = GAMES.get("kraken") or {}
+RACE_CFG = GAMES.get("race") or {}
+LOOT = [  # name, emoji, points, weight (out of 1000)
+    ("Hamsi", "🐟", 3, 380), ("Levrek", "🐠", 5, 240), ("Eski çizme", "🥾", 1, 120),
+    ("Balon balığı", "🐡", 10, 100), ("Ahtapot", "🐙", 15, 70), ("Köpek balığı", "🦈", 25, 45),
+    ("Deniz kızı pulu", "🧜", 40, 25), ("Altın sandık", "💰", 60, 15), ("Kraken dişi", "🦷", 100, 5),
+]
+_active = {}  # platform:name -> last chat time
+
+
+def _spawn(coro):
+    task = asyncio.get_running_loop().create_task(coro)
+    _bot_tasks.add(task)
+    task.add_done_callback(_bot_tasks.discard)
+
+
+def _clear_later(key, event_id, seconds):
+    """Drop a finished Kraken/race from the screen after its result has been shown."""
+    async def run():
+        await asyncio.sleep(seconds)
+        if state[key] and state[key]["id"] == event_id:
+            state[key] = None
+            await publish()
+    _spawn(run())
+
+
+def add_loot(platform, name, points, best=None):
+    entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
+    entry["name"] = name
+    entry["loot"] = entry.get("loot", 0) + points
+    if best and best["points"] > (entry.get("best") or {}).get("points", -1):
+        entry["best"] = best
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    return entry["loot"]
+
+
+def loot_text(platform, name):
+    entry = crew_db.get(f"{platform}:{name.casefold()}") or {}
+    best = entry.get("best")
+    tail = f" · en iyi: {best['emoji']} {best['name']} ({best['points']})" if best else " · henüz bir şey yakalamadın, !olta yaz"
+    return f"@{name} 🎣 ganimet: {entry.get('loot', 0)}{tail}"
+
+
+def cast_line(platform, name):
+    if not cooldown(f"fish:{platform}:{name.casefold()}", 5 if platform == "kaptan" else FISH_COOLDOWN):
+        return False
+    item, emoji, points, _ = random.choices(LOOT, weights=[x[3] for x in LOOT])[0]
+    rarity = "efsane" if points >= 40 else "nadir" if points >= 15 else "sıradan"
+    total = add_loot(platform, name, points, {"name": item, "emoji": emoji, "points": points})
+    state["catches"] = (state["catches"] + [{"id": f"f{time.time()}", "platform": platform, "name": name,
+                                             "item": item, "emoji": emoji, "points": points, "rarity": rarity}])[-12:]
+    if points >= 25:
+        async def brag():
+            await asyncio.sleep(4)  # after the overlay's reveal, not before
+            say(f"🎣 {name} {emoji} {item} yakaladı! +{points} ganimet (toplam {total})")
+        _spawn(brag())
+    return True
+
+
+def recent_chatters(minutes=10):
+    cutoff = time.time() - minutes * 60
+    return sum(1 for t in _active.values() if t >= cutoff)
+
+
+def kraken_start():
+    duration = int(KRAKEN_CFG.get("durationSec") or 90)
+    hp = min(300, max(40, 30 * recent_chatters()))  # ~30-40 s of !saldır for a small chat, well inside the 90 s window
+    kid = f"k{time.time()}"
+    state["kraken"] = {"id": kid, "status": "active", "hp": hp, "max": hp, "endsAt": int((time.time() + duration) * 1000),
+                       "hits": {}, "last": [], "killer": None}
+    say(f"🐙 KRAKEN SALDIRIYOR! Gemiyi kurtarmak için !saldır yaz · {duration} saniyen var!")
+
+    async def timer():
+        await asyncio.sleep(duration)
+        k = state["kraken"]
+        if k and k["id"] == kid and k["status"] == "active":
+            kraken_finish(False)
+            await publish()
+    _spawn(timer())
+
+
+def kraken_hit(platform, name):
+    k = state["kraken"]
+    if not k or k["status"] != "active" or not cooldown(f"hit:{platform}:{name.casefold()}", 1.5):
+        return
+    crit = random.random() < 0.08
+    dmg = random.randint(1, 3) * (3 if crit else 1)
+    k["hp"] = max(0, k["hp"] - dmg)
+    hit = k["hits"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "dmg": 0})
+    hit["dmg"] += dmg
+    k["last"] = ([f"{name} −{dmg}{' 💥' if crit else ''}"] + k["last"])[:4]
+    if k["hp"] == 0:
+        k["killer"] = name
+        kraken_finish(True)
+
+
+def kraken_finish(won, retreat=False):
+    k = state["kraken"]
+    k["status"] = "won" if won else "lost"
+    if won:
+        for h in k["hits"].values():
+            add_loot(h["platform"], h["name"], min(40, 10 + h["dmg"]) + (25 if h["name"] == k["killer"] else 0))
+        say(f"🐙 KRAKEN YENİLDİ! Son vuruş: {k['killer']} (+25 bonus) · saldıran {len(k['hits'])} kişiye ganimet dağıtıldı!")
+    else:
+        say("🐙 Kraken geri çekildi." if retreat else "🐙 Kraken kaçtı… Bir dahaki sefere daha sert vurun!")
+    _clear_later("kraken", k["id"], 10)
+
+
+async def kraken_random():
+    """While the stream is live, a Kraken shows up every randomMin–randomMax minutes on its own."""
+    low, high = int(KRAKEN_CFG.get("randomMinMinutes") or 25), int(KRAKEN_CFG.get("randomMaxMinutes") or 50)
+    while True:
+        await asyncio.sleep(random.uniform(low, high) * 60)
+        status = await obs_request("GetStreamStatus")
+        if state["krakenRandom"] and status and status.get("outputActive") and recent_chatters() \
+                and not state["kraken"] and not state["race"]:
+            kraken_start()
+            await publish()
+
+
+def race_start():
+    join = int(RACE_CFG.get("joinSec") or 45)
+    rid = f"r{time.time()}"
+    state["race"] = {"id": rid, "status": "join", "endsAt": int((time.time() + join) * 1000), "podium": [],
+                     "boats": [{"key": "kaptan:kaptan", "platform": "kaptan", "name": "Kaptan", "pos": 0.0, "wind": 0}]}
+    say(f"⛵ YELKEN YARIŞI! {join} saniye içinde !katıl yaz, gemin denize insin. Yarışta yazdığın her mesaj yelkenine rüzgâr!")
+
+    async def run():
+        await asyncio.sleep(join)
+        r = state["race"]
+        if not r or r["id"] != rid or r["status"] != "join":
+            return
+        if len(r["boats"]) < 2:
+            race_end(cancelled=True, reason="⛵ Kimse katılmadı, yarış iptal.")
+            await publish()
+            return
+        r["status"] = "race"
+        say("⛵ Yarış başladı! Yazdıkça hızlan!")
+        await publish()
+        while r["status"] == "race" and state["race"] is r:
+            await asyncio.sleep(1)
+            for b in r["boats"]:
+                if b["key"] in r["podium"]:
+                    continue
+                b["pos"] = min(100.0, b["pos"] + random.uniform(1.5, 3.5) + min(b["wind"], 3) * 2.5)
+                b["wind"] = 0
+                if b["pos"] >= 100:
+                    r["podium"].append(b["key"])
+            if len(r["podium"]) >= min(3, len(r["boats"])):
+                race_end()
+            await publish()
+    _spawn(run())
+
+
+def race_join(platform, name):
+    r = state["race"]
+    key = f"{platform}:{name.casefold()}"
+    if r and r["status"] == "join" and len(r["boats"]) < int(RACE_CFG.get("maxBoats") or 8) \
+            and all(b["key"] != key for b in r["boats"]):
+        r["boats"].append({"key": key, "platform": platform, "name": name, "pos": 0.0, "wind": 0})
+
+
+def race_boost(platform, name):
+    r = state["race"]
+    if r and r["status"] == "race":
+        key = f"{platform}:{name.casefold()}"
+        for b in r["boats"]:
+            if b["key"] == key:
+                b["wind"] += 1
+
+
+def race_end(cancelled=False, reason=""):
+    r = state["race"]
+    if cancelled:
+        r["status"] = "cancelled"
+        say(reason or "⛵ Yarış iptal edildi.")
+    else:
+        r["status"] = "done"
+        boats = {b["key"]: b for b in r["boats"]}
+        medals = ["🥇", "🥈", "🥉"]
+        for i, key in enumerate(r["podium"][:3]):
+            add_loot(boats[key]["platform"], boats[key]["name"], [50, 25, 10][i])
+        say("🏁 Yarış bitti! " + " · ".join(f"{medals[i]} {boats[k]['name']}" for i, k in enumerate(r["podium"][:3]))
+            + " · ganimetler dağıtıldı!")
+    _clear_later("race", r["id"], 12)
 
 
 # ------------------------------------------------------ League of Legends --
@@ -800,6 +1009,29 @@ async def client(ws):
                 elif action == "announceRoutes":
                     announce_routes()
                     continue
+                elif action == "fishCast":
+                    if not cast_line("kaptan", "Kaptan"):
+                        continue
+                elif action == "krakenStart":
+                    if state["kraken"] or state["race"]:
+                        await send_notice(ws, False, "Önce süren etkinlik bitsin")
+                        continue
+                    kraken_start()
+                elif action == "krakenStop":
+                    if not state["kraken"] or state["kraken"]["status"] != "active":
+                        continue
+                    kraken_finish(False, retreat=True)
+                elif action == "raceStart":
+                    if state["kraken"] or state["race"]:
+                        await send_notice(ws, False, "Önce süren etkinlik bitsin")
+                        continue
+                    race_start()
+                elif action == "raceStop":
+                    if not state["race"] or state["race"]["status"] not in ("join", "race"):
+                        continue
+                    race_end(cancelled=True)
+                elif action == "toggleKrakenRandom":
+                    state["krakenRandom"] = not state["krakenRandom"]
                 elif action == "toggleBotChat":
                     state["botChat"] = not state["botChat"]
                 elif action == "spotlight":
@@ -941,7 +1173,7 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher())
+        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random())
 
 
 if __name__ == "__main__":

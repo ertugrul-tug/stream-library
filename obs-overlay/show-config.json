@@ -19,6 +19,11 @@
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
     "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
   },
+  "games": {
+    "fishCooldownSec": 60,
+    "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50 },
+    "race": { "joinSec": 45, "maxBoats": 8 }
+  },
   "lolAuto": {
     "lockAfterSec": 180
   },

@@ -19,6 +19,15 @@
   let predictDoneSig = null, predictDoneAt = 0;
   const rankUp = kind === 'overlay' ? card('show-rankup','RÜTBE ATLADI') : null;
   let rankUpShown = 0;
+  // Mini games (game scene only): one centered event lane under the segment strip, rank-up toast at its end.
+  let games = null;
+  if (kind === 'overlay') {
+    const lane = document.createElement('div'); lane.className = 'show-events'; root.append(lane);
+    games = { kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA') };
+    lane.append(games.kraken, games.race, games.fish, rankUp);
+  }
+  let krakenId = null, krakenHp = null, krakenState = null, raceId = null, raceState = null;
+  let fishSeen = null, fishQueue = [], fishBusy = false;
   let segment = null, lastSchedule = {}, segmentOn = true;
   if (kind === 'overlay') { segment = document.createElement('div'); segment.className = 'show-segment'; root.append(segment); }
   function renderSegment() {
@@ -53,7 +62,93 @@
       if (p < 1) requestAnimationFrame(tick);
     })(start);
   }
+  const secsLeft = at => Math.max(0, Math.ceil((at - Date.now()) / 1000));
+  function renderKraken(k) {
+    const c = games.kraken;
+    c.classList.toggle('active', !!k);
+    krakenState = k;
+    if (!k) { krakenId = null; return; }
+    if (k.id !== krakenId) {
+      krakenId = k.id; krakenHp = k.max;
+      c.querySelectorAll('.kr-body').forEach(n => n.remove());
+      const body = div(c, 'kr-body', ''); div(body, 'kr-emoji', '🐙');
+      const info = div(body, 'kr-info', ''); div(info, 'kr-title', '');
+      div(info, 'kr-bar', '').append(document.createElement('i')); div(info, 'kr-line', ''); div(info, 'kr-hits', '');
+    }
+    c.dataset.status = k.status;
+    c.querySelector('.kr-title').textContent = k.status === 'active' ? 'KRAKEN SALDIRIYOR!' : k.status === 'won' ? 'KRAKEN YENİLDİ!' : 'KRAKEN KAÇTI…';
+    c.querySelector('.kr-bar i').style.width = (100 * k.hp / k.max) + '%';
+    c.querySelector('.kr-hits').textContent = (k.last || []).join('   ·   ');
+    if (k.hp < krakenHp && !reduceMotion) { c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit'); }
+    krakenHp = k.hp;
+    tickKraken();
+  }
+  function tickKraken() {
+    const k = krakenState, line = games && games.kraken.querySelector('.kr-line');
+    if (!k || !line) return;
+    line.textContent = k.status === 'active' ? `!saldır yaz · ${secsLeft(k.endsAt)} sn · ${k.hp}/${k.max} can`
+      : k.status === 'won' ? `Son vuruş: ${k.killer} · saldıran herkese ganimet` : 'Bir dahaki sefere daha sert vurun!';
+  }
+  function renderRace(r) {
+    const c = games.race;
+    c.classList.toggle('active', !!r);
+    raceState = r;
+    if (!r) { raceId = null; return; }
+    if (r.id !== raceId) { raceId = r.id; c.querySelectorAll('.race-body').forEach(n => n.remove()); div(c, 'race-body', ''); }
+    c.dataset.status = r.status;
+    const body = c.querySelector('.race-body'), medals = ['🥇','🥈','🥉'];
+    if (r.status === 'join') {
+      body.replaceChildren(); div(body, 'race-line', '');
+      const chips = div(body, 'race-chips', '');
+      r.boats.forEach(b => div(chips, 'chip ' + b.platform, '⛵ ' + b.name));
+      tickRace();
+    } else if (r.status === 'race') {
+      let lanes = body.querySelector('.race-lanes');
+      if (!lanes || lanes.childElementCount !== r.boats.length) {
+        body.replaceChildren(); div(body, 'race-line', 'Yazdıkça hızlan! 💨');
+        lanes = div(body, 'race-lanes', '');
+        r.boats.forEach(b => { const row = div(lanes, 'lane ' + b.platform, ''); div(row, 'lane-name', b.name); div(div(row, 'lane-track', ''), 'boat', '⛵'); });
+      }
+      r.boats.forEach((b, i) => {
+        const row = lanes.children[i], place = r.podium.indexOf(b.key);
+        row.querySelector('.boat').style.left = `calc(${b.pos}% - ${b.pos / 100 * 1.4}vw)`;
+        row.classList.toggle('finished', place >= 0);
+        row.querySelector('.lane-name').textContent = (place >= 0 ? medals[place] + ' ' : '') + b.name;
+      });
+    } else {
+      body.replaceChildren();
+      if (r.status === 'done') {
+        const byKey = Object.fromEntries(r.boats.map(b => [b.key, b])), pod = div(body, 'race-podium', '');
+        r.podium.slice(0, 3).forEach((k, i) => div(pod, 'podium-' + i, medals[i] + ' ' + byKey[k].name));
+      } else div(body, 'race-line', 'Yarış iptal edildi');
+    }
+  }
+  function tickRace() {
+    const r = raceState, line = games && games.race.querySelector('.race-line');
+    if (r && r.status === 'join' && line) line.textContent = `!katıl yaz · ${secsLeft(r.endsAt)} sn · ${r.boats.length} gemi`;
+  }
+  if (games) setInterval(() => { tickKraken(); tickRace(); }, 500);
+  function renderFish(list) {
+    list = list || [];
+    if (fishSeen === null) { fishSeen = new Set(list.map(x => x.id)); return; }  // don't replay old catches on page load
+    list.forEach(x => { if (!fishSeen.has(x.id)) { fishSeen.add(x.id); fishQueue.push(x); } });
+    fishQueue = fishQueue.slice(-4);
+    playFish();
+  }
+  function playFish() {
+    if (fishBusy || !fishQueue.length) return;
+    fishBusy = true;
+    const x = fishQueue.shift(), c = games.fish;
+    c.querySelectorAll('.fish-body').forEach(n => n.remove());
+    c.dataset.rarity = ''; c.dataset.platform = x.platform;
+    const body = div(c, 'fish-body', ''); div(body, 'fish-who', x.name);
+    const got = div(body, 'fish-catch bobbing', '🎣'), note = div(body, 'fish-note', 'olta attı…');
+    c.classList.add('active');
+    setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; }, reduceMotion ? 300 : 2600);
+    setTimeout(() => { c.classList.remove('active'); setTimeout(() => { fishBusy = false; playFish(); }, 400); }, reduceMotion ? 3500 : 6200);
+  }
   function render(s) {
+    if (games) { renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
       const list=div(crew,'crew-list','');
@@ -179,8 +274,8 @@
       }
     }
   }
-  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}}};
-  if(sample) render(demo); else render({routes:[],crew:[],stats:{}});
+  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
+  if(sample) { fishSeen=new Set(); render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
     try { ws=new WebSocket('ws://127.0.0.1:8765/'); } catch(_) { setTimeout(connect,3000); return; }

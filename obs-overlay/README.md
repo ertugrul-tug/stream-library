@@ -76,6 +76,11 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 - **Sohbet botu:** tahmin açılış/kilit/sonucu, maç sonucu ve seri, rütbe atlama duyuruları; `!rütbe` ve `!komutlar` sorulan platformda cevaplanır (kişi başı bekleme süreli). Botun kendi mesajları geri geldiğinde sayılmaz. "🤖 Bot konuşuyor · sustur" ile kapatılır.
 - **Ortak sohbet:** mesajı "Anons yap" ile ekranda öne çıkar; ⏱ timeout (10 dk) ve ⛔ ban.
 - **Discord:** 📣 Canlıyım (oyun satırlı duyuru), 📊 yayın sonu özeti (önizlemeli), özel mesaj.
+- **Mini oyunlar** (oyun sahnesinin üst ortasındaki etkinlik şeridinde görünür):
+  - **🎣 Olta:** sohbet `!olta` yazar (kişi başı 60 sn), 2,6 sn sonra ganimet çıkar: Hamsi (3) … Altın sandık (60), Kraken dişi (100). 25+ puanlık yakalamaları bot duyurur. `!ganimet` toplamı ve en iyi yakalamayı söyler. Kumandadaki "🎣 Olta at" Kaptan adına atar.
+  - **🐙 Kraken:** kumandadan çağrılır ya da yayın açıkken 25–50 dakikada bir kendiliğinden çıkar (kumandadan kapatılabilir). Sohbet 90 sn içinde `!saldır` ile canını bitirir; can son 10 dakikada yazan kişi sayısına göre ayarlanır. Kazanılırsa saldıran herkes ganimet alır, son vuruşa +25.
+  - **⛵ Yelken yarışı:** kumandadan başlar, 45 sn `!katıl` süresi var, Kaptan'ın gemisi otomatik katılır. Yarışta yazılan her mesaj o kişinin gemisine rüzgâr verir; ilk üç 50/25/10 ganimet alır.
+  - Kraken ve yarış aynı anda açılmaz. Ganimet puanları rütbeyi değiştirmez, `.crew.json`'da ayrı tutulur. Süreler `show-config.json > games`'te. Önizleme: `overlay.html?sample` (Kraken) ve `overlay.html?sample=race`.
 - **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır.
 
 ### Streamer.bot action'ları
