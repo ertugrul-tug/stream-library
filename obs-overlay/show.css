@@ -67,6 +67,8 @@
 @keyframes showIn{from{opacity:0;transform:translateY(1.2vw) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 /* mini games — one centered lane under the segment strip (Kraken, yelken yarışı, olta, rütbe) */
 .show-events{position:absolute;z-index:9;left:50%;top:6%;transform:translateX(-50%);width:30%;display:flex;flex-direction:column;align-items:center;gap:.6vw;pointer-events:none}
+.scene.start .show-events,.scene.break .show-events{left:auto;right:5.5%;top:14%;transform:none;width:21%}
+.chat-scene .show-events{left:5%;top:7.5%;transform:none;width:38%}
 .show-events .show-card{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:100%}
 .show-events .show-rankup{width:auto;min-width:45%}
 .show-kraken,.show-race,.show-fish{display:none}

@@ -194,7 +194,7 @@ def defaults():
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
-        "catches": [], "kraken": None, "race": None, "krakenRandom": True,
+        "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -274,7 +274,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -1030,6 +1030,8 @@ async def client(ws):
                     if not state["race"] or state["race"]["status"] not in ("join", "race"):
                         continue
                     race_end(cancelled=True)
+                elif action == "toggleSfx":
+                    state["sfx"] = not state["sfx"]
                 elif action == "toggleKrakenRandom":
                     state["krakenRandom"] = not state["krakenRandom"]
                 elif action == "toggleBotChat":

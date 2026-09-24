@@ -21,12 +21,13 @@
   let rankUpShown = 0;
   // Mini games (game scene only): one centered event lane under the segment strip, rank-up toast at its end.
   let games = null;
-  if (kind === 'overlay') {
+  if (kind !== 'end') {  // game scene, chat scene, and the start/break screens (viewers fish and race while waiting)
     const lane = document.createElement('div'); lane.className = 'show-events'; root.append(lane);
     games = { kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA') };
-    lane.append(games.kraken, games.race, games.fish, rankUp);
+    lane.append(games.kraken, games.race, games.fish);
+    if (rankUp) lane.append(rankUp);
   }
-  let krakenId = null, krakenHp = null, krakenState = null, raceId = null, raceState = null;
+  let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
   let fishSeen = null, fishQueue = [], fishBusy = false;
   let segment = null, lastSchedule = {}, segmentOn = true;
   if (kind === 'overlay') { segment = document.createElement('div'); segment.className = 'show-segment'; root.append(segment); }
@@ -62,6 +63,40 @@
       if (p < 1) requestAnimationFrame(tick);
     })(start);
   }
+  // Mini-game sounds, synthesized (no audio files). OBS only mixes the scene that is on air, so pages don't overlap.
+  let audioCtx = null, sfxEnabled = true, lastHitSound = 0;
+  function tone(freq, dur, opt = {}) {
+    if (!sfxEnabled || sample) return;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t = audioCtx.currentTime + (opt.delay || 0), osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.type = opt.type || 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      if (opt.to) osc.frequency.exponentialRampToValueAtTime(opt.to, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(opt.gain || 0.1, t + Math.min(0.03, dur / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let node = osc;
+      if (opt.lowpass) { const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = opt.lowpass; osc.connect(f); node = f; }
+      node.connect(g); g.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    } catch (_) {}
+  }
+  const arp = (notes, step, opt) => notes.forEach((f, i) => tone(f, opt.dur || 0.25, { ...opt, delay: i * step }));
+  const sfx = {
+    krakenStart() { tone(70, 1.4, { type: 'sawtooth', to: 38, gain: 0.16, lowpass: 380 }); tone(105, 1.1, { type: 'sawtooth', to: 52, gain: 0.08, lowpass: 300, delay: 0.15 }); },
+    hit() { const now = Date.now(); if (now - lastHitSound < 220) return; lastHitSound = now; tone(150, 0.14, { type: 'triangle', to: 55, gain: 0.12 }); },
+    win() { arp([523, 659, 784, 1047], 0.11, { type: 'triangle', gain: 0.1, dur: 0.3 }); },
+    lose() { tone(330, 0.9, { type: 'triangle', to: 110, gain: 0.08 }); },
+    fish(rarity) {
+      tone(620, 0.18, { to: 180, gain: 0.09 });
+      if (rarity === 'nadir') arp([1319, 1568, 1760], 0.07, { gain: 0.05, dur: 0.18, delay: 0 });
+      if (rarity === 'efsane') arp([784, 988, 1175, 1568, 1976], 0.09, { type: 'triangle', gain: 0.08, dur: 0.35 });
+    },
+    horn() { tone(196, 0.45, { type: 'square', gain: 0.05, lowpass: 900 }); tone(247, 0.6, { type: 'square', gain: 0.05, lowpass: 900, delay: 0.45 }); },
+    bell() { arp([1047, 1319, 1568], 0.16, { gain: 0.08, dur: 0.8 }); },
+  };
   const secsLeft = at => Math.max(0, Math.ceil((at - Date.now()) / 1000));
   function renderKraken(k) {
     const c = games.kraken;
@@ -69,7 +104,7 @@
     krakenState = k;
     if (!k) { krakenId = null; return; }
     if (k.id !== krakenId) {
-      krakenId = k.id; krakenHp = k.max;
+      krakenId = k.id; krakenHp = k.max; krakenStatus = null;
       c.querySelectorAll('.kr-body').forEach(n => n.remove());
       const body = div(c, 'kr-body', ''); div(body, 'kr-emoji', '🐙');
       const info = div(body, 'kr-info', ''); div(info, 'kr-title', '');
@@ -79,7 +114,8 @@
     c.querySelector('.kr-title').textContent = k.status === 'active' ? 'KRAKEN SALDIRIYOR!' : k.status === 'won' ? 'KRAKEN YENİLDİ!' : 'KRAKEN KAÇTI…';
     c.querySelector('.kr-bar i').style.width = (100 * k.hp / k.max) + '%';
     c.querySelector('.kr-hits').textContent = (k.last || []).join('   ·   ');
-    if (k.hp < krakenHp && !reduceMotion) { c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit'); }
+    if (k.hp < krakenHp) { sfx.hit(); if (!reduceMotion) { c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit'); } }
+    if (k.status !== krakenStatus) { ({ active: sfx.krakenStart, won: sfx.win, lost: sfx.lose })[k.status]?.(); krakenStatus = k.status; }
     krakenHp = k.hp;
     tickKraken();
   }
@@ -94,8 +130,9 @@
     c.classList.toggle('active', !!r);
     raceState = r;
     if (!r) { raceId = null; return; }
-    if (r.id !== raceId) { raceId = r.id; c.querySelectorAll('.race-body').forEach(n => n.remove()); div(c, 'race-body', ''); }
+    if (r.id !== raceId) { raceStatus = null; raceId = r.id; c.querySelectorAll('.race-body').forEach(n => n.remove()); div(c, 'race-body', ''); }
     c.dataset.status = r.status;
+    if (r.status !== raceStatus) { if (r.status === 'join' || r.status === 'race') sfx.horn(); else if (r.status === 'done') sfx.bell(); raceStatus = r.status; }
     const body = c.querySelector('.race-body'), medals = ['🥇','🥈','🥉'];
     if (r.status === 'join') {
       body.replaceChildren(); div(body, 'race-line', '');
@@ -144,10 +181,11 @@
     const body = div(c, 'fish-body', ''); div(body, 'fish-who', x.name);
     const got = div(body, 'fish-catch bobbing', '🎣'), note = div(body, 'fish-note', 'olta attı…');
     c.classList.add('active');
-    setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; }, reduceMotion ? 300 : 2600);
+    setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; sfx.fish(x.rarity); c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; }, reduceMotion ? 300 : 2600);
     setTimeout(() => { c.classList.remove('active'); setTimeout(() => { fishBusy = false; playFish(); }, 400); }, reduceMotion ? 3500 : 6200);
   }
   function render(s) {
+    sfxEnabled = s.sfx !== false;
     if (games) { renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
