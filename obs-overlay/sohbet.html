@@ -51,6 +51,8 @@ html,body{background:transparent}
     const meta=document.createElement('div'); meta.className='meta';
     const badge=document.createElement('span'); badge.className='badge'; badge.textContent=platform.toUpperCase();
     const user=document.createElement('span'); user.className='name'; user.textContent=name;
+    const rank=window.qedyRanks?.get(`${platform}:${name.toLocaleLowerCase('tr-TR')}`);
+    if(rank){const r=document.createElement('small');r.className='crew-rank';r.textContent=rank;user.append(r);}
     const body=document.createElement('div'); body.className='body'; qedyEmotes.render(body,parts,300);
     meta.append(badge,user); item.append(meta,body); list.append(item);
     while(list.children.length>9) list.firstElementChild.remove();
@@ -70,12 +72,12 @@ html,body{background:transparent}
     socket.addEventListener('close',()=>setTimeout(connect,3000));
   }
   connect();
-  if(sample) {
+  if(sample) setTimeout(()=>{  // after show-client.js has shared crew ranks
     add('twitch','MaviKaptan','Herkese selam, bu akşam ne oynuyoruz?');
     add('kick','YesilLiman','Kick tayfası da güvertede! 👋');
     add('twitch','Denizci42','Yeni sahne çok iyi olmuş. PogChamp Kappa',qedyEmotes.parse({text:'Yeni sahne çok iyi olmuş. PogChamp Kappa',emotes:[{name:'Kappa',imageUrl:'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0'},{name:'PogChamp',imageUrl:'https://static-cdn.jtvnw.net/emoticons/v2/305954156/default/dark/2.0'}]}));
     add('kick','KaptanDostu','İki sohbetin burada birleşmesi harika.');
     add('twitch','YildizRota','Haydi başlayalım! ⚓');
-  }
+  }, 150);
 })();
 </script><script src="motion.js"></script><script src="show-client.js"></script></body></html>

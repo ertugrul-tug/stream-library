@@ -247,6 +247,10 @@
     setTimeout(() => { c.classList.remove('active'); setTimeout(() => { fishBusy = false; playFish(); }, 400); }, reduceMotion ? 3500 : 6200);
   }
   function render(s) {
+    // Share ranks with the chat boxes on this page (they read chat straight from Streamer.bot).
+    const ranks = new Map();
+    [...(s.topCrew || []), ...(s.crew || [])].forEach(c => { if (c.rank && c.rank !== 'Miço') ranks.set(`${c.platform}:${String(c.name).toLocaleLowerCase('tr-TR')}`, c.rank); });
+    window.qedyRanks = ranks;
     sfxEnabled = s.sfx !== false;
     if (games) renderEffects(s.effects);
     if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
