@@ -28,7 +28,7 @@
     if (rankUp) lane.append(rankUp);
   }
   let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
-  let fishSeen = null, fishQueue = [], fishBusy = false, raidId = null;
+  let fishSeen = null, fishQueue = [], fishBusy = false, raidId = null, fxSeen = null;
   let segment = null, lastSchedule = {}, segmentOn = true;
   if (kind === 'overlay') { segment = document.createElement('div'); segment.className = 'show-segment'; root.append(segment); }
   function renderSegment() {
@@ -176,6 +176,42 @@
     const info = div(body, 'raid-info', ''); div(info, 'raid-name', r.name); div(info, 'raid-count', `${r.viewers} kişilik tayfasıyla güverteye çıktı!`);
     sfx.horn(); setTimeout(sfx.win, 700);
   }
+  // Market effects (!martı, !konfeti, !top) play across the whole scene.
+  function renderEffects(list) {
+    list = list || [];
+    if (fxSeen === null) { fxSeen = new Set(list.map(x => x.id)); return; }
+    list.forEach(x => { if (!fxSeen.has(x.id)) { fxSeen.add(x.id); playEffect(x); } });
+  }
+  function banner(text, platform) {
+    const b = document.createElement('div'); b.className = 'fx-banner ' + (platform || ''); b.textContent = text;
+    b.style.bottom = (17 + 5 * root.querySelectorAll('.fx-banner').length) + '%';  // stack when effects overlap
+    root.append(b); setTimeout(() => b.remove(), 3600);
+  }
+  function playEffect(x) {
+    if (x.type === 'martı') {
+      const g = document.createElement('div'); g.className = 'fx-gull';
+      const bird = document.createElement('span'); bird.textContent = '🕊️';
+      const tag = document.createElement('small'); tag.textContent = x.name;
+      g.append(bird, tag); root.append(g); setTimeout(() => g.remove(), 6000);
+      tone(1400, 0.18, { to: 900, type: 'triangle', gain: 0.05 }); tone(1500, 0.22, { to: 850, type: 'triangle', gain: 0.05, delay: 0.3 });
+    } else if (x.type === 'konfeti') {
+      const colors = ['#22aef0', '#ff3d7f', '#ffce54', '#5cf0a0', '#9146ff', '#53fc18'];
+      for (let i = 0; i < (reduceMotion ? 0 : 90); i++) {
+        const c = document.createElement('i'); c.className = 'fx-confetti';
+        c.style.left = Math.random() * 100 + '%'; c.style.background = colors[i % colors.length];
+        c.style.animationDelay = Math.random() * 0.8 + 's'; c.style.animationDuration = 2.4 + Math.random() * 1.6 + 's';
+        c.style.setProperty('--drift', (Math.random() * 16 - 8) + 'vw'); c.style.setProperty('--spin', (Math.random() * 900 - 450) + 'deg');
+        root.append(c); setTimeout(() => c.remove(), 5000);
+      }
+      banner(`🎉 ${x.name} konfeti patlattı!`, x.platform);
+      arp([784, 988, 1175], 0.06, { type: 'triangle', gain: 0.06, dur: 0.2 });
+    } else if (x.type === 'top') {
+      const f = document.createElement('div'); f.className = 'fx-flash'; root.append(f); setTimeout(() => f.remove(), 700);
+      if (!reduceMotion) { root.classList.remove('fx-shake'); void root.offsetWidth; root.classList.add('fx-shake'); setTimeout(() => root.classList.remove('fx-shake'), 700); }
+      banner(`💥 ${x.name} top ateşledi!`, x.platform);
+      tone(60, 0.9, { type: 'sawtooth', to: 30, gain: 0.2, lowpass: 240 }); tone(95, 0.5, { type: 'square', to: 40, gain: 0.08, lowpass: 400 });
+    }
+  }
   function renderFish(list) {
     list = list || [];
     if (fishSeen === null) { fishSeen = new Set(list.map(x => x.id)); return; }  // don't replay old catches on page load
@@ -197,6 +233,7 @@
   }
   function render(s) {
     sfxEnabled = s.sfx !== false;
+    if (games) renderEffects(s.effects);
     if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
@@ -327,7 +364,7 @@
     }
   }
   const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
-  if(sample) { fishSeen=new Set(); render(demo); } else render({routes:[],crew:[],stats:{}});
+  if(sample) { fishSeen=new Set(); if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
     try { ws=new WebSocket('ws://127.0.0.1:8765/'); } catch(_) { setTimeout(connect,3000); return; }

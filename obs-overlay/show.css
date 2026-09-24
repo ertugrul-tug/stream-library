@@ -120,6 +120,20 @@
 .show-raid .raid-name{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1.35vw;font-weight:800;color:#ffe29a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .show-raid .raid-count{margin-top:.3vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.7vw;letter-spacing:.08em;color:#f5e6c4}
 @keyframes raidWave{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+.fx-banner{position:absolute;z-index:30;left:50%;bottom:17%;transform:translateX(-50%);padding:.6vw 1.4vw;border-radius:100px;background:rgba(7,13,22,.9);border:1px solid rgba(255,206,84,.7);font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:800;color:#ffe29a;white-space:nowrap;animation:fxBanner 3.6s ease both;pointer-events:none}
+.fx-banner.twitch{border-color:rgba(145,70,255,.8)}.fx-banner.kick{border-color:rgba(83,252,24,.7)}
+.fx-confetti{position:absolute;z-index:29;top:-2vw;width:.55vw;height:.9vw;border-radius:.1vw;pointer-events:none;animation:fxFall linear forwards}
+.fx-gull{position:absolute;z-index:29;top:9%;left:-8%;display:flex;align-items:center;gap:.5vw;pointer-events:none;animation:fxGull 6s linear forwards}
+.fx-gull span{font-size:2.4vw;animation:fxFlap .5s ease-in-out infinite}
+.fx-gull small{padding:.15vw .5vw;border-radius:1vw;background:rgba(7,13,22,.8);font-size:.7vw;font-weight:700;color:#fff}
+.fx-flash{position:absolute;inset:0;z-index:31;background:radial-gradient(circle at 50% 70%,rgba(255,236,190,.85),rgba(255,140,40,.35) 40%,transparent 70%);pointer-events:none;animation:fxFlash .7s ease-out forwards}
+.fx-shake .show-card{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97)!important}
+@keyframes fxBanner{0%{opacity:0;transform:translate(-50%,1vw) scale(.9)}12%,82%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-.5vw)}}
+@keyframes fxFall{to{transform:translate(var(--drift),110vh) rotate(var(--spin))}}
+@keyframes fxGull{0%{left:-8%;transform:translateY(0)}50%{transform:translateY(2vw)}100%{left:104%;transform:translateY(-1vw)}}
+@keyframes fxFlap{50%{transform:translateY(-.3vw) scaleY(.85)}}
+@keyframes fxFlash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+@keyframes fxShake{10%,90%{transform:translate(-.15vw,0)}20%,80%{transform:translate(.3vw,0)}30%,50%,70%{transform:translate(-.5vw,.2vw)}40%,60%{transform:translate(.5vw,-.2vw)}}
 @keyframes krWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}}
 @keyframes krHit{0%,100%{transform:translateX(0)}25%{transform:translateX(-.4vw)}75%{transform:translateX(.4vw)}}
 @keyframes krSink{to{transform:translateY(1.5vw) rotate(25deg) scale(.6);opacity:.2}}

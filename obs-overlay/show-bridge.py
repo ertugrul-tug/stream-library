@@ -195,7 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "",
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -288,7 +288,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -300,7 +300,7 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M (açıkken) · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 
@@ -351,6 +351,7 @@ _greet_times, _chat_since_tip = [], [0]
 TIPS = [
     "🎣 Canın sıkıldı mı? !olta yaz, bakalım denizden ne çıkacak. Altın sandık seni bekliyor!",
     "🎖️ Sohbette yazdıkça rütben yükselir: Miço → Tayfa → … → İkinci Kaptan. Nerede olduğunu !rütbe ile gör.",
+    "🛒 Ganimetin birikti mi? !market ile bak: 🕊️ !martı · 🎉 !konfeti · 💥 !top — ekranda patlasın!",
     HELP_TEXT,
 ]
 
@@ -686,6 +687,10 @@ async def streamer_bot():
                                 say(rank_text(platform, name), platform)
                             elif command in ("!olta", "!balık", "!balik"):
                                 cast_line(platform, name)
+                            elif command in MARKET_ALIASES:
+                                buy(platform, name, MARKET_ALIASES[command])
+                            elif command == "!market" and cooldown(f"market:{platform}:{name.casefold()}", 20):
+                                say(market_text(platform, name), platform)
                             elif command == "!soru":
                                 ask_question(platform, name, message.split(None, 1)[1] if " " in message else "")
                             elif command == "!ganimet" and cooldown(f"loot:{platform}:{name.casefold()}", 20):
@@ -879,8 +884,8 @@ def add_loot(platform, name, points, best=None):
 def loot_text(platform, name):
     entry = crew_db.get(f"{platform}:{name.casefold()}") or {}
     best = entry.get("best")
-    tail = f" · en iyi: {best['emoji']} {best['name']} ({best['points']})" if best else " · henüz bir şey yakalamadın, !olta yaz"
-    return f"@{name} 🎣 ganimet: {entry.get('loot', 0)}{tail}"
+    tail = f" · en iyi: {best['emoji']} {best['name']} ({best['points']})" if best         else "" if entry.get("loot") else " · henüz bir şey yakalamadın, !olta yaz"
+    return f"@{name} 🎣 ganimet: {balance(entry)} (toplam kazanılan {entry.get('loot', 0)}){tail}"
 
 
 def cast_line(platform, name):
@@ -898,6 +903,40 @@ def cast_line(platform, name):
             say(f"🎣 {name} {emoji} {item} yakaladı! +{points} ganimet (toplam {total})")
         _spawn(brag())
     return True
+
+
+# Market: spend loot on screen effects. Earned total (leaderboard) stays; "spent" is tracked beside it.
+MARKET = {"martı": ("🕊️", 15), "konfeti": ("🎉", 20), "top": ("💥", 40)}
+MARKET_ALIASES = {"!martı": "martı", "!marti": "martı", "!konfeti": "konfeti", "!top": "top"}
+
+
+def balance(entry):
+    return entry.get("loot", 0) - entry.get("spent", 0)
+
+
+def market_text(platform, name):
+    entry = crew_db.get(f"{platform}:{name.casefold()}") or {}
+    items = " · ".join(f"{emoji} !{item} {price}" for item, (emoji, price) in MARKET.items())
+    return f"🛒 Market: {items} · @{name} sende {balance(entry)} ganimet var"
+
+
+def buy(platform, name, item):
+    key = f"{platform}:{name.casefold()}"
+    emoji, price = MARKET[item]
+    if not state["market"] or not cooldown(f"buy:{key}", 10):
+        return
+    entry = crew_db.get(key) or {}
+    if balance(entry) < price:
+        if cooldown(f"poor:{key}", 30):
+            say(f"@{name} {emoji} !{item} için {price} ganimet lazım, sende {balance(entry)} var — !olta ile topla 🎣", platform)
+        return
+    now = time.time()
+    if now - _cmd_last.get(f"effect:{item}", 0) < 8:  # same effect again too soon: don't charge
+        return
+    _cmd_last[f"effect:{item}"] = now
+    entry["spent"] = entry.get("spent", 0) + price
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    state["effects"] = (state["effects"] + [{"id": f"e{now}", "type": item, "name": name, "platform": platform}])[-10:]
 
 
 def recent_chatters(minutes=10):
@@ -1229,6 +1268,8 @@ async def client(ws):
                     race_end(cancelled=True)
                 elif action == "toggleSfx":
                     state["sfx"] = not state["sfx"]
+                elif action == "toggleMarket":
+                    state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":
                     state["krakenRandom"] = not state["krakenRandom"]
                 elif action == "toggleBotChat":
