@@ -338,6 +338,13 @@ async def run(sb, obs, tmp):
         await wait_until(race_done, 60)
         race = state()["race"] or {}
         check("yarış bitti, kürsü oluştu", race.get("status") == "done" and len(race.get("podium", [])) == 3, str(race.get("status")))
+        await p.act("setGoal", target=2)
+        n = len(sb.said)
+        await sb.event("twitch", "Follow", {"user": {"name": "Takipci1"}})
+        await sb.event("kick", "Follow", {"user": {"name": "Takipci2"}})
+        await p.drain()
+        check("takip hedefi tuttu: ekran efekti ve bot", state()["goal"]["reached"] and any(e["type"] == "goal" for e in state()["effects"])
+              and any("hedefimize ulaştık" in t for t in sb.said_since(n)))
         n = len(sb.said)
         await sb.event("twitch", "Raid", {"user": {"name": "KorsanBey", "login": "korsanbey"}, "viewers": 7})
         await p.drain()

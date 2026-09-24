@@ -89,6 +89,7 @@ Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi
   - **🏴‍☠️ Baskın:** Twitch'ten baskın gelince etkinlik şeridinde altın "BASKIN" kartı çıkar, bot baskını yapanı ve tayfasını karşılar, 6 sn sonra kanalına takip çağrısı atar; 3+ kişilik baskından 20 sn sonra Kraken çıkar (`games.kraken.raidMinViewers`). Baskınlar Discord özetine girer. Önizleme: `overlay.html?sample=raid`.
   - Oyun sesleri (Kraken gürlemesi, vuruş, olta, yarış düdüğü) tarayıcıda sentezlenir; kumandadan kapatılır. Gece sonunda olta/Kraken/yarış sayıları ve "👑 Gecenin ganimet kralı" kapanış ekranına ve Discord özetine girer.
   - Kraken ve yarış aynı anda açılmaz. Ganimet puanları rütbeyi değiştirmez, `.crew.json`'da ayrı tutulur. Süreler `show-config.json > games`'te. Önizleme: `overlay.html?sample` (Kraken) ve `overlay.html?sample=race`.
+- **🎯 Takip hedefi:** Ayarlar sekmesindeki (Seyir defteri) kutuya bu akşamki hedefi yaz (0 = kapalı). Oyun sahnesinin segment şeridinde "🎯 3/5 takipçi" ve ilerleme çubuğu görünür; hedef tutunca ekranda konfeti ve "hedef tamam" şeridi, bot teşekkür eder, Discord özetine girer.
 - **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır.
 
 ### Streamer.bot action'ları

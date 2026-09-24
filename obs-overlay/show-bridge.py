@@ -197,7 +197,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False},
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -273,6 +273,9 @@ def summary_text():
     king = loot_king()
     if king:
         lines.append(f"👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})")
+    goal = state["goal"]
+    if goal["target"]:
+        lines.append(f"🎯 Takip hedefi: {follows_tonight()}/{goal['target']}" + (" ✅" if goal["reached"] else ""))
     t, k = state["stats"]["twitch"], state["stats"]["kick"]
     lines.append(f"💬 {t['chat'] + k['chat']} mesaj · 👋 {t['follow'] + k['follow']} yeni takipçi · ⭐ {t['sub'] + k['sub']} abonelik")
     if state["highlights"]:
@@ -290,7 +293,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -709,6 +712,7 @@ async def streamer_bot():
                             on_raid(platform, data)
                         elif kind == "Follow":
                             state["stats"][platform]["follow"] += 1
+                            check_goal()
                         elif kind in ("Sub", "ReSub", "GiftSub", "Subscription", "Resubscription", "GiftSubscription"):
                             state["stats"][platform]["sub"] += 1
                         elif kind == "Cheer" and platform == "twitch":
@@ -960,6 +964,19 @@ def collection_text(platform, name):
     shelf = " ".join(emoji if item in caught else "❔" for item, emoji, _, _ in LOOT)
     tail = " · 🏆 Balıkçı Reisi!" if len(caught) == len(LOOT) else " · tamamlayana +100 ganimet"
     return f"@{name} 🎣 koleksiyon {len(caught)}/{len(LOOT)}: {shelf}{tail}"
+
+
+def follows_tonight():
+    return state["stats"]["twitch"]["follow"] + state["stats"]["kick"]["follow"]
+
+
+def check_goal():
+    """Tonight's follow goal: celebrate once on screen and in chat when it's reached."""
+    goal = state["goal"]
+    if goal["target"] and not goal["reached"] and follows_tonight() >= goal["target"]:
+        goal["reached"] = True
+        state["effects"] = (state["effects"] + [{"id": f"g{time.time()}", "type": "goal", "name": str(goal["target"]), "platform": ""}])[-10:]
+        say(f"🎯 Bu akşamki {goal['target']} takipçi hedefimize ulaştık! Teşekkürler mürettebat, yelkenler dolu ⚓")
 
 
 def recent_chatters(minutes=10):
@@ -1300,6 +1317,10 @@ async def client(ws):
                     add_loot(platform, name, amount)
                     say(f"🎁 Kaptan @{name} tayfasına {amount} ganimet hediye etti!", platform)
                     await send_notice(ws, True, f"🎁 {name} +{amount} ganimet")
+                elif action == "setGoal":
+                    target = max(0, min(999, int(msg.get("target") or 0)))
+                    state["goal"] = {"target": target, "reached": False}
+                    check_goal()
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":
