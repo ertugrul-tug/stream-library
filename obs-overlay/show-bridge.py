@@ -195,7 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}}, "health": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -265,6 +265,9 @@ def summary_text():
         + ([f"⛵ {n['races']} yarış"] if n["races"] else [])
     if games:
         lines.append(" · ".join(games))
+    raids = state["night"].get("raids") or []
+    if raids:
+        lines.append("🏴‍☠️ Baskınlar: " + ", ".join(f"{r['name']} ({r['viewers']})" for r in raids))
     king = loot_king()
     if king:
         lines.append(f"👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})")
@@ -612,7 +615,7 @@ async def send_notice(ws, ok, text, scope=None):
 
 
 async def streamer_bot():
-    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer"],
+    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer", "Raid"],
               "Kick": ["ChatMessage", "Follow", "Subscription", "Resubscription", "GiftSubscription", "KicksGifted"]}
     while True:
         try:
@@ -681,6 +684,8 @@ async def streamer_bot():
                                 race_join(platform, name)
                             elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
                                 say(HELP_TEXT, platform)
+                        elif kind == "Raid":
+                            on_raid(platform, data)
                         elif kind == "Follow":
                             state["stats"][platform]["follow"] += 1
                         elif kind in ("Sub", "ReSub", "GiftSub", "Subscription", "Resubscription", "GiftSubscription"):
@@ -978,6 +983,31 @@ def race_end(cancelled=False, reason=""):
             + " · ganimetler dağıtıldı!")
     _clear_later("race", r["id"], 12)
 
+
+
+def on_raid(platform, data):
+    """Big welcome for an incoming raid; a Kraken shows up shortly after so the raiders have something to do."""
+    frm = data.get("from") if isinstance(data.get("from"), dict) else {}
+    name = person(data) or clean(data.get("from_broadcaster_user_name") or data.get("fromBroadcasterUserName")
+                                 or frm.get("name") or data.get("userName"), 32)
+    login = clean((data.get("user") or {}).get("login") or data.get("from_broadcaster_user_login") or frm.get("login") or name, 32).lower()
+    viewers = int(data.get("viewers") or data.get("viewerCount") or data.get("viewer_count") or 0)
+    if not name:
+        return
+    state["raid"] = {"id": f"raid{time.time()}", "platform": platform, "name": name, "viewers": viewers}
+    state["night"].setdefault("raids", []).append({"name": name, "viewers": viewers})
+    say(f"🏴‍☠️ BASKIN! {name} {viewers} kişilik tayfasıyla güverteye çıktı! Hoş geldiniz korsanlar ⚓ !komutlar ile neler yapabileceğinizi görün.")
+
+    async def follow_up():
+        await asyncio.sleep(6)
+        if platform == "twitch" and login:
+            say(f"📣 {name} harika bir yayıncı, kanalına bir takip bırakın: twitch.tv/{login}")
+        await asyncio.sleep(14)
+        if viewers >= int(KRAKEN_CFG.get("raidMinViewers") or 3) and not state["kraken"] and not state["race"]:
+            kraken_start()
+        await publish()
+    _spawn(follow_up())
+    _clear_later("raid", state["raid"]["id"], 12)
 
 # ------------------------------------------------------ League of Legends --
 # Riot's Live Client Data API runs on this PC only while a game is loaded (no API key).

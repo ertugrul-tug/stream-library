@@ -21,7 +21,7 @@
   },
   "games": {
     "fishCooldownSec": 60,
-    "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50 },
+    "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50, "raidMinViewers": 3 },
     "race": { "joinSec": 45, "maxBoats": 8 }
   },
   "lolAuto": {

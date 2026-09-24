@@ -72,8 +72,8 @@
 .chat-scene .show-events{left:5%;top:7.5%;transform:none;width:38%}
 .show-events .show-card{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:100%}
 .show-events .show-rankup{width:auto;min-width:45%}
-.show-kraken,.show-race,.show-fish{display:none}
-.show-kraken.active,.show-race.active,.show-fish.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
+.show-raid,.show-kraken,.show-race,.show-fish{display:none}
+.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
 .show-kraken{border-color:rgba(255,61,127,.75);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(255,61,127,.35)}
 .show-kraken .show-label{color:#ff7aa6}
 .show-kraken .kr-body{display:flex;align-items:center;gap:1vw}
@@ -112,9 +112,16 @@
 .show-fish[data-rarity="nadir"]{border-color:rgba(34,174,240,.85);box-shadow:0 0 1.4vw rgba(34,174,240,.45)}
 .show-fish[data-rarity="efsane"]{border-color:rgba(255,206,84,.9);box-shadow:0 0 2vw rgba(255,206,84,.55)}
 .show-fish[data-rarity="efsane"] .fish-note{color:#ffe29a}
+.show-raid{border-color:rgba(255,206,84,.9);background:linear-gradient(140deg,rgba(46,30,8,.94),rgba(20,14,6,.86));box-shadow:0 1vw 3vw rgba(0,0,0,.4),0 0 2.4vw rgba(255,206,84,.45)}
+.show-raid .show-label{color:#ffce54}
+.show-raid .raid-body{display:flex;align-items:center;gap:1vw}
+.show-raid .raid-flag{font-size:3vw;line-height:1;animation:raidWave 1.2s ease-in-out infinite;transform-origin:20% 90%}
+.show-raid .raid-name{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1.35vw;font-weight:800;color:#ffe29a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.show-raid .raid-count{margin-top:.3vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.7vw;letter-spacing:.08em;color:#f5e6c4}
+@keyframes raidWave{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
 @keyframes krWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}}
 @keyframes krHit{0%,100%{transform:translateX(0)}25%{transform:translateX(-.4vw)}75%{transform:translateX(.4vw)}}
 @keyframes krSink{to{transform:translateY(1.5vw) rotate(25deg) scale(.6);opacity:.2}}
 @keyframes fishBob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(.35vw) rotate(6deg)}}
 @keyframes fishPop{0%{transform:scale(.2)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.show-rankup,.show-card,.show-crew .crew-person,.show-score::before,.show-score::after,.show-score .score-streak,.show-score .score-dots i,.show-predict,.show-predict .predict-result,.show-kraken,.show-kraken .kr-emoji,.show-race .chip,.show-fish,.show-fish .fish-catch{animation:none!important}.show-race .boat,.show-kraken .kr-bar i{transition:none}}
+@media(prefers-reduced-motion:reduce){.show-rankup,.show-card,.show-crew .crew-person,.show-score::before,.show-score::after,.show-score .score-streak,.show-score .score-dots i,.show-predict,.show-predict .predict-result,.show-raid .raid-flag,.show-kraken,.show-kraken .kr-emoji,.show-race .chip,.show-fish,.show-fish .fish-catch{animation:none!important}.show-race .boat,.show-kraken .kr-bar i{transition:none}}
