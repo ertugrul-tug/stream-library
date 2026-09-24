@@ -195,7 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -300,7 +300,7 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !rota 1/2/3 · !tahmin G / M (açıkken) · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M (açıkken) · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 
@@ -392,6 +392,16 @@ async def tips_loop():
 
 def loot_king():
     return max(state["night"]["loot"].values(), key=lambda x: x["loot"], default=None)
+
+
+def ask_question(platform, name, text):
+    """!soru: queue a question for the host; the panel shows it on screen when picked."""
+    text = clean(text, 200)
+    if len(text) < 5 or not cooldown(f"soru:{platform}:{name.casefold()}", 60):
+        return
+    state["questions"] = (state["questions"] + [{"id": f"q{time.time()}", "platform": platform, "name": name,
+                                                   "text": text, "parts": text_parts(text)}])[-30:]
+    say(f"❓ @{name} sorun kaptana iletildi ({len(state['questions'])}. sırada).", platform)
 
 
 def cooldown(key, seconds):
@@ -676,6 +686,8 @@ async def streamer_bot():
                                 say(rank_text(platform, name), platform)
                             elif command in ("!olta", "!balık", "!balik"):
                                 cast_line(platform, name)
+                            elif command == "!soru":
+                                ask_question(platform, name, message.split(None, 1)[1] if " " in message else "")
                             elif command == "!ganimet" and cooldown(f"loot:{platform}:{name.casefold()}", 20):
                                 say(loot_text(platform, name), platform)
                             elif command in ("!saldır", "!saldir", "!vur"):
@@ -1188,6 +1200,15 @@ async def client(ws):
                 elif action == "spotlight":
                     match = next((x for x in state["chat"] if x["id"] == msg.get("id")), None)
                     state["spotlight"] = match
+                elif action == "questionShow":
+                    q = next((x for x in state["questions"] if x["id"] == msg.get("id")), None)
+                    if not q:
+                        continue
+                    state["spotlight"] = {**q, "kind": "question"}
+                elif action == "questionDone":
+                    state["questions"] = [x for x in state["questions"] if x["id"] != msg.get("id")]
+                    if state["spotlight"] and state["spotlight"].get("id") == msg.get("id"):
+                        state["spotlight"] = None
                 elif action == "clearSpotlight":
                     state["spotlight"] = None
                 elif action == "addHighlight":

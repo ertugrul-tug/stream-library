@@ -240,6 +240,8 @@
       spotlight.classList.toggle('active',!!s.spotlight);
       if(s.spotlight) {
         spotlight.dataset.platform=s.spotlight.platform;
+        spotlight.dataset.kind=s.spotlight.kind||'';
+        spotlight.querySelector('.show-label').textContent=s.spotlight.kind==='question'?'❓ SOHBETTEN SORU':'KAPTANIN ANONSU';
         spotlight.querySelectorAll('.show-text,.show-author').forEach(n=>n.remove());
         const said=div(spotlight,'show-text',s.spotlight.text);
         if(window.qedyEmotes && s.spotlight.parts) qedyEmotes.render(said,s.spotlight.parts,300);
