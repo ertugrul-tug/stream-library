@@ -308,6 +308,7 @@ SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 HELP_TEXT = ("⚓ Komutlar: !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
+_rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
 
 async def _say(platform, text):
@@ -318,7 +319,7 @@ async def _say(platform, text):
 
 
 def say(text, platform=None):
-    if not state.get("botChat", True) or not text:
+    if not state.get("botChat", True) or not text or _rehearsing[0]:
         return
     text = text[:450]
     _said[clean(text, 300)] = time.time()
@@ -979,6 +980,69 @@ def check_goal():
         say(f"🎯 Bu akşamki {goal['target']} takipçi hedefimize ulaştık! Teşekkürler mürettebat, yelkenler dolu ⚓")
 
 
+REQUIRED_ACTIONS = ["QedyStreamInfo", "QedyClip", "QedySayTwitch", "QedySayKick",
+                    "ModTimeoutTwitch", "ModBanTwitch", "ModTimeoutKick", "ModBanKick"]
+
+
+async def preflight():
+    """Pre-show checklist for the panel: [label, ok, detail]."""
+    items = [["OBS bağlı", bool(obs_conn.get("ws")), ""],
+             ["Streamer.bot bağlı", bool(sb_conn.get("ws")), ""]]
+    listing = await sb_request({"request": "GetActions"}) if sb_conn.get("ws") else None
+    if listing is not None:
+        have = {a.get("name"): a.get("subaction_count", 0) for a in listing.get("actions") or []}
+        missing = [n for n in REQUIRED_ACTIONS if not have.get(n)]
+        items.append([f"Streamer.bot action'ları ({len(REQUIRED_ACTIONS) - len(missing)}/{len(REQUIRED_ACTIONS)})", not missing,
+                      "eksik/boş: " + ", ".join(missing) if missing else ""])
+    items.append(["Discord webhook", bool(DISCORD_WEBHOOK), "" if DISCORD_WEBHOOK else "show-config.local.json > discordWebhook"])
+    health = state.get("health") or {}
+    if health:
+        items.append(["Mikrofon açık", not health.get("micMuted"), health.get("mic", "")])
+    bot_on = state.get("botChat", True)
+    items.append(["Bot sohbette konuşuyor", bot_on, "" if bot_on else "kapalıyken oyun duyuruları gitmez"])
+    return items
+
+
+async def rehearsal():
+    """~25 s on-screen demo (raid, catch, confetti, Kraken) with the bot silenced and no stats or loot touched."""
+    _rehearsing[0] = True
+    try:
+        now = time.time()
+        state["raid"] = {"id": f"prova{now}", "platform": "twitch", "name": "Prova Korsanı", "viewers": 12}
+        await publish()
+        await asyncio.sleep(5)
+        state["raid"] = None
+        fake = {"id": f"fprova{now}", "platform": "twitch", "name": "Prova", "item": "Altın sandık", "emoji": "💰",
+                "points": 60, "rarity": "efsane", "new": True}
+        state["catches"] = state["catches"] + [fake]
+        await publish()
+        await asyncio.sleep(6.5)
+        state["catches"] = [c for c in state["catches"] if c["id"] != fake["id"]]
+        state["effects"] = (state["effects"] + [{"id": f"eprova{now}", "type": "konfeti", "name": "Prova", "platform": "twitch"}])[-10:]
+        await publish()
+        await asyncio.sleep(3)
+        kid = f"kprova{now}"
+        state["kraken"] = {"id": kid, "status": "active", "hp": 30, "max": 30, "endsAt": int((time.time() + 12) * 1000),
+                           "hits": {}, "last": [], "killer": None}
+        await publish()
+        for dmg, who in ((6, "Prova −6"), (9, "Prova −9 💥"), (8, "Prova −8"), (7, "Prova −7")):
+            await asyncio.sleep(1.4)
+            k = state["kraken"]
+            if not k or k["id"] != kid:
+                return
+            k["hp"] = max(0, k["hp"] - dmg)
+            k["last"] = ([who] + k["last"])[:4]
+            await publish()
+        state["kraken"].update(status="won", killer="Prova")
+        await publish()
+        await asyncio.sleep(4)
+        if state["kraken"] and state["kraken"]["id"] == kid:
+            state["kraken"] = None
+            await publish()
+    finally:
+        _rehearsing[0] = False
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1321,6 +1385,16 @@ async def client(ws):
                     target = max(0, min(999, int(msg.get("target") or 0)))
                     state["goal"] = {"target": target, "reached": False}
                     check_goal()
+                elif action == "preflight":
+                    await ws.send(json.dumps({"type": "preflight", "items": await preflight()}, ensure_ascii=False))
+                    continue
+                elif action == "rehearsal":
+                    if _rehearsing[0] or state["kraken"] or state["race"]:
+                        await send_notice(ws, False, "Prova şu an başlatılamaz (süren etkinlik var)")
+                        continue
+                    _spawn(rehearsal())
+                    await send_notice(ws, True, "🎬 Prova başladı · ~25 sn, sohbete bir şey yazılmaz")
+                    continue
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":

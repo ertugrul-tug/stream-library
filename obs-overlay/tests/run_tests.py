@@ -374,6 +374,24 @@ async def run(sb, obs, tmp):
         check("LoL: galibiyet kendiliğinden girildi", await wait_until(lambda: _state_is(p, lambda s: len(s["matches"]) == matches + 1 and s["matches"][-1] == "W"), 8))
         LOL_STATE["up"] = False
 
+        print("\nYayın öncesi kontrol · prova")
+        await ws.send(json.dumps({"action": "preflight"}))
+        pre = None
+        for _ in range(10):
+            m = json.loads(await asyncio.wait_for(ws.recv(), 3))
+            if m["type"] == "preflight":
+                pre = m["items"]
+                break
+        labels = {label: ok for label, ok, _ in (pre or [])}
+        check("ön kontrol: OBS, Streamer.bot, 8/8 action, webhook", labels.get("OBS bağlı") and labels.get("Streamer.bot bağlı")
+              and labels.get("Streamer.bot action'ları (8/8)") and labels.get("Discord webhook"), str(pre))
+        await asyncio.sleep(12)  # let the earlier Kraken/raid cards clear
+        await p.drain()
+        n = len(sb.said)
+        await p.act("rehearsal")
+        saw = await wait_until(lambda: _state_is(p, lambda s: (s["kraken"] or {}).get("status") == "won"), 40)
+        check("prova ekranda oynadı, sohbete yazmadı", saw and len(sb.said) == n, f"bot mesajı: {sb.said_since(n)}")
+
         print("\nModerasyon · özet")
         del sb.actions["ModBanKick"]
         await p.act("modAction", platform="kick", name="Troll", type="ban")
