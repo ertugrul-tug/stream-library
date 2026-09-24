@@ -334,7 +334,8 @@ def reset_show():
 # _said remembers what we sent for a minute so those echoes aren't counted as chat.
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
-HELP_TEXT = ("⚓ Komutlar: !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
+HELP_TEXT = ("⚓ Komutlar: !site · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -724,6 +725,8 @@ async def streamer_bot():
                                 say(rank_text(platform, name), platform)
                             elif command in ("!olta", "!balık", "!balik"):
                                 cast_line(platform, name)
+                            elif command in CHAT_LINKS and cooldown(f"link:{platform}:{command}", 30):
+                                say(CHAT_LINKS[command], platform)
                             elif command in MARKET_ALIASES:
                                 buy(platform, name, MARKET_ALIASES[command])
                             elif command == "!market" and cooldown(f"market:{platform}:{name.casefold()}", 20):

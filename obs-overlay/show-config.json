@@ -19,6 +19,15 @@
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
     "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
   },
+  "chatLinks": {
+    "!site": "⚓ Kaptan Qedy'nin limanı: https://ertugrul-tug.github.io/stream-library/",
+    "!kutuphane": "🎮 627 oyunluk kütüphane, bir sonraki keşfi sen seç: https://ertugrul-tug.github.io/stream-library/kutuphane/",
+    "!twitch": "💜 Twitch: https://www.twitch.tv/kaptanqedy",
+    "!kick": "💚 Kick: https://kick.com/kaptanqedy",
+    "!discord": "",
+    "!youtube": "",
+    "!instagram": ""
+  },
   "games": {
     "fishCooldownSec": 60,
     "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50, "raidMinViewers": 3 },

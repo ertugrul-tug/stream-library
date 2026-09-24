@@ -269,6 +269,12 @@ async def run(sb, obs, tmp):
         replies = [(pl, t) for pl, t in sb.said[n:] if "@Ali" in t]
         check("!rütbe sadece sorulan platformda cevaplandı", replies and all(pl == "twitch" for pl, _ in replies), str(replies))
 
+        n = len(sb.said)
+        await sb.chat("kick", "Veli", "!site")
+        await sb.chat("kick", "Veli", "!discord")
+        await p.drain()
+        check("link komutu cevaplandı, boş link sessiz", sb.said_since(n) == [t for t in sb.said_since(n) if "stream-library" in t] and len(sb.said_since(n)) == 1, str(sb.said_since(n)))
+
         print("\nTahmin ve maç")
         await p.act("predictOpen")
         await sb.chat("twitch", "Ali", "!tahmin G")
