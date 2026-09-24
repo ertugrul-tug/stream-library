@@ -195,7 +195,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}},
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}}, "health": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -285,7 +285,7 @@ PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "
 
 
 def reset_show():
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -455,7 +455,7 @@ def live_message(game, note=""):
 
 
 async def publish():
-    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health")}, ensure_ascii=False, indent=2), encoding="utf-8")
     message = json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False)
     for ws in tuple(CLIENTS):
         try:
@@ -712,7 +712,7 @@ def obs_auth_string(password, salt, challenge):
     return base64.b64encode(hashlib.sha256((secret + challenge).encode("utf-8")).digest()).decode("utf-8")
 
 
-async def obs_request(request_type, timeout=2):
+async def obs_request(request_type, data=None, timeout=2):
     """Send an obs-websocket request and wait for its response data (None if OBS is away)."""
     ws = obs_conn.get("ws")
     if not ws:
@@ -721,7 +721,7 @@ async def obs_request(request_type, timeout=2):
     future = asyncio.get_running_loop().create_future()
     obs_pending[rid] = future
     try:
-        await ws.send(json.dumps({"op": 6, "d": {"requestType": request_type, "requestId": rid}}))
+        await ws.send(json.dumps({"op": 6, "d": {"requestType": request_type, "requestId": rid, "requestData": data or {}}}))
         return await asyncio.wait_for(future, timeout)
     except Exception:
         return None
@@ -1052,6 +1052,47 @@ async def lol_watcher():
             await publish()
 
 
+
+async def obs_health():
+    """Every 3 s: live time, bitrate (last ~15 s), dropped frames (last ~60 s) and whether the mic is muted."""
+    samples = []  # (time, bytes, skipped, total) while live
+    while True:
+        await asyncio.sleep(3)
+        if not obs_conn.get("ws"):
+            samples.clear()
+            if state["health"]:
+                state["health"] = None
+                await publish()
+            continue
+        st = await obs_request("GetStreamStatus") or {}
+        special = await obs_request("GetSpecialInputs") or {}
+        mics = [name for key, name in special.items() if key.startswith("mic") and name]
+        muted = []
+        for mic in mics:
+            reply = await obs_request("GetInputMute", {"inputName": mic})
+            if reply is not None:
+                muted.append(bool(reply.get("inputMuted")))
+        live = bool(st.get("outputActive"))
+        if live:
+            samples.append((time.time(), st.get("outputBytes", 0), st.get("outputSkippedFrames", 0), st.get("outputTotalFrames", 0)))
+            del samples[:-21]
+        else:
+            samples.clear()
+        kbps = drop = None
+        if len(samples) >= 2:
+            a, b = samples[-min(6, len(samples))], samples[-1]
+            kbps = round((b[1] - a[1]) * 8 / 1000 / max(0.1, b[0] - a[0]))
+            first = samples[0]
+            frames = b[3] - first[3]
+            drop = round(100 * (b[2] - first[2]) / frames, 1) if frames > 0 else 0.0
+        health = {"live": live, "time": str(st.get("outputTimecode") or "").split(".")[0] if live else "",
+                  "kbps": kbps, "drop": drop, "congestion": round(st.get("outputCongestion") or 0, 2) if live else 0,
+                  "micMuted": bool(muted) and all(muted), "mic": mics[0] if mics else ""}
+        if health != state["health"]:
+            state["health"] = health
+            await publish()
+
+
 # --------------------------------------------------------------- clients --
 
 async def client(ws):
@@ -1253,7 +1294,7 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop())
+        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop(), obs_health())
 
 
 if __name__ == "__main__":
