@@ -110,10 +110,17 @@ class FakeOBS:
                 data = {"inputMuted": self.muted}
             elif t == "GetCurrentProgramScene":
                 data = {"currentProgramSceneName": self.scene}
+            elif t == "SetCurrentProgramScene":
+                await self._serve_hook(t, d)
+                data = {}
             else:
                 data = {}
             await ws.send(json.dumps({"op": 7, "d": {"requestType": t, "requestId": d["requestId"],
                                                      "requestStatus": {"result": True, "code": 100}, "responseData": data}}))
+
+    async def _serve_hook(self, t, d):
+        if t == "SetCurrentProgramScene":
+            await self.set_scene(d.get("requestData", {}).get("sceneName"))
 
     async def set_scene(self, name):
         self.scene = name
@@ -455,6 +462,11 @@ async def run(sb, obs, tmp):
         check("geri sayım 10 dk kuruldu ve duyuruldu", 590 < left <= 600 and any("10 dakika sonra" in t for t in sb.said_since(n)), f"{left:.0f}")
         await p.act("countdown", minutes=0)
         check("geri sayım iptal edildi", state()["countdown"] is None)
+        await obs.set_scene("Yayın Başlıyor")
+        await p.drain()
+        await p.act("countdown", minutes=0.05)
+        switched = await wait_until(lambda: _state_is(p, lambda s: s["scene"] == "Sahne" and s["countdown"] is None), 10)
+        check("sayaç bitince Yayın Başlıyor → Sahne geçildi", switched and obs.scene == "Sahne", f"{obs.scene} {state().get('scene')}")
         await ws.send(json.dumps({"action": "preflight"}))
         pre = None
         for _ in range(10):

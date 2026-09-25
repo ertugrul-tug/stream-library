@@ -68,7 +68,7 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 ### Kumandada neler var
 
-**⏱ Geri sayım:** Canlı sekmesinin başındaki 5/10/15 dk düğmeleri Yayın Başlıyor ve Kısa Mola ekranlarındaki sayacı başlatır (OBS'teki `?minutes=` adresini değiştirmeye gerek kalmaz), bot sohbete duyurur; ✕ iptal eder.
+**⏱ Geri sayım:** Canlı sekmesinin başındaki 5/10/15 dk düğmeleri Yayın Başlıyor ve Kısa Mola ekranlarındaki sayacı başlatır (OBS'teki `?minutes=` adresini değiştirmeye gerek kalmaz), bot sohbete duyurur; ✕ iptal eder. Sayaç bittiğinde OBS hâlâ "Yayın Başlıyor" ya da "Kısa Mola"daysa köprü oyun sahnesine (`obsScenes` içindeki "Sahne") kendiliğinden geçer; kumandadan kapatılabilir.
 
 **Yayın öncesi kontrol** (Canlı sekmesinin en üstü): OBS, Streamer.bot, 8 action, Discord webhook, mikrofon ve bot durumu ✅/❌ olarak listelenir. **🎬 Prova** ~25 sn'lik sessiz bir gösteri oynatır (baskın kartı, efsane olta, konfeti, Kraken): bot sohbete yazmaz, istatistik ve ganimete dokunmaz. Yayına girmeden OBS sahnelerinin güncel olduğunu ve seslerin geldiğini kontrol etmek için.
 

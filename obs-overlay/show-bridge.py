@@ -203,7 +203,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -360,7 +360,7 @@ def import_data(payload):
 def reset_show():
     archive_night()
     backup_data("yeni-yayin")
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -1382,6 +1382,28 @@ def on_reward(platform, name, data):
         kraken_start()
 
 
+def game_scene():
+    """The on-air game scene from obsScenes: the one that isn't start/break/end/chat."""
+    for name in CONFIG.get("obsScenes") or []:
+        lowered = name.casefold()
+        if not any(word in lowered for word in ("başlıyor", "mola", "bitti", "sohbet")):
+            return name
+    return None
+
+
+async def countdown_done(end_ms):
+    """When the panel's countdown runs out on the starting/break screen, cut to the game scene."""
+    await asyncio.sleep(max(0, end_ms / 1000 - time.time()))
+    if state["countdown"] != end_ms:
+        return  # cancelled or replaced
+    state["countdown"] = None
+    lowered = (state.get("scene") or "").casefold()
+    target = game_scene()
+    if state["cdAutoScene"] and target and ("başlıyor" in lowered or "mola" in lowered):
+        await obs_set_scene(target)
+    await publish()
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1761,10 +1783,13 @@ async def client(ws):
                     if not ok:
                         continue
                 elif action == "countdown":
-                    minutes = max(0, min(60, int(msg.get("minutes") or 0)))
+                    minutes = max(0.0, min(60.0, float(msg.get("minutes") or 0)))
                     state["countdown"] = int((time.time() + minutes * 60) * 1000) if minutes else None
                     if minutes:
-                        say(f"⏰ {minutes} dakika sonra güvertedeyiz! Beklerken !olta atıp ısının 🎣")
+                        say(f"⏰ {round(minutes)} dakika sonra güvertedeyiz! Beklerken !olta atıp ısının 🎣")
+                        _spawn(countdown_done(state["countdown"]))
+                elif action == "toggleCdAutoScene":
+                    state["cdAutoScene"] = not state["cdAutoScene"]
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":
