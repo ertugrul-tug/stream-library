@@ -203,7 +203,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [],
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -1760,6 +1760,11 @@ async def client(ws):
                     await send_notice(ws, ok, f"📂 Yedek yüklendi · {len(crew_db)} tayfa, {len(NIGHTS)} yayın" if ok else "📂 Bu dosya bir kumanda yedeği değil")
                     if not ok:
                         continue
+                elif action == "countdown":
+                    minutes = max(0, min(60, int(msg.get("minutes") or 0)))
+                    state["countdown"] = int((time.time() + minutes * 60) * 1000) if minutes else None
+                    if minutes:
+                        say(f"⏰ {minutes} dakika sonra güvertedeyiz! Beklerken !olta atıp ısının 🎣")
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":

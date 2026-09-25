@@ -449,6 +449,12 @@ async def run(sb, obs, tmp):
         LOL_STATE["up"] = False
 
         print("\nYayın öncesi kontrol · prova")
+        n = len(sb.said)
+        await p.act("countdown", minutes=10)
+        left = (state()["countdown"] or 0) / 1000 - time.time()
+        check("geri sayım 10 dk kuruldu ve duyuruldu", 590 < left <= 600 and any("10 dakika sonra" in t for t in sb.said_since(n)), f"{left:.0f}")
+        await p.act("countdown", minutes=0)
+        check("geri sayım iptal edildi", state()["countdown"] is None)
         await ws.send(json.dumps({"action": "preflight"}))
         pre = None
         for _ in range(10):

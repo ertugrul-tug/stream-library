@@ -30,6 +30,15 @@
   let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
   let fishSeen = null, fishQueue = [], fishBusy = false, raidId = null, fxSeen = null;
   let segment = null, lastSchedule = {}, segmentOn = true, goalInfo = null;
+  // Countdown started from the control panel (start/break screens); overrides the ?minutes= timer.
+  const timerEl = (kind === 'start' || kind === 'break') ? document.getElementById('timer') : null;
+  let countdownEnd = null;
+  function drawCountdown() {
+    if (!timerEl || !countdownEnd) return;
+    const left = Math.max(0, Math.round((countdownEnd - Date.now()) / 1000));
+    timerEl.textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+  }
+  if (timerEl) setInterval(drawCountdown, 500);
   if (kind === 'overlay') { segment = document.createElement('div'); segment.className = 'show-segment'; root.append(segment); }
   function renderSegment() {
     const rows = Object.entries(lastSchedule).map(([label, t]) => { const [h, m] = String(t).split(':').map(Number); return [label, t, h * 60 + m]; }).sort((a, b) => a[2] - b[2]);
@@ -264,6 +273,11 @@
     window.qedyFirstTimers = new Set(s.firstTimers || []);
     window.dispatchEvent(new Event('qedy-crew'));
     sfxEnabled = s.sfx !== false;
+    if (timerEl) {
+      countdownEnd = s.countdown || null;
+      if (countdownEnd) { timerEl.dataset.remote = '1'; timerEl.classList.add('active'); drawCountdown(); }
+      else if (timerEl.dataset.remote) { delete timerEl.dataset.remote; if (!new URLSearchParams(location.search).get('minutes')) timerEl.classList.remove('active'); }
+    }
     if (games) renderEffects(s.effects);
     if (games) {
       const q = s.playQueue || [], open = !!s.playQueueOpen, qc = games.queue;

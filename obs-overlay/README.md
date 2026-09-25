@@ -68,6 +68,8 @@ Kullanıcı adları ve mesajlar HTML olarak yorumlanmaz; güvenli düz metin ola
 
 ### Kumandada neler var
 
+**⏱ Geri sayım:** Canlı sekmesinin başındaki 5/10/15 dk düğmeleri Yayın Başlıyor ve Kısa Mola ekranlarındaki sayacı başlatır (OBS'teki `?minutes=` adresini değiştirmeye gerek kalmaz), bot sohbete duyurur; ✕ iptal eder.
+
 **Yayın öncesi kontrol** (Canlı sekmesinin en üstü): OBS, Streamer.bot, 8 action, Discord webhook, mikrofon ve bot durumu ✅/❌ olarak listelenir. **🎬 Prova** ~25 sn'lik sessiz bir gösteri oynatır (baskın kartı, efsane olta, konfeti, Kraken): bot sohbete yazmaz, istatistik ve ganimete dokunmaz. Yayına girmeden OBS sahnelerinin güncel olduğunu ve seslerin geldiğini kontrol etmek için.
 
 Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi, sorular, öne çıkanlar) · 🎮 Oyunlar (mini oyunlar, rota) · 💬 Sohbet (ortak sohbet, rütbeler) · ⚙️ Ayarlar (seyir defteri, Discord). Bekleyen soru sayısı Canlı sekmesinde rozet olarak görünür. Bilgisayarda hepsi aynı sayfadadır.
