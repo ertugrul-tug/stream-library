@@ -1275,6 +1275,11 @@ def queue_call(entry_id):
 _follow_batch = {}  # platform -> names waiting for one grouped welcome
 
 
+def support_alert(platform, text, big=False):
+    """On-screen thank-you banner for follows, subs, bits and Kicks (every scene with the show layer)."""
+    state["effects"] = (state["effects"] + [{"id": f"s{time.time()}", "type": "support", "name": text, "platform": platform, "big": big}])[-10:]
+
+
 def thank_supporter(platform, name, kind, amount=0):
     if not name or _rehearsing[0]:
         return
@@ -1291,16 +1296,20 @@ def thank_supporter(platform, name, kind, amount=0):
                 if names:
                     shown = ", ".join(names[:3]) + (f" ve {len(names) - 3} kişi daha" if len(names) > 3 else "")
                     say(f"👋 Güverteye hoş geldin{'iz' if len(names) > 1 else ''} {shown}! Takip için teşekkürler, +10 ganimet 🎣", platform)
+                    support_alert(platform, f"👋 {shown} güverteye katıldı!")
+                    await publish()
             _spawn(flush())
     elif kind in ("sub", "gift"):
         add_loot(platform, name, 50)
         what = "abonelik hediye etti" if kind == "gift" else "abone oldu"
         say(f"⭐ {name} {what}, çok teşekkürler! +50 ganimet 🎉", platform)
+        support_alert(platform, f"⭐ {name} {what}!", big=True)
     elif amount > 0:
         loot = max(1, amount // 10)
         add_loot(platform, name, loot)
         unit = "bit" if kind == "bits" else "Kicks"
         say(f"💎 {name} {amount} {unit} gönderdi, teşekkürler! +{loot} ganimet", platform)
+        support_alert(platform, f"💎 {name} {amount} {unit} gönderdi!", big=amount >= 500)
 
 
 # !düello @isim [miktar]: a loot wager between two viewers (any platform). 50/50, the winner takes the stake.

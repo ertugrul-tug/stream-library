@@ -157,3 +157,4 @@
 .show-events .show-hype{border-color:rgba(145,70,255,.9);background:linear-gradient(140deg,rgba(38,16,72,.94),rgba(16,10,34,.86));box-shadow:0 1vw 3vw rgba(0,0,0,.4),0 0 2.4vw rgba(145,70,255,.5);text-align:center}
 .show-hype .show-label{color:#c9a8ff}
 .show-hype .hype-line{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:800;color:#f1e8ff}
+.fx-banner.support{font-size:1.5vw;padding:.9vw 2.2vw;box-shadow:0 0 2.4vw rgba(255,206,84,.45)}

@@ -419,6 +419,9 @@ async def run(sb, obs, tmp):
         said = sb.said_since(n)
         check("destekçilere teşekkür: takip toplu, abone ayrı", any("Güverteye hoş geldin Takipci1" in t for t in said)
               and any("Güverteye hoş geldin Takipci2" in t for t in said) and any("Abone1 abone oldu" in t and "+50" in t for t in said), str(said))
+        alerts = [e["name"] for e in state()["effects"] if e["type"] == "support"]
+        check("takip ve abonelik ekranda uyarı olarak çıktı", any("Takipci1 güverteye katıldı" in t for t in alerts)
+              and any("Abone1 abone oldu" in t for t in alerts), str(alerts))
         check("takip hedefi tuttu: ekran efekti ve bot", state()["goal"]["reached"] and any(e["type"] == "goal" for e in state()["effects"])
               and any("hedefimize ulaştık" in t for t in sb.said_since(n)))
         n = len(sb.said)
