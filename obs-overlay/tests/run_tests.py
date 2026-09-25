@@ -438,11 +438,22 @@ async def run(sb, obs, tmp):
             h = state().get("health") or {}
             return h.get("live") and h.get("micMuted")
         check("yayındayken mikrofon kapalı uyarısı", await wait_until(muted_seen, 10))
+        clips_before = len([c for c in sb.calls if c[0] == "QedyClip"])
+        await p.act("toggleAutoClip")
         for _ in range(3):
             await p.act("addMatch", result="W")
         await asyncio.sleep(1)
         await p.drain()
         auto = [m for m in state()["markers"] if m.get("auto")]
+        clips = [c for c in sb.calls if c[0] == "QedyClip"][clips_before:]
+        check("otomatik klip açıkken büyük an kliplendi", len(clips) == 1 and "galibiyet serisi" in clips[0][1].get("note", ""), str(clips))
+        n = len(sb.said)
+        await sb.chat("kick", "Veli", "!klip")
+        await sb.chat("twitch", "Ali", "!klip")
+        await p.drain()
+        chat_clips = [c for c in sb.calls if c[0] == "QedyClip"][clips_before + 1:]
+        check("!klip yayında çalıştı, 90 sn içinde ikincisi engellendi", len(chat_clips) == 1 and any("klipledi" in t for t in sb.said_since(n)), str(chat_clips))
+        await p.act("toggleAutoClip")
         check("yayındayken galibiyet serisi otomatik işaretlendi", any("galibiyet serisi" in m["note"] and m["vod"] for m in auto), str(auto))
         obs.live = obs.muted = False
         await p.act("predictClear")

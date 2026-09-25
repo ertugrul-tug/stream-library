@@ -203,7 +203,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -360,7 +360,7 @@ def import_data(payload):
 def reset_show():
     archive_night()
     backup_data("yeni-yayin")
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -374,7 +374,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -778,6 +778,8 @@ async def streamer_bot():
                                 say(CHAT_LINKS[command], platform)
                             elif command == "!kehanet" and len(message) > 12 and cooldown(f"oracle:{platform}:{name.casefold()}", 20):
                                 say(f"@{name} {random.choice(ORACLE)}", platform)
+                            elif command == "!klip":
+                                viewer_clip(platform, name)
                             elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
                                 say(season_text(platform, name), platform)
                             elif command in ("!düello", "!duello"):
@@ -1171,6 +1173,8 @@ def auto_marker(note):
             return
         vod = str(status.get("outputTimecode") or "").split(".")[0]
         state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note, "auto": True}])[-50:]
+        if state["autoClip"] and cooldown("clip:any", 120):
+            await sb_do_action("QedyClip", {"note": note})
         await publish()
     _spawn(run())
 
@@ -1402,6 +1406,18 @@ async def countdown_done(end_ms):
     if state["cdAutoScene"] and target and ("başlıyor" in lowered or "mola" in lowered):
         await obs_set_scene(target)
     await publish()
+
+
+def viewer_clip(platform, name):
+    """!klip: chat can clip the moment (live only, one clip per 90 s for the whole chat)."""
+    if not (state.get("health") or {}).get("live"):
+        return
+    if not cooldown("clip:chat", 90):
+        return
+    note = f"Sohbetten klip: {name}"
+    state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": None, "note": note, "auto": True}])[-50:]
+    _spawn(sb_do_action("QedyClip", {"note": note}))
+    say(f"🎬 {name} bu anı klipledi! Link birazdan sohbette.", platform)
 
 
 def recent_chatters(minutes=10):
@@ -1788,6 +1804,8 @@ async def client(ws):
                     if minutes:
                         say(f"⏰ {round(minutes)} dakika sonra güvertedeyiz! Beklerken !olta atıp ısının 🎣")
                         _spawn(countdown_done(state["countdown"]))
+                elif action == "toggleAutoClip":
+                    state["autoClip"] = not state["autoClip"]
                 elif action == "toggleCdAutoScene":
                     state["cdAutoScene"] = not state["cdAutoScene"]
                 elif action == "toggleMarket":
