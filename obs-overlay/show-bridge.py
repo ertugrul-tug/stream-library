@@ -998,7 +998,8 @@ def on_scene(name):
     else:
         king = loot_king()
         crown = f" 👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})." if king else ""
-        say(f"⏹️ Bu akşamlık bu kadar, teşekkürler mürettebat!{crown} Bir sonraki seferde görüşürüz 🐾")
+        nxt = schedule_text(next_only=True)
+        say(f"⏹️ Bu akşamlık bu kadar, teşekkürler mürettebat!{crown} " + (f"Bir sonraki sefer {nxt}'da, görüşürüz 🐾" if nxt else "Bir sonraki seferde görüşürüz 🐾"))
 
 # ------------------------------------------------------------ mini games --
 # Olta (!olta), Kraken (!saldır) and Yelken yarışı (!katıl). The bridge owns the rules; the overlay only draws state.
@@ -1522,14 +1523,14 @@ def shoutout(platform, name):
 DAYS_TR = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 
-def schedule_text(now=None):
+def schedule_text(now=None, next_only=False):
     """!program: the weekly slot from show-config "weekly" (default Mon–Fri 20:30) and the next one."""
     weekly = CONFIG.get("weekly") or {}
     days = sorted(set(int(d) for d in weekly.get("days", [0, 1, 2, 3, 4]) if 0 <= int(d) <= 6)) or [0, 1, 2, 3, 4]
     hh, mm = (int(x) for x in str(weekly.get("time") or "20:30").split(":"))
     span = f"{DAYS_TR[days[0]]}–{DAYS_TR[days[-1]]}" if days == list(range(days[0], days[-1] + 1)) and len(days) > 1         else ", ".join(DAYS_TR[d] for d in days)
     base = f"📅 {span} her akşam {hh:02d}:{mm:02d}"
-    if (state.get("health") or {}).get("live"):
+    if not next_only and (state.get("health") or {}).get("live"):
         return f"{base} · şu an zaten güvertedeyiz! ⚓"
     now = now or datetime.now()
     for ahead in range(8):
@@ -1537,10 +1538,12 @@ def schedule_text(now=None):
         slot = day.replace(hour=hh, minute=mm, second=0, microsecond=0)
         if day.weekday() in days and slot > now:
             left = int((slot - now).total_seconds() // 60)
+            if next_only:
+                return f"{DAYS_TR[day.weekday()]} {hh:02d}:{mm:02d}"
             when = "bugün" if ahead == 0 else "yarın" if ahead == 1 else DAYS_TR[day.weekday()]
             wait = f"{left // 60} saat {left % 60} dk sonra" if left >= 60 else f"{left} dk sonra"
             return f"{base} · sıradaki sefer {when} {hh:02d}:{mm:02d}" + (f" ({wait})" if left < 24 * 60 else "") + " 🐾"
-    return base
+    return "" if next_only else base
 
 
 _library, _suggestion = [], {}

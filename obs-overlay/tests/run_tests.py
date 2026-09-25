@@ -11,6 +11,7 @@ import asyncio
 import http.server
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -451,6 +452,13 @@ async def run(sb, obs, tmp):
         await p.drain(1)
         back = [t for t in sb.said_since(n) if "döndük" in t]
         check("moladan dönüşte mola özeti söylendi", back and "2 mesaj" in back[0], str(back))
+        n = len(sb.said)
+        await obs.set_scene("Yayın Bitti")
+        await p.drain(1)
+        bye = [t for t in sb.said_since(n) if "Bu akşamlık" in t]
+        check("vedada sıradaki yayın saati var", bye and re.search(r"Bir sonraki sefer \w+ 20:30'da", bye[0]), str(bye))
+        await obs.set_scene("Sahne")
+        await p.drain()
         obs.live, obs.muted = True, True
 
         async def muted_seen():
