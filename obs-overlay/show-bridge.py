@@ -37,7 +37,7 @@ import ssl
 import threading
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -384,7 +384,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk !öner · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -802,6 +802,8 @@ async def streamer_bot():
                                 viewer_clip(platform, name)
                             elif command in ("!süre", "!sure", "!uptime") and cooldown("uptime", 30):
                                 say(uptime_text(), platform)
+                            elif command in ("!program", "!takvim") and cooldown("schedule", 30):
+                                say(schedule_text(), platform)
                             elif command in ("!öner", "!oner") and cooldown("suggest", 30):
                                 say(suggest_game(), platform)
                             elif command == "!hedef" and cooldown("goal", 30):
@@ -1515,6 +1517,30 @@ def shoutout(platform, name):
         return
     url = f"https://twitch.tv/{slug}" if platform == "twitch" else f"https://kick.com/{slug.lower()}"
     say(f"📣 Mürettebattan {name} da yayıncı! Kanalına uğrayıp takip edin: {url} ⚓")
+
+
+DAYS_TR = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+
+
+def schedule_text(now=None):
+    """!program: the weekly slot from show-config "weekly" (default Mon–Fri 20:30) and the next one."""
+    weekly = CONFIG.get("weekly") or {}
+    days = sorted(set(int(d) for d in weekly.get("days", [0, 1, 2, 3, 4]) if 0 <= int(d) <= 6)) or [0, 1, 2, 3, 4]
+    hh, mm = (int(x) for x in str(weekly.get("time") or "20:30").split(":"))
+    span = f"{DAYS_TR[days[0]]}–{DAYS_TR[days[-1]]}" if days == list(range(days[0], days[-1] + 1)) and len(days) > 1         else ", ".join(DAYS_TR[d] for d in days)
+    base = f"📅 {span} her akşam {hh:02d}:{mm:02d}"
+    if (state.get("health") or {}).get("live"):
+        return f"{base} · şu an zaten güvertedeyiz! ⚓"
+    now = now or datetime.now()
+    for ahead in range(8):
+        day = now + timedelta(days=ahead)
+        slot = day.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        if day.weekday() in days and slot > now:
+            left = int((slot - now).total_seconds() // 60)
+            when = "bugün" if ahead == 0 else "yarın" if ahead == 1 else DAYS_TR[day.weekday()]
+            wait = f"{left // 60} saat {left % 60} dk sonra" if left >= 60 else f"{left} dk sonra"
+            return f"{base} · sıradaki sefer {when} {hh:02d}:{mm:02d}" + (f" ({wait})" if left < 24 * 60 else "") + " 🐾"
+    return base
 
 
 _library, _suggestion = [], {}
