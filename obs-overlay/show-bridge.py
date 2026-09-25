@@ -205,7 +205,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [],
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -370,7 +370,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -1277,6 +1277,8 @@ _follow_batch = {}  # platform -> names waiting for one grouped welcome
 
 def support_alert(platform, text, big=False):
     """On-screen thank-you banner for follows, subs, bits and Kicks (every scene with the show layer)."""
+    if not state["alerts"]:
+        return
     state["effects"] = (state["effects"] + [{"id": f"s{time.time()}", "type": "support", "name": text, "platform": platform, "big": big}])[-10:]
 
 
@@ -2009,6 +2011,8 @@ async def client(ws):
                     if minutes:
                         say(f"⏰ {round(minutes)} dakika sonra güvertedeyiz! Beklerken !olta atıp ısının 🎣")
                         _spawn(countdown_done(state["countdown"]))
+                elif action == "toggleAlerts":
+                    state["alerts"] = not state["alerts"]
                 elif action == "toggleAutoClip":
                     state["autoClip"] = not state["autoClip"]
                 elif action == "toggleCdAutoScene":

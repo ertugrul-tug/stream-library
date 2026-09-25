@@ -422,6 +422,12 @@ async def run(sb, obs, tmp):
         alerts = [e["name"] for e in state()["effects"] if e["type"] == "support"]
         check("takip ve abonelik ekranda uyarı olarak çıktı", any("Takipci1 güverteye katıldı" in t for t in alerts)
               and any("Abone1 abone oldu" in t for t in alerts), str(alerts))
+        await p.act("toggleAlerts")
+        before = len(state()["effects"])
+        await sb.event("twitch", "Cheer", {"user": {"name": "Bitci"}, "bits": 100})
+        await p.drain()
+        check("ekran uyarıları kapalıyken bant çıkmadı", state()["alerts"] is False and not any("Bitci" in e["name"] for e in state()["effects"]), str(state()["effects"][before:]))
+        await p.act("toggleAlerts")
         check("takip hedefi tuttu: ekran efekti ve bot", state()["goal"]["reached"] and any(e["type"] == "goal" for e in state()["effects"])
               and any("hedefimize ulaştık" in t for t in sb.said_since(n)))
         n = len(sb.said)
