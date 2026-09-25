@@ -233,6 +233,7 @@ def snapshot():
     l = sum(v == "L" for v in p["votes"].values())
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
     result["summaryText"] = summary_text()
+    result["activeChatters"] = recent_chatters()
     result["crew"] = [{**c, "rank": crew_rank(c["platform"], c["name"]),
                        "streak": (crew_db.get(f"{c['platform']}:{c['name'].casefold()}") or {}).get("streak", 0)} for c in state["crew"]]
     viewers = [e for e in crew_db.values() if e["platform"] in ("twitch", "kick")]
