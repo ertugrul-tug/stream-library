@@ -711,7 +711,7 @@ async def send_notice(ws, ok, text, scope=None):
 
 
 async def streamer_bot():
-    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer", "Raid"],
+    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer", "Raid", "RewardRedemption"],
               "Kick": ["ChatMessage", "Follow", "Subscription", "Resubscription", "GiftSubscription", "KicksGifted"]}
     while True:
         try:
@@ -806,6 +806,8 @@ async def streamer_bot():
                                 race_join(platform, name)
                             elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
                                 say(HELP_TEXT, platform)
+                        elif kind == "RewardRedemption":
+                            on_reward(platform, name, data)
                         elif kind == "Raid":
                             on_raid(platform, data)
                         elif kind == "Follow":
@@ -1353,6 +1355,29 @@ async def quiet_deck():
                 last_nudge, count = now, count + 1
         except Exception as exc:  # never let a nudge take the bridge down
             print(f"Sessiz güverte: {type(exc).__name__}", flush=True)
+
+
+# Twitch channel points: rewards whose title is listed in show-config.json > channelPoints trigger a game effect.
+REWARDS = {str(k).casefold(): v for k, v in (CONFIG.get("channelPoints") or {}).items()}
+
+
+def on_reward(platform, name, data):
+    reward = data.get("reward") if isinstance(data.get("reward"), dict) else {}
+    title = clean(reward.get("title") or reward.get("name") or data.get("rewardName") or data.get("title"), 60)
+    what = REWARDS.get(title.casefold())
+    if not what or not name:
+        return
+    if what in MARKET:
+        state["effects"] = (state["effects"] + [{"id": f"cp{time.time()}", "type": what, "name": name, "platform": platform}])[-10:]
+    elif what == "olta":
+        _cmd_last.pop(f"fish:{platform}:{name.casefold()}", None)  # paid with points: skip the cooldown
+        cast_line(platform, name)
+    elif what == "kraken":
+        if state["kraken"] or state["race"]:
+            say(f"@{name} 🐙 şu an başka bir etkinlik sürüyor, Kraken birazdan! (kanal puanı iadesi için kaptana yaz)", platform)
+            return
+        say(f"🐙 {name} kanal puanıyla Krakeni uyandırdı!")
+        kraken_start()
 
 
 def recent_chatters(minutes=10):

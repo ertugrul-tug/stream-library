@@ -334,6 +334,15 @@ async def run(sb, obs, tmp):
         season = state().get("season") or {}
         check("sezon: sıralama ve !sezon cevabı", season.get("top") and any("sezonu:" in t and "@Ali bu ay" in t for t in sb.said_since(n)),
               f"{season} {sb.said_since(n)}")
+        await sb.event("twitch", "RewardRedemption", {"user": {"name": "Puancı"}, "reward": {"title": "🎉 Konfeti"}})
+        await sb.event("twitch", "RewardRedemption", {"user": {"name": "Puancı"}, "rewardName": "🎣 Olta"})
+        await sb.event("twitch", "RewardRedemption", {"user": {"name": "Puancı"}, "rewardName": "🎣 Olta"})
+        await sb.event("twitch", "RewardRedemption", {"user": {"name": "Puancı"}, "reward": {"title": "Bilinmeyen ödül"}})
+        await p.drain()
+        fx = [e for e in state()["effects"] if e["name"] == "Puancı"]
+        casts = [c for c in state()["catches"] if c["name"] == "Puancı"]
+        check("kanal puanı: konfeti efekti, olta bekleme süresiz (2 atış), bilinmeyen ödül yok sayıldı",
+              [e["type"] for e in fx] == ["konfeti"] and len(casts) == 2, f"{fx} {len(casts)}")
         await sb.chat("twitch", "Ali", "!soru Bu akşam hangi dünyada oynuyoruz?")
         await p.drain()
         q = state()["questions"][-1] if state()["questions"] else {}

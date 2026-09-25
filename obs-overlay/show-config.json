@@ -28,6 +28,13 @@
     "!youtube": "▶️ Kurgulanmış bölümler YouTube'da: https://www.youtube.com/@kaptanqedy",
     "!instagram": "📸 Instagram: https://www.instagram.com/kaptan_qedy"
   },
+  "channelPoints": {
+    "🎉 Konfeti": "konfeti",
+    "🕊️ Martı": "martı",
+    "💥 Top": "top",
+    "🎣 Olta": "olta",
+    "🐙 Kraken çağır": "kraken"
+  },
   "games": {
     "fishCooldownSec": 60,
     "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50, "raidMinViewers": 3 },
