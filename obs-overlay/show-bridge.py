@@ -1220,17 +1220,29 @@ async def rehearsal():
         _rehearsing[0] = False
 
 
+async def mark(note, auto=False, live_only=False):
+    """Store a highlight with the stream time (VOD/YouTube list) and the local recording time
+    (make-clips.py cuts from the recording, which may have started at a different moment)."""
+    stream = await obs_request("GetStreamStatus") or {}
+    record = await obs_request("GetRecordStatus") or {}
+    if live_only and not stream.get("outputActive"):
+        return False
+    tc = lambda s: str(s.get("outputTimecode") or "").split(".")[0] if s.get("outputActive") else None
+    marker = {"time": datetime.now().strftime("%H:%M"), "vod": tc(stream), "rec": tc(record), "note": note}
+    if auto:
+        marker["auto"] = True
+    state["markers"] = (state["markers"] + [marker])[-50:]
+    return True
+
+
 def auto_marker(note):
     """Mark a highlight's VOD time for the YouTube edit (only while live, not during the rehearsal)."""
     if _rehearsing[0]:
         return
 
     async def run():
-        status = await obs_request("GetStreamStatus")
-        if not status or not status.get("outputActive"):
+        if not await mark(note, auto=True, live_only=True):
             return
-        vod = str(status.get("outputTimecode") or "").split(".")[0]
-        state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note, "auto": True}])[-50:]
         if state["autoClip"] and cooldown("clip:any", 120):
             await sb_do_action("QedyClip", {"note": note})
         await publish()
@@ -1531,7 +1543,11 @@ def viewer_clip(platform, name):
     if not cooldown("clip:chat", 90):
         return
     note = f"Sohbetten klip: {name}"
-    state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": None, "note": note, "auto": True}])[-50:]
+
+    async def run():
+        await mark(note, auto=True)
+        await publish()
+    _spawn(run())
     _spawn(sb_do_action("QedyClip", {"note": note}))
     say(f"🎬 {name} bu anı klipledi! Link birazdan sohbette.", platform)
 
@@ -2114,9 +2130,7 @@ async def client(ws):
                     state["segmentVisible"] = not state["segmentVisible"]
                 elif action == "addMarker":
                     note = clean(msg.get("note"), 80)
-                    status = await obs_request("GetStreamStatus")
-                    vod = str(status.get("outputTimecode") or "").split(".")[0] if status and status.get("outputActive") else None
-                    state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": vod, "note": note}])[-50:]
+                    await mark(note)
                     # Optional: a Streamer.bot Action named "QedyClip" (e.g. Twitch "Create Clip") fires too.
                     result = await sb_do_action("QedyClip", {"note": note or "Anı"})
                     clip = sb_action_notice("QedyClip", result, "klip isteği Streamer.bot'a gitti")

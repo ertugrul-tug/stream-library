@@ -105,6 +105,8 @@ class FakeOBS:
                     self.frames += 180
                 data = {"outputActive": self.live, "outputTimecode": "00:10:00.000", "outputBytes": self.bytes,
                         "outputTotalFrames": self.frames, "outputSkippedFrames": 0, "outputCongestion": 0}
+            elif t == "GetRecordStatus":
+                data = {"outputActive": self.live, "outputTimecode": "00:09:58.000"}
             elif t == "GetSpecialInputs":
                 data = {"mic1": "Mic/Aux"}
             elif t == "GetInputMute":
@@ -482,6 +484,7 @@ async def run(sb, obs, tmp):
         await asyncio.sleep(1)
         await p.drain()
         auto = [m for m in state()["markers"] if m.get("auto")]
+        check("otomatik işaret kayıt zamanını da tutuyor (klip çıkarmak için)", bool(auto) and auto[-1].get("rec") == "00:09:58", str(auto[-1:]))
         clips = [c for c in sb.calls if c[0] == "QedyClip"][clips_before:]
         check("otomatik klip açıkken büyük an kliplendi", len(clips) == 1 and "galibiyet serisi" in clips[0][1].get("note", ""), str(clips))
         n = len(sb.said)
