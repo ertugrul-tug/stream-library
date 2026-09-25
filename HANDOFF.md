@@ -48,6 +48,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - **Kumanda:** Bu bilgisayarda PIN sormaz; telefonda PIN 4444 (`show-config.local.json > pin`). Üstte yayın sağlığı (canlı süre, bitrate, kare kaybı), mikrofon kapalıysa kırmızı uyarı; yayındaki sahne işaretli.
 - **Sohbet botu:** karşılama (yeni/düzenli), 15 dk'da bir ipucu, tahmin/maç/rütbe duyuruları, sahneye göre mola/dönüş/kapanış satırları, baskın karşılama. Komutlar: `!olta` `!ganimet` `!koleksiyon` `!market` (`!martı` `!konfeti` `!top`) `!soru` `!rota` `!tahmin` `!rütbe` `!komutlar`, etkinliklerde `!saldır` `!katıl`.
 - **Mini oyunlar:** olta (koleksiyon, YENİ etiketi), Kraken (kumandadan, rastgele ya da 3+ kişilik baskın sonrası), yelken yarışı, ganimet marketi ekran efektleri. Yayın Başlıyor, oyun, sohbet ve mola sahnelerinde etkinlik şeridi; oyun sesleri.
+- **Sonradan eklenenler (25 Eylül):** aylık ganimet sezonu (`!sezon`), `!düello`, Twitch kanal puanı ödülleri (başlıklar README'de), `!kehanet`, sessiz sohbet dürtmesi, ilk kez yazanlara ekranda "✨ İLK SEFER", kumandadan geri sayım + sayaç bitince oyun sahnesine otomatik geçiş, YouTube bölüm listesi kopyalama, otomatik yedek ve 💾/📂 yedek taşıma. Köprü yayın ortası hatalara karşı gözetmenli.
 - **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
 - **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
