@@ -205,7 +205,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -247,6 +247,9 @@ def snapshot():
     result["lootKing"] = loot_king()
     result["nights"] = NIGHTS[-10:]
     result["season"] = {"name": season_name(), "top": season_top(5)}
+    result["week"] = week_top(3)
+    champs = state.get("weekChamps")
+    result["weekChamps"] = champs if champs and champs.get("week") == week_id(datetime.now() - timedelta(days=7)) else None
     return result
 
 
@@ -370,11 +373,12 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
     state["prevShow"] = prev_show  # for loyalty streaks: came to the last show too?
+    award_last_week(prev_show)
 
 
 # ------------------------------------------------------------- chat bot --
@@ -384,7 +388,7 @@ def reset_show():
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
-HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
+HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
              " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -813,6 +817,8 @@ async def streamer_bot():
                                 say(f"💤 {name} ambara indi, sessizce dinliyor. Hamakta iyi dinlemeler! ⚓", platform)
                             elif command == "!skor" and cooldown("score", 30):
                                 say(score_text(), platform)
+                            elif command == "!hafta" and cooldown("week", 20):
+                                say(week_text(), platform)
                             elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
                                 say(season_text(platform, name), platform)
                             elif command in ("!düello", "!duello"):
@@ -1044,6 +1050,11 @@ def add_loot(platform, name, points, best=None):
             season = {"id": season_id(), "loot": 0}
         season["loot"] += points
         entry["season"] = season
+        week = entry.get("week") or {}
+        if week.get("id") != week_id():
+            week = {"id": week_id(), "loot": 0}
+        week["loot"] += points
+        entry["week"] = week
     if platform in ("twitch", "kick"):
         night = state["night"]["loot"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "loot": 0})
         night["loot"] += points
@@ -1379,6 +1390,53 @@ def season_top(limit):
     return sorted([r for r in rows if r["loot"]], key=lambda r: r["loot"], reverse=True)[:limit]
 
 
+def week_id(when=None):
+    year, week, _ = (when or datetime.now()).isocalendar()
+    return f"{year}-W{week:02d}"
+
+
+def week_top(limit, wid=None):
+    wid = wid or week_id()
+    rows = [{"platform": e["platform"], "name": e["name"], "loot": (e.get("week") or {}).get("loot", 0)}
+            for e in crew_db.values() if (e.get("week") or {}).get("id") == wid and e["platform"] in ("twitch", "kick")]
+    return sorted([r for r in rows if r["loot"]], key=lambda r: r["loot"], reverse=True)[:limit]
+
+
+WEEK_BONUS = [100, 50, 25]
+
+
+def award_last_week(prev_show):
+    """First show of a new week: last week's top three loot hunters get a bonus and a shout."""
+    try:
+        last = week_id(datetime.fromisoformat(str(prev_show)))
+    except ValueError:
+        return
+    if last == week_id() or state.get("weekAwarded") == last:
+        return
+    state["weekAwarded"] = last
+    top = week_top(3, last)
+    if not top:
+        return
+    for row, bonus in zip(top, WEEK_BONUS):
+        row["bonus"] = bonus
+        entry = crew_db.get(f"{row['platform']}:{row['name'].casefold()}")
+        if entry:
+            entry["loot"] = entry.get("loot", 0) + bonus
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    state["weekChamps"] = {"week": last, "top": top}
+    medals = ["🥇", "🥈", "🥉"]
+    say("🏆 Geçen haftanın mürettebatı: " + " · ".join(f"{medals[i]} {r['name']} (+{r['bonus']})" for i, r in enumerate(top))
+        + " · Yeni hafta başladı, ganimet sıfırdan! 🎣")
+
+
+def week_text():
+    top = week_top(3)
+    if not top:
+        return "🗓️ Bu hafta henüz ganimet yok · !olta ile ilk sen başla! Haftanın ilk 3'üne pazartesi +100/+50/+25 🎁"
+    medals = ["🥇", "🥈", "🥉"]
+    return "🗓️ Haftanın mürettebatı: " + " · ".join(f"{medals[i]} {r['name']} {r['loot']}" for i, r in enumerate(top))         + " · Hafta sonunda ilk 3'e +100/+50/+25 🎁"
+
+
 def season_text(platform, name):
     top = season_top(3)
     medals = ["🥇", "🥈", "🥉"]
@@ -1542,8 +1600,10 @@ def schedule_text(now=None, next_only=False):
     hh, mm = (int(x) for x in str(weekly.get("time") or "20:30").split(":"))
     span = f"{DAYS_TR[days[0]]}–{DAYS_TR[days[-1]]}" if days == list(range(days[0], days[-1] + 1)) and len(days) > 1         else ", ".join(DAYS_TR[d] for d in days)
     base = f"📅 {span} her akşam {hh:02d}:{mm:02d}"
+    themes = {int(k): v for k, v in (weekly.get("themes") or {}).items() if str(k).isdigit()}
     if not next_only and (state.get("health") or {}).get("live"):
-        return f"{base} · şu an zaten güvertedeyiz! ⚓"
+        today = themes.get((now or datetime.now()).weekday())
+        return f"{base} · şu an zaten güvertedeyiz!" + (f" Bugünün teması: 🎭 {today}" if today else "") + " ⚓"
     now = now or datetime.now()
     for ahead in range(8):
         day = now + timedelta(days=ahead)
@@ -1554,7 +1614,8 @@ def schedule_text(now=None, next_only=False):
                 return f"{DAYS_TR[day.weekday()]} {hh:02d}:{mm:02d}"
             when = "bugün" if ahead == 0 else "yarın" if ahead == 1 else DAYS_TR[day.weekday()]
             wait = f"{left // 60} saat {left % 60} dk sonra" if left >= 60 else f"{left} dk sonra"
-            return f"{base} · sıradaki sefer {when} {hh:02d}:{mm:02d}" + (f" ({wait})" if left < 24 * 60 else "") + " 🐾"
+            theme = f" · 🎭 {themes[day.weekday()]}" if day.weekday() in themes else ""
+            return f"{base} · sıradaki sefer {when} {hh:02d}:{mm:02d}" + (f" ({wait})" if left < 24 * 60 else "") + theme + " 🐾"
     return "" if next_only else base
 
 

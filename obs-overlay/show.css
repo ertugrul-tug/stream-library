@@ -158,3 +158,6 @@
 .show-hype .show-label{color:#c9a8ff}
 .show-hype .hype-line{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:800;color:#f1e8ff}
 .fx-banner.support{font-size:1.5vw;padding:.9vw 2.2vw;box-shadow:0 0 2.4vw rgba(255,206,84,.45)}
+.show-crew .last-line{margin-top:.5vw;color:#bfe6ff;letter-spacing:.04em}
+.season-line.week-line,.show-crew .last-line{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.5}
+.season-line.week-line{margin-top:.4vw;padding-top:.4vw}
