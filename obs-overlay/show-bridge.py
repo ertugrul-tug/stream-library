@@ -1493,6 +1493,15 @@ def uptime_text():
     return f"⏱ {spent} güvertedeyiz" + (f" · 🎮 {state['game']}" if state["game"] else "")
 
 
+def shoutout(platform, name):
+    """Panel's 📣: promote a chatter's own channel in both chats (once a minute per person)."""
+    slug = re.sub(r"[^A-Za-z0-9_]", "", name)
+    if platform not in ("twitch", "kick") or not slug or not cooldown(f"shout:{slug.casefold()}", 60):
+        return
+    url = f"https://twitch.tv/{slug}" if platform == "twitch" else f"https://kick.com/{slug.lower()}"
+    say(f"📣 Mürettebattan {name} da yayıncı! Kanalına uğrayıp takip edin: {url} ⚓")
+
+
 def goal_text():
     goal, got = state["goal"], follows_tonight()
     if not goal["target"]:
@@ -1849,6 +1858,8 @@ async def client(ws):
                     race_end(cancelled=True)
                 elif action == "toggleSfx":
                     state["sfx"] = not state["sfx"]
+                elif action == "shoutout":
+                    shoutout(str(msg.get("platform") or ""), str(msg.get("name") or "")[:40])
                 elif action == "giveLoot":
                     platform = clean(msg.get("platform"), 12).lower()
                     name = clean(msg.get("name"), 32)

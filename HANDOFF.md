@@ -52,12 +52,12 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
 - **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
-- **Testler:** `python obs-overlay/tests/run_tests.py` (30 senaryo, ~2 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır.
+- **Testler:** `python obs-overlay/tests/run_tests.py` (64 senaryo, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır.
 - **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları. `.crew.json` (rütbe/ganimet) ve `.nights.jsonl` (yayın arşivi) bilgisayara özel: taşımak için kumanda → Ayarlar → "💾 Yedeği indir", diğer bilgisayarda "📂 Yedeği geri yükle".
 
 ## Açık maddeler
 
-- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori (Twitch "Set Game" `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 klip linki sohbete düşüyor mu · LoL sonucu kendiliğinden · bot mesajları · mini oyunların gerçek sohbetle ilk turu (olta, Kraken dengesi, yarış) · baskın olayının alan adları (Streamer.bot'un gerçek Raid verisiyle)
+- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori (Twitch "Set Game" `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 klip linki sohbete düşüyor mu · LoL sonucu kendiliğinden · bot mesajları · mini oyunların gerçek sohbetle ilk turu (olta, Kraken dengesi, yarış) · baskın olayının alan adları (Streamer.bot'un gerçek Raid verisiyle) · Hype Train (`level`) ve reklam (`length`) olaylarının alan adları · 📣 tanıtım mesajı · `!klip` ile sohbet klibi
 - [ ] **Mürettebat rol ID'si** — gelirse `show-config.json > discordLive.roleId`, Discord duyuruları rolü etiketler
 - [ ] **Instagram hesabı kararı** — @ertugrul_tug mi @kaptan_qedy mi; `social/` altındaki reel bu karara bağlı bekliyor
 - [ ] **Pazar 27 Eylül:** `planning/metrics-log.md` 1. hafta satırı

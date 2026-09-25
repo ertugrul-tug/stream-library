@@ -478,6 +478,11 @@ async def run(sb, obs, tmp):
         await p.drain()
         said2 = sb.said_since(n2)
         check("!lurk bir kez cevaplandı, !hedef çalıştı", sum("ambara indi" in t for t in said2) == 1 and any("🎯" in t for t in said2), str(said2))
+        n3 = len(sb.said)
+        await p.act("shoutout", platform="kick", name="Veli")
+        await p.act("shoutout", platform="kick", name="Veli")
+        shouts = [t for t in sb.said_since(n3) if "kick.com/veli" in t]
+        check("kumandadan tanıtım iki sohbete bir kez gitti", len(shouts) == 2, str(sb.said_since(n3)))
         check("!skor ve !süre cevaplandı", any("G · " in t and "galibiyet serisi" in t for t in said) and any("güvertedeyiz" in t for t in said), str(said))
         await p.act("toggleAutoClip")
         check("yayındayken galibiyet serisi otomatik işaretlendi", any("galibiyet serisi" in m["note"] and m["vod"] for m in auto), str(auto))
