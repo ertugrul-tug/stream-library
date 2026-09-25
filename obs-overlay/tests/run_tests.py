@@ -559,6 +559,7 @@ async def run(sb, obs, tmp):
         said = sb.said_since(n)
         check("3 yayın üst üste gelen sadakat ödülü aldı", any("3 yayındır üst üste" in t and "+15" in t for t in said)
               and crew_db_of(tmp).get("twitch:sadik", {}).get("loot", 0) >= 15, str(said))
+        check("yayın özetinde sadık mürettebat var", "Sadık mürettebat: Sadik (3 yayın" in (state().get("summaryText") or ""), (state().get("summaryText") or "")[-300:])
 
 
 def crew_db_of(tmp):

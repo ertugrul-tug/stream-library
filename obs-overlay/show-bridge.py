@@ -286,6 +286,10 @@ def summary_text():
     king = loot_king()
     if king:
         lines.append(f"👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})")
+    loyal = sorted((e for e in crew_db.values() if e.get("show") == state["started"] and e.get("streak", 0) >= 3
+                    and str(e.get("name", "")).casefold() not in BROADCASTERS), key=lambda e: -e["streak"])[:3]
+    if loyal:
+        lines.append("🔥 Sadık mürettebat: " + ", ".join(f"{e['name']} ({e['streak']} yayın üst üste)" for e in loyal))
     goal = state["goal"]
     if goal["target"]:
         lines.append(f"🎯 Takip hedefi: {follows_tonight()}/{goal['target']}" + (" ✅" if goal["reached"] else ""))
