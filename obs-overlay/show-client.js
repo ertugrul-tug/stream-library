@@ -250,6 +250,11 @@
     setTimeout(() => { got.classList.remove('bobbing'); got.textContent = x.emoji; sfx.fish(x.rarity); c.dataset.rarity = x.rarity; note.textContent = `${x.item} · +${x.points}`; if (x.new) div(body, 'fish-new', 'YENİ!'); }, reduceMotion ? 300 : 2600);
     setTimeout(() => { c.classList.remove('active'); setTimeout(() => { fishBusy = false; playFish(); }, 400); }, reduceMotion ? 3500 : 6200);
   }
+  function seasonPodium(s) {
+    const top = (s.season && s.season.top) || [];
+    if (!top.length) return '';
+    return `🏅 ${String(s.season.name || '').toLocaleUpperCase('tr-TR')} SEZONU · ` + top.slice(0, 3).map((r, i) => `${['🥇','🥈','🥉'][i]} ${r.name} ${r.loot}`).join('  ');
+  }
   function render(s) {
     // Share ranks with the chat boxes on this page (they read chat straight from Streamer.bot).
     const ranks = new Map();
@@ -269,11 +274,15 @@
       const list=div(crew,'crew-list','');
       (s.crew || []).slice(-8).reverse().forEach(p=>{const n=div(list,'crew-person '+p.platform,p.name);if(p.rank){const r=document.createElement('small');r.className='rank';r.textContent=p.rank;n.append(r);}});
       if (!list.childElementCount) div(crew,'show-small','Sohbete yazanlar burada görünecek.');
+      const podium=seasonPodium(s);
+      if (podium) div(crew,'show-small season-line',podium);
     }
     if (log) {
       log.querySelectorAll('.show-value,.show-small').forEach(n=>n.remove());
       div(log,'show-small','ŞİMDİ OYNANIYOR'); div(log,'show-value',s.game || 'Oyun bilgisi bekleniyor');
       div(log,'show-small','DÖNÜŞ NOTU'); div(log,'show-value',s.returnMessage || 'Birazdan dönüyoruz');
+      const podium=seasonPodium(s);
+      if (podium) div(log,'show-small season-line',podium);
       const t=tally(s.matches);
       if(t.m.length) { div(log,'show-small','BU AKŞAMKİ SERİ'); div(log,'show-value',`${t.wins}G · ${t.losses}M`); }
       const highlights=(s.highlights || []).slice(-2);
@@ -392,7 +401,7 @@
       }
     }
   }
-  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
+  const demo={game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},season:{name:'Eylül',top:[{name:'YesilLiman',loot:128},{name:'MaviKaptan',loot:74},{name:'Denizci42',loot:31}]},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
   if(sample) { fishSeen=new Set(); if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
