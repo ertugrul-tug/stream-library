@@ -50,9 +50,9 @@ html,body{background:transparent}
     const item=document.createElement('div'); item.className='message'; item.style.setProperty('--platform',colors[platform]);
     const meta=document.createElement('div'); meta.className='meta';
     const badge=document.createElement('span'); badge.className='badge'; badge.textContent=platform.toUpperCase();
-    item.dataset.key=`${platform}:${name.toLocaleLowerCase('tr-TR')}`;
+    item.dataset.key=`${platform}:${name.toLowerCase()}`;
     const user=document.createElement('span'); user.className='name'; user.textContent=name;
-    const rank=window.qedyRanks?.get(`${platform}:${name.toLocaleLowerCase('tr-TR')}`);
+    const rank=window.qedyRanks?.get(`${platform}:${name.toLowerCase()}`);
     if(rank){const r=document.createElement('small');r.className='crew-rank';r.textContent=rank;user.append(r);}
     const body=document.createElement('div'); body.className='body'; qedyEmotes.render(body,parts,300);
     meta.append(badge,user); item.append(meta,body); list.append(item);

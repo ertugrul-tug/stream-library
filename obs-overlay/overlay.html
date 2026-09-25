@@ -109,9 +109,9 @@
     item.style.setProperty('--platform', colors[platform]);
     const meta = document.createElement('div'); meta.className = 'meta';
     const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = platform.toUpperCase();
-    item.dataset.key = `${platform}:${name.toLocaleLowerCase('tr-TR')}`;
+    item.dataset.key = `${platform}:${name.toLowerCase()}`;
     const username = document.createElement('span'); username.className = 'name'; username.textContent = name;
-    const rank = window.qedyRanks?.get(`${platform}:${name.toLocaleLowerCase('tr-TR')}`);
+    const rank = window.qedyRanks?.get(`${platform}:${name.toLowerCase()}`);
     if (rank) { const r = document.createElement('small'); r.className = 'crew-rank'; r.textContent = rank; username.append(r); }
     const content = document.createElement('div'); content.className = 'body'; qedyEmotes.render(content, parts, 240);
     meta.append(badge, username); item.append(meta, content); messages.append(item);

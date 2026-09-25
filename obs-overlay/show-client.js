@@ -268,7 +268,7 @@
     // Share ranks with the chat boxes on this page (they read chat straight from Streamer.bot).
     const ranks = new Map();
     [...(s.topCrew || []), ...(s.crew || [])].forEach(c => {
-      const key = `${c.platform}:${String(c.name).toLocaleLowerCase('tr-TR')}`;
+      const key = `${c.platform}:${String(c.name).toLowerCase()}`;
       const tag = [c.rank && c.rank !== 'Miço' ? c.rank : '', c.streak >= 3 ? `🔥${c.streak}` : ''].filter(Boolean).join(' ');
       if (tag) ranks.set(key, tag);
     });
