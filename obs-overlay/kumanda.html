@@ -262,6 +262,7 @@ sel.addEventListener('change',pickGame);
 $('newShow').onclick=()=>{const g=state?.game||'',favs=Object.keys(presets);
   sel.replaceChildren(...favs.map(n=>new Option(n,n)));
   if(g&&!favs.includes(g))sel.add(new Option(g+' · son oynanan',g),0);
+  (state?.wishlist||[]).filter(w=>w.name!==g&&!favs.includes(w.name)).slice(0,5).forEach(w=>sel.add(new Option(`🔥${w.votes} ${w.name} · sohbet istedi`,w.name)));
   sel.add(new Option('➕ Başka oyun…',OTHER));
   sel.value=g||favs[0]||OTHER;
   nsRoutes.forEach((r,i)=>{r.value=(state?.routes||[])[i]||''});pickGame();
