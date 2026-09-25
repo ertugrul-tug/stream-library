@@ -466,6 +466,12 @@ async def run(sb, obs, tmp):
         await p.drain()
         chat_clips = [c for c in sb.calls if c[0] == "QedyClip"][clips_before + 1:]
         check("!klip yayında çalıştı, 90 sn içinde ikincisi engellendi", len(chat_clips) == 1 and any("klipledi" in t for t in sb.said_since(n)), str(chat_clips))
+        n = len(sb.said)
+        await sb.chat("twitch", "Ali", "!skor")
+        await sb.chat("kick", "Veli", "!süre")
+        await p.drain()
+        said = sb.said_since(n)
+        check("!skor ve !süre cevaplandı", any("G · " in t and "galibiyet serisi" in t for t in said) and any("güvertedeyiz" in t for t in said), str(said))
         await p.act("toggleAutoClip")
         check("yayındayken galibiyet serisi otomatik işaretlendi", any("galibiyet serisi" in m["note"] and m["vod"] for m in auto), str(auto))
         obs.live = obs.muted = False

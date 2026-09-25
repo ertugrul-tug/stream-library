@@ -374,7 +374,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -780,6 +780,10 @@ async def streamer_bot():
                                 say(f"@{name} {random.choice(ORACLE)}", platform)
                             elif command == "!klip":
                                 viewer_clip(platform, name)
+                            elif command in ("!süre", "!sure", "!uptime") and cooldown("uptime", 30):
+                                say(uptime_text(), platform)
+                            elif command == "!skor" and cooldown("score", 30):
+                                say(score_text(), platform)
                             elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
                                 say(season_text(platform, name), platform)
                             elif command in ("!düello", "!duello"):
@@ -1458,6 +1462,28 @@ def on_hype(kind, data):
         state["hype"]["level"] = level
         say(f"🚂 Hype Train seviye {level}! Devam, devam! 💜", "twitch")
     state["effects"] = (state["effects"] + [{"id": f"hy{time.time()}", "type": "konfeti", "name": f"Hype Train {level}", "platform": "twitch"}])[-10:]
+
+
+def uptime_text():
+    health = state.get("health") or {}
+    if not health.get("live") or not health.get("time"):
+        return "⚓ Şu an yayında değiliz, Discord'dan haber veririz!"
+    h, m, _ = (int(x) for x in health["time"].split(":"))
+    spent = f"{h} saattir" if h and not m else f"{h} saat {m} dakikadır" if h else f"{max(m, 1)} dakikadır"
+    return f"⏱ {spent} güvertedeyiz" + (f" · 🎮 {state['game']}" if state["game"] else "")
+
+
+def score_text():
+    m = state["matches"]
+    if not m:
+        return "🏆 Bu akşam henüz maç sonucu yok, ilk zafer yolda!"
+    wins, streak = m.count("W"), 0
+    for r in reversed(m):
+        if r != m[-1]:
+            break
+        streak += 1
+    tail = f" · {streak} maçlık {'galibiyet serisi 🔥' if m[-1] == 'W' else 'mağlubiyet serisi'}" if streak >= 2 else ""
+    return f"🏆 Bu akşam {wins}G · {len(m) - wins}M" + tail
 
 
 def recent_chatters(minutes=10):
