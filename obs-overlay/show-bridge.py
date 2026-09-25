@@ -510,8 +510,17 @@ def live_message(game, note=""):
     return content, {"parse": [], "roles": [DISCORD_LIVE_ROLE] if DISCORD_LIVE_ROLE else []}
 
 
+_save_warned = [False]
+
+
 async def publish():
-    STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
+        _save_warned[0] = False
+    except OSError as exc:  # a locked/synced file must not stop the show; the overlays still update
+        if not _save_warned[0]:
+            _save_warned[0] = True
+            print(f"Yayın durumu diske yazılamadı ({type(exc).__name__}); yayın devam ediyor.", flush=True)
     message = json.dumps({"type": "state", "state": snapshot()}, ensure_ascii=False)
     for ws in tuple(CLIENTS):
         try:
@@ -1819,10 +1828,27 @@ async def client(ws):
                 await publish()
             except (ValueError, TypeError, KeyError, json.JSONDecodeError):
                 continue
+            except ConnectionClosed:
+                raise
+            except Exception as exc:  # one bad action must not drop the panel's connection
+                print(f"Kumanda işlemi atlandı ({msg.get('action') if isinstance(msg, dict) else '?'}): {type(exc).__name__}: {exc}", flush=True)
+                continue
     except ConnectionClosed:
         pass  # phones drop the socket abruptly when the screen locks; the page reconnects on its own
     finally:
         CLIENTS.discard(ws)
+
+
+async def supervised(name, loop_fn):
+    """Restart a background loop if it ever raises, so one failure can't stop the whole bridge."""
+    while True:
+        try:
+            await loop_fn()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            print(f"{name} döngüsü hata verdi, 3 sn sonra yeniden başlıyor: {type(exc).__name__}: {exc}", flush=True)
+            await asyncio.sleep(3)
 
 
 async def main():
@@ -1835,7 +1861,9 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop(), obs_health(), quiet_deck())
+        loops = {"Streamer.bot": streamer_bot, "OBS": obs_client, "LoL": lol_watcher, "Kraken": kraken_random,
+                 "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck}
+        await asyncio.gather(*(supervised(name, fn) for name, fn in loops.items()))
 
 
 if __name__ == "__main__":

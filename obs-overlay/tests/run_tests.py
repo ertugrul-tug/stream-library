@@ -491,6 +491,7 @@ async def main():
     (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/"}), encoding="utf-8")
     (tmp / ".crew.json").write_text(json.dumps({"twitch:zengin": {"platform": "twitch", "name": "Zengin", "points": 0, "streams": 1,
                                                                    "show": None, "last": 0, "loot": 500}}), encoding="utf-8")
+    (tmp / ".show-state.json").mkdir()  # the state file can never be written: the whole show must run anyway
     sb, obs = FakeStreamerBot(), FakeOBS()
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
@@ -513,7 +514,9 @@ async def main():
             bridge.terminate()
             bridge.wait(5)
             log.close()
-    crashes = (tmp / "bridge.log").read_text(encoding="utf-8").count("Traceback")
+    bridge_log = (tmp / "bridge.log").read_text(encoding="utf-8")
+    crashes = bridge_log.count("Traceback")
+    check("kayıt dosyası yazılamazken yayın sürdü, uyarı bir kez", bridge_log.count("diske yazılamadı") == 1, str(bridge_log.count("diske yazılamadı")))
     check("köprü hiç hata dökümü basmadı", crashes == 0, f"{crashes} traceback · {tmp / 'bridge.log'}")
     failed = [r for r in RESULTS if not r[1]]
     print(f"\n{len(RESULTS) - len(failed)}/{len(RESULTS)} test geçti")
