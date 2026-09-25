@@ -15,7 +15,7 @@
 .show-vote .vote-row{display:grid;grid-template-columns:1.25vw 1fr 2vw;gap:.4vw;align-items:center;font-size:.75vw;margin:.45vw 0}
 .show-vote .vote-row b{color:#68ccf9}.show-vote .vote-track{grid-column:2 / 4;height:.22vw;border-radius:1vw;background:rgba(255,255,255,.12);overflow:hidden}.show-vote .vote-track i{display:block;height:100%;background:linear-gradient(90deg,#9146ff,#22aef0,#53fc18);transition:width .6s}
 .show-vote .show-small{font-size:.62vw;letter-spacing:.07em;margin-top:.6vw}
-.scene.start .show-crew{left:5.5%;top:25%;width:19%;min-height:16%;max-height:49%;overflow:hidden}
+.scene.start .show-crew{left:5.5%;top:13%;width:19%;min-height:16%;max-height:35%;overflow:hidden}
 .show-crew .crew-list{display:flex;flex-direction:column;gap:.48vw}.show-crew .crew-person{font-size:.85vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:showIn .5s both}.show-crew .crew-person:before{content:"◉";color:#22aef0;margin-right:.5vw}.show-crew .crew-person.kick:before{color:#53fc18}.show-crew .crew-person.twitch:before{color:#9146ff}
 .show-crew .crew-person .rank{margin-left:.55vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.58vw;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#ffce54}
 .show-rankup{left:38%;right:38%;top:12.5%;text-align:center;padding:.8vw 1vw;display:none;border-color:rgba(255,206,84,.75);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 1.6vw rgba(255,206,84,.35)}
