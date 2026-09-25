@@ -109,13 +109,26 @@
     item.style.setProperty('--platform', colors[platform]);
     const meta = document.createElement('div'); meta.className = 'meta';
     const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = platform.toUpperCase();
+    item.dataset.key = `${platform}:${name.toLocaleLowerCase('tr-TR')}`;
     const username = document.createElement('span'); username.className = 'name'; username.textContent = name;
     const rank = window.qedyRanks?.get(`${platform}:${name.toLocaleLowerCase('tr-TR')}`);
     if (rank) { const r = document.createElement('small'); r.className = 'crew-rank'; r.textContent = rank; username.append(r); }
     const content = document.createElement('div'); content.className = 'body'; qedyEmotes.render(content, parts, 240);
     meta.append(badge, username); item.append(meta, content); messages.append(item);
     while (messages.children.length > maxMessages) messages.firstElementChild.remove();
+    markFirstTimers();
   }
+  function markFirstTimers() {
+    const first = window.qedyFirstTimers;
+    if (!first) return;
+    document.querySelectorAll('.message[data-key]:not(.first-seen)').forEach(m => {
+      if (!first.has(m.dataset.key)) return;
+      m.classList.add('first-seen');
+      const tag = document.createElement('small'); tag.className = 'first-tag'; tag.textContent = '✨ İLK SEFER';
+      m.querySelector('.meta')?.append(tag);
+    });
+  }
+  window.addEventListener('qedy-crew', markFirstTimers);
   function chime() {
     try {
       audioContext ||= new (window.AudioContext || window.webkitAudioContext)();

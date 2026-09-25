@@ -203,7 +203,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -749,6 +749,8 @@ async def streamer_bot():
                             first_today = not previous or previous.get("show") != state["started"]
                             new_rank = award_chat(platform, name, state["started"])
                             _chat_since_tip[0] += 1
+                            if previous is None and name.casefold() not in BROADCASTERS:
+                                state["firstTimers"] = (state["firstTimers"] + [f"{platform}:{name.casefold()}"])[-30:]
                             if first_today and not message.startswith("!"):
                                 greet(platform, name, previous is None)
                             if new_rank:

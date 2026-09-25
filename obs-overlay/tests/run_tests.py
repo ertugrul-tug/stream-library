@@ -258,6 +258,7 @@ async def run(sb, obs, tmp):
         n = len(sb.said)
         await sb.chat("kick", "Veli", "selam millet")
         await p.drain()
+        check("ilk kez yazan ekranda işaretlenecek listede", "kick:veli" in state()["firstTimers"], str(state()["firstTimers"]))
         check("yeni izleyici karşılandı", any("Güverteye hoş geldin @Veli" in t for t in sb.said_since(n)), str(sb.said_since(n)))
         chat_before = state()["stats"]["kick"]["chat"]
         await sb.chat("kick", "KaptanQedy", sb.said[-1][1])

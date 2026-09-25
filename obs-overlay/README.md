@@ -100,7 +100,7 @@ Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi
   - Kraken ve yarış aynı anda açılmaz. Ganimet puanları rütbeyi değiştirmez, `.crew.json`'da ayrı tutulur. Süreler `show-config.json > games`'te. Önizleme: `overlay.html?sample` (Kraken) ve `overlay.html?sample=race`.
 - **🎯 Takip hedefi:** Ayarlar sekmesindeki (Seyir defteri) kutuya bu akşamki hedefi yaz (0 = kapalı). Oyun sahnesinin segment şeridinde "🎯 3/5 takipçi" ve ilerleme çubuğu görünür; hedef tutunca ekranda konfeti ve "hedef tamam" şeridi, bot teşekkür eder, Discord özetine girer.
 - **📈 Son yayınlar:** Her "🚀 Yeni yayın"da biten gecenin özeti (oyun, mesaj, takip, abone, skor, baskın, mini oyunlar, ganimet kralı) yerel `.nights.jsonl`'a yazılır ve Ayarlar sekmesinde listelenir. "📋 Haftalık özeti kopyala" son 7 günün toplamını `planning/metrics-log.md` Not sütununa yapıştırılacak tek satır olarak panoya alır.
-- **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır. Oyun sahnesi ve Sohbet Güvertesi sohbet kutularında isimlerin yanında altın rütbe etiketi görünür (Tayfa ve üstü).
+- **Mürettebat rütbeleri:** yayındaki ilk mesaj +10, sonra her mesaj +1 (30 sn arayla). Miço → Tayfa (20) → Usta Gemici (60) → Lostromo (150) → Dümenci (350) → İkinci Kaptan (800). Puanlar `.crew.json`'da yayınlar arası saklanır. Oyun sahnesi ve Sohbet Güvertesi sohbet kutularında isimlerin yanında altın rütbe etiketi görünür (Tayfa ve üstü). Kanala ilk kez yazan birinin mesajı altın çerçeve ve "✨ İLK SEFER" etiketiyle öne çıkar.
 
 ### Streamer.bot action'ları
 

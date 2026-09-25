@@ -50,13 +50,26 @@ html,body{background:transparent}
     const item=document.createElement('div'); item.className='message'; item.style.setProperty('--platform',colors[platform]);
     const meta=document.createElement('div'); meta.className='meta';
     const badge=document.createElement('span'); badge.className='badge'; badge.textContent=platform.toUpperCase();
+    item.dataset.key=`${platform}:${name.toLocaleLowerCase('tr-TR')}`;
     const user=document.createElement('span'); user.className='name'; user.textContent=name;
     const rank=window.qedyRanks?.get(`${platform}:${name.toLocaleLowerCase('tr-TR')}`);
     if(rank){const r=document.createElement('small');r.className='crew-rank';r.textContent=rank;user.append(r);}
     const body=document.createElement('div'); body.className='body'; qedyEmotes.render(body,parts,300);
     meta.append(badge,user); item.append(meta,body); list.append(item);
     while(list.children.length>9) list.firstElementChild.remove();
+    markFirstTimers();
   }
+  function markFirstTimers() {
+    const first = window.qedyFirstTimers;
+    if (!first) return;
+    document.querySelectorAll('.message[data-key]:not(.first-seen)').forEach(m => {
+      if (!first.has(m.dataset.key)) return;
+      m.classList.add('first-seen');
+      const tag = document.createElement('small'); tag.className = 'first-tag'; tag.textContent = '✨ İLK SEFER';
+      m.querySelector('.meta')?.append(tag);
+    });
+  }
+  window.addEventListener('qedy-crew', markFirstTimers);
   function receive(payload) {
     if (payload?.event?.type !== 'ChatMessage') return;
     const platform=String(payload.event.source || '').toLowerCase();

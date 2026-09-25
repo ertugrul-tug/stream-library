@@ -150,3 +150,7 @@
 @keyframes fishPop{0%{transform:scale(.2)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.show-rankup,.show-card,.show-crew .crew-person,.show-score::before,.show-score::after,.show-score .score-streak,.show-score .score-dots i,.show-predict,.show-predict .predict-result,.show-raid .raid-flag,.show-kraken,.show-kraken .kr-emoji,.show-race .chip,.show-fish,.show-fish .fish-catch{animation:none!important}.show-race .boat,.show-kraken .kr-bar i{transition:none}}
 .season-line{margin-top:.7vw;padding-top:.5vw;border-top:1px solid rgba(255,255,255,.12);font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.62vw!important;letter-spacing:.04em;color:#ffe29a!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.message .first-tag{margin-left:auto;padding:.05em .5em;border-radius:1em;background:rgba(255,206,84,.18);color:#ffe29a;font-size:.7em;font-weight:800;letter-spacing:.06em}
+.message.first-seen{box-shadow:0 0 0 1px rgba(255,206,84,.55),0 0 1.2vw rgba(255,206,84,.25);animation:firstGlow 2.4s ease-in-out 2}
+@keyframes firstGlow{50%{box-shadow:0 0 0 1px rgba(255,206,84,.9),0 0 2vw rgba(255,206,84,.5)}}
+@media(prefers-reduced-motion:reduce){.message.first-seen{animation:none}}
