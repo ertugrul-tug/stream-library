@@ -322,6 +322,12 @@ async def run(sb, obs, tmp):
         await sb.chat("kick", "Veli", "!düello @Zengin 100")
         await p.drain()
         check("düello: bakiye yetmeyen teklif edemedi", any("bakiyen yetmiyor" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+        n = len(sb.said)
+        await sb.chat("twitch", "Ali", "!sezon")
+        await p.drain()
+        season = state().get("season") or {}
+        check("sezon: sıralama ve !sezon cevabı", season.get("top") and any("sezonu:" in t and "@Ali bu ay" in t for t in sb.said_since(n)),
+              f"{season} {sb.said_since(n)}")
         await sb.chat("twitch", "Ali", "!soru Bu akşam hangi dünyada oynuyoruz?")
         await p.drain()
         q = state()["questions"][-1] if state()["questions"] else {}

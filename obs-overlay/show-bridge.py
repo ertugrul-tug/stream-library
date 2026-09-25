@@ -236,6 +236,7 @@ def snapshot():
     result["schedule"] = CONFIG.get("schedule") or {}
     result["lootKing"] = loot_king()
     result["nights"] = NIGHTS[-10:]
+    result["season"] = {"name": season_name(), "top": season_top(5)}
     return result
 
 
@@ -272,6 +273,9 @@ def summary_text():
     raids = state["night"].get("raids") or []
     if raids:
         lines.append("🏴‍☠️ Baskınlar: " + ", ".join(f"{r['name']} ({r['viewers']})" for r in raids))
+    leader = (season_top(1) or [None])[0]
+    if leader:
+        lines.append(f"🏅 {season_name()} sezonu lideri: {leader['name']} ({leader['loot']})")
     king = loot_king()
     if king:
         lines.append(f"👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})")
@@ -335,7 +339,7 @@ def reset_show():
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
-HELP_TEXT = ("⚓ Komutlar: !site · !düello @isim miktar · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !site · !sezon · !düello @isim miktar · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -727,6 +731,8 @@ async def streamer_bot():
                                 cast_line(platform, name)
                             elif command in CHAT_LINKS and cooldown(f"link:{platform}:{command}", 30):
                                 say(CHAT_LINKS[command], platform)
+                            elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
+                                say(season_text(platform, name), platform)
                             elif command in ("!düello", "!duello"):
                                 duel_challenge(platform, name, message.split()[1:])
                             elif command == "!kabul":
@@ -934,6 +940,12 @@ def add_loot(platform, name, points, best=None):
     entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
     entry["name"] = name
     entry["loot"] = entry.get("loot", 0) + points
+    if platform in ("twitch", "kick"):
+        season = entry.get("season") or {}
+        if season.get("id") != season_id():
+            season = {"id": season_id(), "loot": 0}
+        season["loot"] += points
+        entry["season"] = season
     if platform in ("twitch", "kick"):
         night = state["night"]["loot"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "loot": 0})
         night["loot"] += points
@@ -1237,6 +1249,32 @@ def duel_answer(platform, name, accept):
     CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
     state["effects"] = (state["effects"] + [{"id": f"d{time.time()}", "type": "duel", "name": f"{winner[1]}|{loser[1]}", "platform": winner[0]}])[-10:]
     say(f"⚔️ {duel['name']} ile {name} kılıç çekti… kazanan {winner[1]}! +{amount} ganimet 🏆")
+
+
+AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+
+
+def season_id():
+    return datetime.now().strftime("%Y-%m")
+
+
+def season_name():
+    return AYLAR[datetime.now().month - 1]
+
+
+def season_top(limit):
+    rows = [{"platform": e["platform"], "name": e["name"], "loot": (e.get("season") or {}).get("loot", 0)}
+            for e in crew_db.values() if (e.get("season") or {}).get("id") == season_id() and e["platform"] in ("twitch", "kick")]
+    return sorted([r for r in rows if r["loot"]], key=lambda r: r["loot"], reverse=True)[:limit]
+
+
+def season_text(platform, name):
+    top = season_top(3)
+    medals = ["🥇", "🥈", "🥉"]
+    podium = " · ".join(f"{medals[i]} {r['name']} {r['loot']}" for i, r in enumerate(top)) or "henüz kimse yok"
+    mine = (_entry(platform, name).get("season") or {})
+    mine_loot = mine.get("loot", 0) if mine.get("id") == season_id() else 0
+    return f"🏅 {season_name()} sezonu: {podium} · @{name} bu ay {mine_loot} ganimet"
 
 
 def recent_chatters(minutes=10):
