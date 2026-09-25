@@ -374,7 +374,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -782,6 +782,10 @@ async def streamer_bot():
                                 viewer_clip(platform, name)
                             elif command in ("!süre", "!sure", "!uptime") and cooldown("uptime", 30):
                                 say(uptime_text(), platform)
+                            elif command == "!hedef" and cooldown("goal", 30):
+                                say(goal_text(), platform)
+                            elif command in ("!lurk", "!afk") and cooldown(f"lurk:{platform}:{name.casefold()}", 600):
+                                say(f"💤 {name} ambara indi, sessizce dinliyor. Hamakta iyi dinlemeler! ⚓", platform)
                             elif command == "!skor" and cooldown("score", 30):
                                 say(score_text(), platform)
                             elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
@@ -1471,6 +1475,17 @@ def uptime_text():
     h, m, _ = (int(x) for x in health["time"].split(":"))
     spent = f"{h} saattir" if h and not m else f"{h} saat {m} dakikadır" if h else f"{max(m, 1)} dakikadır"
     return f"⏱ {spent} güvertedeyiz" + (f" · 🎮 {state['game']}" if state["game"] else "")
+
+
+def goal_text():
+    goal, got = state["goal"], follows_tonight()
+    if not goal["target"]:
+        return f"🎯 Bu akşam {got} yeni takipçi geldi, hepinize hoş geldiniz!" if got else "🎯 Bu akşam henüz takip hedefi yok, ilk takip senden olsun!"
+    if goal["reached"] or got >= goal["target"]:
+        return f"🎯 {goal['target']} takipçi hedefine ulaştık ({got})! Yelkenler dolu ⚓"
+    left = goal["target"] - got
+    bar = "▰" * round(10 * got / goal["target"]) + "▱" * (10 - round(10 * got / goal["target"]))
+    return f"🎯 Takip hedefi {got}/{goal['target']} {bar} · {left} kaldı!"
 
 
 def score_text():
