@@ -205,7 +205,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -368,7 +368,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -776,6 +776,8 @@ async def streamer_bot():
                                 say(f"🎖️ {name} rütbe atladı: artık {new_rank}!", platform)
                             if not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
                                 state["crew"] = (state["crew"] + [{"platform": platform, "name": name}])[-24:]
+                            if "🔥" in message and _suggestion and time.time() < _suggestion["until"] and name.casefold() not in BROADCASTERS:
+                                _suggestion["fans"].add(f"{platform}:{name.casefold()}")
                             match = re.fullmatch(r"!rota\s+([1-3])", message, re.IGNORECASE)
                             if match:
                                 index = int(match.group(1)) - 1
@@ -1514,7 +1516,27 @@ def shoutout(platform, name):
     say(f"📣 Mürettebattan {name} da yayıncı! Kanalına uğrayıp takip edin: {url} ⚓")
 
 
-_library = []
+_library, _suggestion = [], {}
+SUGGEST_SECONDS = float(os.environ.get("QEDY_SUGGEST_SEC") or 60)  # how long 🔥 votes count after !öner
+
+
+async def suggestion_tally(name):
+    """A minute after !öner: count the 🔥 replies and keep liked games on the panel's wishlist."""
+    await asyncio.sleep(SUGGEST_SECONDS)
+    if _suggestion.get("name") != name:
+        return
+    fans = len(_suggestion["fans"])
+    _suggestion.clear()
+    if not fans:
+        return
+    wish = next((w for w in state["wishlist"] if w["name"] == name), None)
+    if wish:
+        wish["votes"] += fans
+    else:
+        state["wishlist"].append({"name": name, "votes": fans})
+    state["wishlist"] = sorted(state["wishlist"], key=lambda w: -w["votes"])[:10]
+    say(f"🔥 {name} {fans} oy aldı, kaptanın listesine eklendi!")
+    await publish()
 
 
 def suggest_game():
@@ -1528,6 +1550,9 @@ def suggest_game():
     if not picks:
         return "🎲 Kütüphane şu an açılamadı, bir dahaki sefere!"
     game = random.choice(picks)
+    _suggestion.clear()
+    _suggestion.update({"name": game["name"], "until": time.time() + SUGGEST_SECONDS, "fans": set()})
+    _spawn(suggestion_tally(game["name"]))
     link = f" · https://store.steampowered.com/app/{game['appid']}" if game.get("appid") else ""
     return f"🎲 Kaptanın {len(_library)} oyunluk kütüphanesinden rastgele: {game['name']}{link} · Bir dahaki yayına bu olsun mu? Beğenen 🔥 yazsın!"
 
@@ -1888,6 +1913,8 @@ async def client(ws):
                     race_end(cancelled=True)
                 elif action == "toggleSfx":
                     state["sfx"] = not state["sfx"]
+                elif action == "wishRemove":
+                    state["wishlist"] = [w for w in state["wishlist"] if w["name"] != msg.get("name")]
                 elif action == "shoutout":
                     shoutout(str(msg.get("platform") or ""), str(msg.get("name") or "")[:40])
                 elif action == "giveLoot":

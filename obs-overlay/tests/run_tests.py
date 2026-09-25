@@ -488,6 +488,11 @@ async def run(sb, obs, tmp):
         await sb.chat("twitch", "Ali", "!öner")
         await p.drain()
         check("!öner kütüphaneden oyun önerdi", any("oyunluk kütüphanesinden rastgele" in t for t in sb.said_since(n4)), str(sb.said_since(n4)))
+        await sb.chat("twitch", "Ali", "🔥🔥")
+        await sb.chat("kick", "Veli", "evet 🔥")
+        await sb.chat("kick", "Veli", "🔥 tekrar")
+        got = await wait_until(lambda: _state_is(p, lambda s: any(w["votes"] == 2 for w in s.get("wishlist") or [])), 8)
+        check("🔥 oyları sayıldı, oyun istek listesine girdi", got and any("oy aldı" in t for t in sb.said_since(n4)), str(state().get("wishlist")))
         check("!lurk bir kez cevaplandı, !hedef çalıştı", sum("ambara indi" in t for t in said2) == 1 and any("🎯" in t for t in said2), str(said2))
         n3 = len(sb.said)
         await p.act("shoutout", platform="kick", name="Veli")
@@ -611,7 +616,7 @@ async def main():
     sb, obs = FakeStreamerBot(), FakeOBS()
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
-    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_CONFIG": str(tmp / "show-config.json"),
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_CONFIG": str(tmp / "show-config.json"),
            "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
     log = open(tmp / "bridge.log", "w", encoding="utf-8")
     async with serve(sb.handler, "127.0.0.1", SB), serve(obs.handler, "127.0.0.1", OBS):
