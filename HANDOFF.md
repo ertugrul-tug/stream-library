@@ -1,6 +1,8 @@
 # Handoff — Kaptan Qedy Comeback Sitesi
 
-_Son güncelleme: 25 Eylül 2026, ev bilgisayarından. Diğer bilgisayara geçince buradan devam._
+_Son güncelleme: 25 Eylül 2026 öğleden sonra, ofis bilgisayarından. Diğer bilgisayara geçince buradan devam._
+
+> **Sıradaki büyük adım: Pazartesi 28 Eylül 20:30 ilk gerçek yayın = canlı test.** Aşağıdaki "Pazartesi kontrol listesi"ni takip et. O güne kadar yeni yayın özelliği eklemiyoruz; önce gerçek sohbetle neyin kırıldığını görelim.
 
 ## Canlı linkler
 
@@ -52,12 +54,44 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
 - **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
-- **Testler:** `python obs-overlay/tests/run_tests.py` (64 senaryo, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır.
+- **Testler:** `python obs-overlay/tests/run_tests.py` (76 kontrol, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır. Ofis bilgisayarının Türkçe konsolunda ✓ işaretleri yüzünden çöker; orada başına `PYTHONIOENCODING=utf-8` koy (evde gerek yok).
 - **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları. `.crew.json` (rütbe/ganimet) ve `.nights.jsonl` (yayın arşivi) bilgisayara özel: taşımak için kumanda → Ayarlar → "💾 Yedeği indir", diğer bilgisayarda "📂 Yedeği geri yükle".
+
+## 25 Eylül öğleden sonra — ofis bilgisayarında eklenenler
+
+- **📱 Dikey klipler (`obs-overlay/make-clips.py`):** 🎬 işaretleri artık yayın zamanının yanında OBS'in **yerel kayıt** zamanını da tutuyor (`rec`; `!klip` ve otomatik işaretler dahil). Yayından sonra `python obs-overlay/make-clips.py` en yeni kayıttan her işaretin 30 sn öncesi + 10 sn sonrasını 1080×1920 keser (üstte kamera, altta oyun), yakın işaretleri birleştirir, `kayıt klasörü/klipler/<kayıt>/` altına yazar. `--list`, `--only 2,5`, `--before/--after`, `--preview`. Ayar: `show-config.local.json > clips` (`recordingDir`, kamera/oyun kırpma kutuları). Sentetik 2560×1440 kayıtla uçtan uca test edildi.
+- **⛵ Modern yelkenliler:** Galeonlar gitti. Klasik yat, balon yelkenli, katamaran ve dinghy; renk/boy/hız/yön her teknede rastgele ve ekrandan çıkan tekne yenisiyle değişiyor. Kod tek dosyada: `docs/assets/ships.js` (site + OBS sahneleri ortak kullanıyor, sahneler `../docs/assets/ships.js` ile yüklüyor).
+- **Açılış ekranı radar kartı** başlığa biniyordu (sezon/geçen sefer satırları eklenince); yukarı alındı ve sınırlandı. Tüm sahneler sample modda çakışma için tarandı: temiz.
+
+## Pazartesi 28 Eylül — kontrol listesi
+
+**Yayından önce (ev bilgisayarı):**
+- [ ] `git pull` (ofiste eklenenler: klip scripti, yelkenliler, radar düzeltmesi)
+- [ ] ffmpeg kur: `winget install Gyan.FFmpeg` (klip scripti için; şu an sadece ofiste kurulu)
+- [ ] OBS kaydının yayınla birlikte açıldığını ve hangi klasöre yazdığını kontrol et; `Videos` değilse `show-config.local.json > clips.recordingDir`
+- [ ] Kick bio'yu işle (`planning/comeback-plan.md` Bölüm 9'daki metin)
+- [ ] Varsa Discord Mürettebat rol ID'si → `show-config.json > discordLive.roleId`
+- [ ] `python obs-overlay/tests/run_tests.py` → hepsi geçmeli
+- [ ] Kumandada 🚀 **Yeni yayın** ile başla (rütbelerdeki "yayındaki ilk mesaj" bonusu buna bağlı)
+
+**Yayında dikkat edilecekler (canlı test):**
+- [ ] Yeni yayın → Twitch/Kick başlık + kategori doğru mu (Twitch "Set Game" `%game%`'i kategoriye çeviriyor mu, emin değiliz)
+- [ ] 🎬 Anı işaretle ve sohbetten `!klip` → Twitch klibi oluşuyor mu, link sohbete düşüyor mu
+- [ ] LoL maç sonucu kendiliğinden geliyor mu (TFT sayılmaz)
+- [ ] Bot mesajları (karşılama, ipuçları, sahneye göre satırlar, 📣 tanıtım) — sıklık rahatsız edici mi
+- [ ] Mini oyunların gerçek sohbetle ilk turu: olta, Kraken (çok mu kolay/zor), yelken yarışı
+- [ ] Olta kartı ekranda yeterince fark ediliyor mu (küçük olabilir; gerekirse nadir avda büyütülür)
+- [ ] Baskın / Hype Train (`level`) / reklam (`length`) gelirse: Streamer.bot'un gerçek verisindeki alanlar doğru okunuyor mu
+- [ ] Neyin kırıldığını ya da garip durduğunu not al — salı günü düzeltme listesi bu olacak
+
+**Yayından sonra (aynı gece, "Yeni yayın"a basmadan — işaretleri o sıfırlar):**
+- [ ] `python obs-overlay/make-clips.py --preview` → PNG'de kamera ve oyun doğru kırpılmış mı; değilse `clips.camera` / `clips.game` kutularını ayarla
+- [ ] `python obs-overlay/make-clips.py` → klipleri Reels/Shorts/TikTok'a yükle (plandaki 1 numaralı büyüme taktiği)
+- [ ] Kumandadan 📊 yayın özetini Discord'a gönder
 
 ## Açık maddeler
 
-- [ ] **Canlı test bekleyenler (bir sonraki yayın):** Yeni yayın → Twitch/Kick başlık/kategori (Twitch "Set Game" `%game%` ismini kategoriye çeviriyor mu, emin değiliz) · 🎬 klip linki sohbete düşüyor mu · LoL sonucu kendiliğinden · bot mesajları · mini oyunların gerçek sohbetle ilk turu (olta, Kraken dengesi, yarış) · baskın olayının alan adları (Streamer.bot'un gerçek Raid verisiyle) · Hype Train (`level`) ve reklam (`length`) olaylarının alan adları · 📣 tanıtım mesajı · `!klip` ile sohbet klibi
+- [ ] **Canlı test** ve **Kick bio** — Pazartesi kontrol listesinde
 - [ ] **Mürettebat rol ID'si** — gelirse `show-config.json > discordLive.roleId`, Discord duyuruları rolü etiketler
 - [ ] **Instagram hesabı kararı** — @ertugrul_tug mi @kaptan_qedy mi; `social/` altındaki reel bu karara bağlı bekliyor
 - [ ] **Pazar 27 Eylül:** `planning/metrics-log.md` 1. hafta satırı
