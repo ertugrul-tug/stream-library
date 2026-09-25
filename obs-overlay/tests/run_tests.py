@@ -323,6 +323,12 @@ async def run(sb, obs, tmp):
         await p.drain()
         check("düello: bakiye yetmeyen teklif edemedi", any("bakiyen yetmiyor" in t for t in sb.said_since(n)), str(sb.said_since(n)))
         n = len(sb.said)
+        await sb.chat("kick", "Veli", "!kehanet bu akşam kazanır mıyız?")
+        await sb.chat("kick", "Veli", "!kehanet tekrar soruyorum hemen")
+        await p.drain()
+        answers = [t for t in sb.said_since(n) if "🔮" in t]
+        check("!kehanet cevap verdi, hemen tekrar bekleme süresine takıldı", len(answers) == 1 and answers[0].startswith("@Veli"), str(answers))
+        n = len(sb.said)
         await sb.chat("twitch", "Ali", "!sezon")
         await p.drain()
         season = state().get("season") or {}

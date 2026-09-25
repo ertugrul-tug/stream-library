@@ -339,7 +339,7 @@ def reset_show():
 
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
-HELP_TEXT = ("⚓ Komutlar: !site · !sezon · !düello @isim miktar · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
+HELP_TEXT = ("⚓ Komutlar: !site · !sezon · !kehanet soru · !düello @isim miktar · !oyna (birlikte oyna, sıra açıkken) · !olta (balık tut) · !ganimet · !koleksiyon · !market (ganimetini harca) · !soru (kaptana sor) · !rota 1/2/3 · !tahmin G / M · !rütbe"
              " · Kraken çıkınca !saldır · yelken yarışında !katıl")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
@@ -731,6 +731,8 @@ async def streamer_bot():
                                 cast_line(platform, name)
                             elif command in CHAT_LINKS and cooldown(f"link:{platform}:{command}", 30):
                                 say(CHAT_LINKS[command], platform)
+                            elif command == "!kehanet" and len(message) > 12 and cooldown(f"oracle:{platform}:{name.casefold()}", 20):
+                                say(f"@{name} {random.choice(ORACLE)}", platform)
                             elif command == "!sezon" and cooldown(f"season:{platform}:{name.casefold()}", 20):
                                 say(season_text(platform, name), platform)
                             elif command in ("!düello", "!duello"):
@@ -1277,6 +1279,39 @@ def season_text(platform, name):
     return f"🏅 {season_name()} sezonu: {podium} · @{name} bu ay {mine_loot} ganimet"
 
 
+ORACLE = [
+    "🔮 Rüzgâr lehine esiyor: evet!", "🔮 Pusula titriyor… şimdilik hayır.", "🔮 Kraken bile bilmiyor, bir daha sor.",
+    "🔮 Yıldızlar açık: kesinlikle evet.", "🔮 Sisli sular… bundan emin değilim.", "🔮 Martılar hayır diyor.",
+    "🔮 Hazine haritası evet'i gösteriyor.", "🔮 Kaptan böyle emretti: evet!", "🔮 Fırtına yaklaşıyor, hayır.",
+    "🔮 Belki… ama önce bir olta at.", "🔮 Ay dolunay: büyük ihtimalle evet.", "🔮 Denizkızları gülüyor, bu bir hayır.",
+]
+NUDGES = [
+    "🌊 Güverte sessiz… !olta atan ilk kişi ne yakalayacak? 🎣",
+    "🧭 Sohbet dümeni kimde? Kaptana aklındakini sor: !soru",
+    "⚔️ Sessizlik mi? Bir tayfayı düelloya çağır: !düello @isim 10",
+    "🏅 Bu ayın ganimet yarışı sürüyor, nerede olduğunu gör: !sezon",
+]
+
+
+async def quiet_deck():
+    """While live, nudge a silent chat now and then (at most 3 times a show, 20 min apart)."""
+    after = float((CONFIG.get("quietNudge") or {}).get("afterMinutes") or 12) * 60
+    last_nudge, count, show = 0.0, 0, None
+    while True:
+        await asyncio.sleep(min(60, after / 2))
+        try:
+            if show != state.get("started"):
+                show, count = state.get("started"), 0
+            live = (state.get("health") or {}).get("live")
+            last_chat = max(_active.values(), default=0)
+            now = time.time()
+            if live and count < 3 and now - last_chat > after and now - last_nudge > max(after, 20 * 60):
+                say(NUDGES[count % len(NUDGES)])
+                last_nudge, count = now, count + 1
+        except Exception as exc:  # never let a nudge take the bridge down
+            print(f"Sessiz güverte: {type(exc).__name__}", flush=True)
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1800,7 +1835,7 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop(), obs_health())
+        await asyncio.gather(streamer_bot(), obs_client(), lol_watcher(), kraken_random(), tips_loop(), obs_health(), quiet_deck())
 
 
 if __name__ == "__main__":
