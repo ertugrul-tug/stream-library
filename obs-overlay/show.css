@@ -78,8 +78,8 @@
 .chat-scene .show-events{left:5%;top:7.5%;transform:none;width:38%}
 .show-events .show-card{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:100%}
 .show-events .show-rankup{width:auto;min-width:45%}
-.show-raid,.show-kraken,.show-race,.show-fish,.show-queue{display:none}
-.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
+.show-hype,.show-raid,.show-kraken,.show-race,.show-fish,.show-queue{display:none}
+.show-hype.active,.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
 .show-kraken{border-color:rgba(255,61,127,.75);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(255,61,127,.35)}
 .show-kraken .show-label{color:#ff7aa6}
 .show-kraken .kr-body{display:flex;align-items:center;gap:1vw}
@@ -154,3 +154,6 @@
 .message.first-seen{box-shadow:0 0 0 1px rgba(255,206,84,.55),0 0 1.2vw rgba(255,206,84,.25);animation:firstGlow 2.4s ease-in-out 2}
 @keyframes firstGlow{50%{box-shadow:0 0 0 1px rgba(255,206,84,.9),0 0 2vw rgba(255,206,84,.5)}}
 @media(prefers-reduced-motion:reduce){.message.first-seen{animation:none}}
+.show-events .show-hype{border-color:rgba(145,70,255,.9);background:linear-gradient(140deg,rgba(38,16,72,.94),rgba(16,10,34,.86));box-shadow:0 1vw 3vw rgba(0,0,0,.4),0 0 2.4vw rgba(145,70,255,.5);text-align:center}
+.show-hype .show-label{color:#c9a8ff}
+.show-hype .hype-line{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:800;color:#f1e8ff}

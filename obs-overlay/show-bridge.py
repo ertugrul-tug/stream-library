@@ -203,7 +203,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -711,7 +711,7 @@ async def send_notice(ws, ok, text, scope=None):
 
 
 async def streamer_bot():
-    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer", "Raid", "RewardRedemption"],
+    events = {"Twitch": ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "Cheer", "Raid", "RewardRedemption", "AdRun", "HypeTrainStart", "HypeTrainLevelUp", "HypeTrainEnd"],
               "Kick": ["ChatMessage", "Follow", "Subscription", "Resubscription", "GiftSubscription", "KicksGifted"]}
     while True:
         try:
@@ -810,6 +810,10 @@ async def streamer_bot():
                                 race_join(platform, name)
                             elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
                                 say(HELP_TEXT, platform)
+                        elif kind == "AdRun":
+                            on_ad(data)
+                        elif kind in ("HypeTrainStart", "HypeTrainLevelUp", "HypeTrainEnd"):
+                            on_hype(kind, data)
                         elif kind == "RewardRedemption":
                             on_reward(platform, name, data)
                         elif kind == "Raid":
@@ -1418,6 +1422,42 @@ def viewer_clip(platform, name):
     state["markers"] = (state["markers"] + [{"time": datetime.now().strftime("%H:%M"), "vod": None, "note": note, "auto": True}])[-50:]
     _spawn(sb_do_action("QedyClip", {"note": note}))
     say(f"🎬 {name} bu anı klipledi! Link birazdan sohbette.", platform)
+
+
+def _number(data, *keys):
+    for key in keys:
+        try:
+            value = int(float(data.get(key)))
+            if value > 0:
+                return value
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
+def on_ad(data):
+    """Twitch ad break: tell chat why the picture stopped, and show the panel how long it lasts."""
+    seconds = _number(data, "length", "lengthSeconds", "duration", "durationSeconds", "length_seconds") or 90
+    state["adUntil"] = int((time.time() + seconds) * 1000)
+    say(f"📺 {seconds} saniyelik reklam arası, birazdan döneriz! Beklerken !olta 🎣", "twitch")
+
+
+def on_hype(kind, data):
+    """Twitch Hype Train: a card in the event lane, confetti, and chat call-outs per level."""
+    level = _number(data, "level", "currentLevel") or 1
+    if kind == "HypeTrainEnd":
+        if state["hype"]:
+            state["hype"] = {**state["hype"], "status": "ended", "level": max(level, state["hype"]["level"])}
+            say(f"🚂 Hype Train seviye {state['hype']['level']}'de durdu. Muhteşemdiniz mürettebat, teşekkürler! 💜", "twitch")
+            _clear_later("hype", state["hype"]["id"], 12)
+        return
+    if not state["hype"] or state["hype"].get("status") == "ended":
+        state["hype"] = {"id": f"h{time.time()}", "status": "active", "level": level}
+        say("🚂 HYPE TRAIN KALKTI! Abone, bit ve hediyelerle vagonları doldurun! 💜", "twitch")
+    elif level > state["hype"]["level"]:
+        state["hype"]["level"] = level
+        say(f"🚂 Hype Train seviye {level}! Devam, devam! 💜", "twitch")
+    state["effects"] = (state["effects"] + [{"id": f"hy{time.time()}", "type": "konfeti", "name": f"Hype Train {level}", "platform": "twitch"}])[-10:]
 
 
 def recent_chatters(minutes=10):
