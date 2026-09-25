@@ -267,7 +267,11 @@
   function render(s) {
     // Share ranks with the chat boxes on this page (they read chat straight from Streamer.bot).
     const ranks = new Map();
-    [...(s.topCrew || []), ...(s.crew || [])].forEach(c => { if (c.rank && c.rank !== 'Miço') ranks.set(`${c.platform}:${String(c.name).toLocaleLowerCase('tr-TR')}`, c.rank); });
+    [...(s.topCrew || []), ...(s.crew || [])].forEach(c => {
+      const key = `${c.platform}:${String(c.name).toLocaleLowerCase('tr-TR')}`;
+      const tag = [c.rank && c.rank !== 'Miço' ? c.rank : '', c.streak >= 3 ? `🔥${c.streak}` : ''].filter(Boolean).join(' ');
+      if (tag) ranks.set(key, tag);
+    });
     window.qedyRanks = ranks;
     // First-ever chatters: the chat box drew their message before this state arrived, so it marks it now.
     window.qedyFirstTimers = new Set(s.firstTimers || []);
