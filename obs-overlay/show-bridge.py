@@ -383,7 +383,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk !öner · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -799,6 +799,8 @@ async def streamer_bot():
                                 viewer_clip(platform, name)
                             elif command in ("!süre", "!sure", "!uptime") and cooldown("uptime", 30):
                                 say(uptime_text(), platform)
+                            elif command in ("!öner", "!oner") and cooldown("suggest", 30):
+                                say(suggest_game(), platform)
                             elif command == "!hedef" and cooldown("goal", 30):
                                 say(goal_text(), platform)
                             elif command in ("!lurk", "!afk") and cooldown(f"lurk:{platform}:{name.casefold()}", 600):
@@ -1510,6 +1512,24 @@ def shoutout(platform, name):
         return
     url = f"https://twitch.tv/{slug}" if platform == "twitch" else f"https://kick.com/{slug.lower()}"
     say(f"📣 Mürettebattan {name} da yayıncı! Kanalına uğrayıp takip edin: {url} ⚓")
+
+
+_library = []
+
+
+def suggest_game():
+    """!öner: a random pick from the streamer's own game library (steam-library.json)."""
+    if not _library:
+        try:
+            _library.extend(g for g in json.loads((ROOT / "steam-library.json").read_text(encoding="utf-8")) if g.get("name"))
+        except (OSError, ValueError):
+            pass
+    picks = [g for g in _library if g["name"].casefold() != str(state.get("game") or "").casefold()]
+    if not picks:
+        return "🎲 Kütüphane şu an açılamadı, bir dahaki sefere!"
+    game = random.choice(picks)
+    link = f" · https://store.steampowered.com/app/{game['appid']}" if game.get("appid") else ""
+    return f"🎲 Kaptanın {len(_library)} oyunluk kütüphanesinden rastgele: {game['name']}{link} · Bir dahaki yayına bu olsun mu? Beğenen 🔥 yazsın!"
 
 
 def goal_text():
