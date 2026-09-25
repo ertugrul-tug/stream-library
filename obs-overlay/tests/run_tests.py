@@ -443,7 +443,14 @@ async def run(sb, obs, tmp):
         await obs.set_scene("Kısa Mola")
         await p.drain(1)
         check("molaya geçince bot duyurdu", state()["scene"] == "Kısa Mola" and any("Kısa mola" in t for t in sb.said_since(n)))
+        await sb.chat("twitch", "Ali", "molada sohbet")
+        await sb.chat("kick", "Veli", "ben de buradayım")
+        await p.drain()
+        n = len(sb.said)
         await obs.set_scene("Sahne")
+        await p.drain(1)
+        back = [t for t in sb.said_since(n) if "döndük" in t]
+        check("moladan dönüşte mola özeti söylendi", back and "2 mesaj" in back[0], str(back))
         obs.live, obs.muted = True, True
 
         async def muted_seen():

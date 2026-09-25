@@ -962,6 +962,9 @@ async def load_current_scene():
         await publish()
 
 
+_break_mark = []  # [chat count, casts] when the break started
+
+
 def on_scene(name):
     """Scene-aware host lines: break, back on deck, starting soon, goodbye."""
     if not name or name == state["scene"]:
@@ -969,6 +972,9 @@ def on_scene(name):
     previous, state["scene"] = state["scene"], name
     lowered = name.casefold()
     kind = "mola" if "mola" in lowered else "bitti" if "bitti" in lowered else "basliyor" if "başlıyor" in lowered else "oyun"
+    chat_now = state["stats"]["twitch"]["chat"] + state["stats"]["kick"]["chat"]
+    if kind == "mola":
+        _break_mark[:] = [chat_now, state["night"]["casts"]]
     if kind == "oyun" and "mola" not in previous.casefold():
         return  # only "back from break" is worth saying among in-show switches
     if not cooldown(f"scene:{kind}", 120):
@@ -978,7 +984,10 @@ def on_scene(name):
     elif kind == "basliyor":
         say("▶️ Yayın birazdan başlıyor! Beklerken !olta ile ısının, yelkenler fora 🎣")
     elif kind == "oyun":
-        say("⚓ Güverteye döndük! Kaldığımız yerden devam.")
+        chat, casts = (chat_now - _break_mark[0], state["night"]["casts"] - _break_mark[1]) if _break_mark else (0, 0)
+        while_away = " · ".join(([f"💬 {chat} mesaj"] if chat else []) + ([f"🎣 {casts} olta"] if casts else []))
+        say("⚓ Güverteye döndük! Kaldığımız yerden devam." + (f" Molada siz boş durmamışsınız: {while_away} 👏" if while_away else ""))
+        _break_mark.clear()
     else:
         king = loot_king()
         crown = f" 👑 Gecenin ganimet kralı: {king['name']} ({king['loot']})." if king else ""

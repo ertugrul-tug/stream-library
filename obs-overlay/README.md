@@ -81,6 +81,7 @@ Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi
 - **⏱ !süre / 🏆 !skor:** Sohbet yayının ne kadardır sürdüğünü ve bu akşamki G/M'yi (2+ maçlık seriyle) sorabilir; 30 sn'de bir cevaplanır.
 - **🎯 !hedef / 💤 !lurk:** `!hedef` bu akşamki takip hedefini ilerleme çubuğuyla gösterir; `!lurk` (`!afk`) sessiz izleyiciyi ambara uğurlar (kişi başı 10 dk'da bir).
 - **🔥 Sadakat serisi:** Bir önceki yayına da gelen izleyicinin serisi artar; tekrar selamında "N yayın üst üste" yazar. 3., 5. ve 10'dan sonra her 5. yayında seri×5 🪙 sadakat ödülü verilir. Seri "Yeni yayın" ile açılan yayınlar arasında sayılır. Yayın sonu özetinde 3+ serisi olan en sadık 3 kişi yazılır; sohbet kutularında isminin yanında 🔥N rozeti görünür.
+- **⏸️ Mola özeti:** Moladan oyun sahnesine dönünce bot, mola boyunca sohbete yazılan mesaj ve atılan olta sayısını da söyler.
 - **📣 Tanıtım:** Kumandada sohbet satırındaki 📣 o kişinin Twitch/Kick kanalını iki sohbete de tanıtır (kişi başı dakikada bir).
 - **🎬 Klipler:** "Otomatik klip" açıksa otomatik işaretlenen büyük anlar `QedyClip` ile de kliplenir (en fazla 2 dk'da bir, varsayılan kapalı). Sohbet `!klip` ile o anı klipleyebilir (yalnızca yayındayken, tüm sohbet için 90 sn'de bir); link sohbete düşer.
 - **📝 YouTube bölümleri:** Klip işareti kartındaki düğme, VOD zamanlı işaretlerden YouTube'un anladığı bölüm listesini (0:00 Açılış, artan sıra, ≥10 sn arayla) ve altına kanal linklerini panoya kopyalar; Pazar kurgusunda video açıklamasına yapıştırılır.
