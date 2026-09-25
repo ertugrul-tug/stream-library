@@ -52,6 +52,7 @@ DATA_DIR = Path(os.environ.get("QEDY_DATA_DIR") or ROOT)
 STATE_FILE = DATA_DIR / ".show-state.json"
 CREW_FILE = DATA_DIR / ".crew.json"  # points/ranks that survive between streams
 NIGHTS_FILE = DATA_DIR / ".nights.jsonl"  # one summary line per past show, for the weekly metrics
+BACKUP_DIR = DATA_DIR / "backups"  # rotating copies of crew + nights (gitignored, never served)
 CONFIG_FILE = Path(os.environ.get("QEDY_CONFIG") or ROOT / "show-config.json")
 SB_URL = os.environ.get("QEDY_SB_URL") or "ws://127.0.0.1:8080/"
 WS_PORT = int(os.environ.get("QEDY_WS_PORT") or 8765)
@@ -165,8 +166,12 @@ def lan_ip():
 class StaticHandler(SimpleHTTPRequestHandler):
     # Served to the whole LAN: never expose secrets (show-config.local.json) or saved state (.show-state.json).
     def send_head(self):
-        name = os.path.basename(self.translate_path(self.path).rstrip("\\/")).lower()
-        if name.startswith(".") or name.endswith((".local.json", ".py", ".pyc")):
+        local = os.path.normcase(os.path.abspath(self.translate_path(self.path)))
+        root = os.path.normcase(str(ROOT))
+        name = os.path.basename(local.rstrip("\\/"))
+        rel = os.path.relpath(local, root) if local.startswith(root) else ".."
+        private = rel.startswith("..") or any(part in ("backups", "tests", "__pycache__") for part in Path(rel).parts)
+        if private or name.startswith(".") or name.endswith((".local.json", ".py", ".pyc")):
             self.send_error(404)
             return None
         return super().send_head()
@@ -324,8 +329,37 @@ def archive_night():
         f.write(json.dumps(night, ensure_ascii=False) + "\n")
 
 
+def backup_data(reason):
+    """Keep the last 10 copies of the crew and show-archive files; never let a backup problem stop the show."""
+    try:
+        BACKUP_DIR.mkdir(exist_ok=True)
+        stamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        payload = {"reason": reason, "crew": crew_db, "nights": NIGHTS}
+        (BACKUP_DIR / f"{stamp}_{reason}.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        for old in sorted(BACKUP_DIR.glob("*.json"))[:-10]:
+            old.unlink()
+    except OSError as exc:
+        print(f"Yedek alınamadı ({type(exc).__name__})", flush=True)
+
+
+def import_data(payload):
+    """Replace crew + show archive with an exported backup (the current data is backed up first)."""
+    global crew_db
+    crew, nights = payload.get("crew"), payload.get("nights")
+    if not isinstance(crew, dict) or not isinstance(nights, list):
+        return False
+    backup_data("geri-yukleme-oncesi")
+    crew_db.clear()
+    crew_db.update({k: v for k, v in crew.items() if isinstance(v, dict) and v.get("platform") and v.get("name")})
+    NIGHTS[:] = [n for n in nights if isinstance(n, dict)]
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    NIGHTS_FILE.write_text("".join(json.dumps(n, ensure_ascii=False) + "\n" for n in NIGHTS), encoding="utf-8")
+    return True
+
+
 def reset_show():
     archive_night()
+    backup_data("yeni-yayin")
     keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
@@ -1690,6 +1724,15 @@ async def client(ws):
                     state["playQueue"] = [x for x in state["playQueue"] if x["id"] != msg.get("id")]
                 elif action == "queueClear":
                     state["playQueue"], state["playCalled"] = [], None
+                elif action == "exportData":
+                    await ws.send(json.dumps({"type": "export", "data": {"crew": crew_db, "nights": NIGHTS,
+                                                                     "exported": datetime.now().isoformat(timespec="seconds")}}, ensure_ascii=False))
+                    continue
+                elif action == "importData":
+                    ok = import_data(msg.get("data") or {})
+                    await send_notice(ws, ok, f"📂 Yedek yüklendi · {len(crew_db)} tayfa, {len(NIGHTS)} yayın" if ok else "📂 Bu dosya bir kumanda yedeği değil")
+                    if not ok:
+                        continue
                 elif action == "toggleMarket":
                     state["market"] = not state["market"]
                 elif action == "toggleKrakenRandom":
@@ -1853,7 +1896,8 @@ async def supervised(name, loop_fn):
 
 async def main():
     start_static_server()
-    async with serve(client, "0.0.0.0", WS_PORT, max_size=2**18):
+    backup_data("acilis")
+    async with serve(client, "0.0.0.0", WS_PORT, max_size=2**22):  # room for a backup upload
         ip = lan_ip()
         print("Qedy Show Bridge hazır:", flush=True)
         print(f"  Bu bilgisayarda : http://127.0.0.1:{HTTP_PORT}/kumanda.html", flush=True)

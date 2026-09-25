@@ -125,6 +125,8 @@ Köprünün WebSocket'i (8765) ve dosya sunucusu (8766) ev ağına açıktır ki
 { "discordWebhook": "https://discord.com/api/webhooks/...", "pin": "1234" }
 ```
 
+**Yedek ve taşıma:** Köprü her açılışta ve her "Yeni yayın"da mürettebat + arşiv verisinin kopyasını `backups/`'a alır (son 10, git'e girmez, ağa servis edilmez). Ayarlar sekmesindeki "💾 Yedeği indir" hepsini tek dosya olarak indirir; diğer bilgisayarda "📂 Yedeği geri yükle" ile yüklenir (önce oradaki veri yedeklenir).
+
 `pin` yoksa köprü ilk açılışta rastgele 4 haneli bir PIN üretip buraya yazar. OBS şifresi gerekmez: köprü bu bilgisayardaki obs-websocket ayarından okur.
 
 Yayın verisi `.show-state.json`'da, rütbe puanları `.crew.json`'da, geçmiş yayın özetleri `.nights.jsonl`'da yerel tutulur (Git'e girmez, sohbet kullanıcı adları içerir; paylaşma). Canlı mesajlar HTML olarak işlenmez; Twitch ve Kick emoteleri görsel olarak gösterilir (`emotes.js`).

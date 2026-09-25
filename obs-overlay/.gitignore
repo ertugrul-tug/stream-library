@@ -1,5 +1,6 @@
 .show-state.json
 .crew.json
 .nights.jsonl
+backups/
 __pycache__/
 show-config.local.json

@@ -227,13 +227,13 @@ async def run(sb, obs, tmp):
         print("\nGüvenlik")
         check("bu bilgisayar PIN'siz yetkili", p.auth and p.auth[0]["ok"])
         codes = {}
-        for name in ("kumanda.html", "show-config.local.json", ".show-state.json", "show-bridge.py"):
+        for name in ("kumanda.html", "show-config.local.json", ".show-state.json", "show-bridge.py", "backups/", "tests/run_tests.py"):
             try:
                 codes[name] = urllib.request.urlopen(f"http://127.0.0.1:{HTTP}/{name}").status
             except urllib.error.HTTPError as e:
                 codes[name] = e.code
-        check("dosya sunucusu gizlileri vermiyor", codes == {"kumanda.html": 200, "show-config.local.json": 404,
-                                                            ".show-state.json": 404, "show-bridge.py": 404}, str(codes))
+        check("dosya sunucusu gizlileri vermiyor", codes == {"kumanda.html": 200, "show-config.local.json": 404, ".show-state.json": 404,
+                                                            "show-bridge.py": 404, "backups/": 404, "tests/run_tests.py": 404}, str(codes))
         ip = lan_ip()
         if ip and ip != "127.0.0.1":
             async with websockets.connect(f"ws://{ip}:{WS}/") as lan:
@@ -467,6 +467,22 @@ async def run(sb, obs, tmp):
         last = nights[-1] if nights else {}
         check("yeni yayında önceki gece arşivlendi", len(nights) == 1 and last.get("game") == "Minecraft" and last.get("follows") == 2
               and last.get("chat", 0) > 0 and (tmp / ".nights.jsonl").exists(), str(last))
+        await ws.send(json.dumps({"action": "exportData"}))
+        exported = None
+        for _ in range(20):
+            m = json.loads(await asyncio.wait_for(ws.recv(), 3))
+            if m["type"] == "export":
+                exported = m["data"]
+                break
+        check("yedek indirme tüm tayfayı ve arşivi içeriyor", exported and "twitch:ali" in exported["crew"] and len(exported["nights"]) == 1)
+        backups = sorted((tmp / "backups").glob("*.json"))
+        check("açılışta ve yeni yayında otomatik yedek alındı", any("acilis" in b.name for b in backups) and any("yeni-yayin" in b.name for b in backups), str([b.name for b in backups]))
+        shrunk = {"crew": {"kick:yeni": {"platform": "kick", "name": "Yeni", "points": 99, "streams": 1, "show": None, "last": 0}}, "nights": []}
+        await p.act("importData", data=shrunk)
+        restored = [c["name"] for c in state()["topCrew"]]
+        await p.act("importData", data=exported)
+        check("yedek geri yükleme veriyi değiştirir, önceki veri geri alınabilir", restored == ["Yeni"] and len(state()["topCrew"]) > 1
+              and any("geri-yukleme-oncesi" in b.name for b in (tmp / "backups").glob("*.json")), str(restored))
         check("Discord özeti gece istatistikleriyle gitti", "sefer bitti" in summary and "Kraken 1/1" in summary and "Baskınlar" in summary, summary[:200])
 
 
