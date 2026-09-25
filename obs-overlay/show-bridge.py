@@ -135,6 +135,8 @@ def award_chat(platform, name, show_id):
     before = rank_for(entry["points"])
     now = time.time()
     if entry["show"] != show_id:
+        prev = state.get("prevShow")
+        entry["streak"] = entry.get("streak", 0) + 1 if prev and entry["show"] == prev else 1
         entry["show"] = show_id
         entry["streams"] += 1
         entry["points"] += 10
@@ -360,10 +362,12 @@ def import_data(payload):
 def reset_show():
     archive_night()
     backup_data("yeni-yayin")
+    prev_show = state["started"]
     keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
+    state["prevShow"] = prev_show  # for loyalty streaks: came to the last show too?
 
 
 # ------------------------------------------------------------- chat bot --
@@ -451,7 +455,15 @@ def greet(platform, name, is_new):
     if is_new:
         say(f"⚓ Güverteye hoş geldin @{name}! İlk seferin 🎉 Neler yapabileceğini görmek için !komutlar yaz.", platform)
     else:
-        say(f"⚓ Tekrar hoş geldin @{name} · {rank_for(entry.get('points', 0))} · {entry.get('streams', 1)}. seferin!", platform)
+        streak = entry.get("streak", 1)
+        text = f"⚓ Tekrar hoş geldin @{name} · {rank_for(entry.get('points', 0))} · {entry.get('streams', 1)}. seferin!"
+        if streak in (3, 5) or (streak >= 10 and streak % 5 == 0):
+            bonus = streak * 5
+            add_loot(platform, name, bonus)
+            text += f" 🔥 {streak} yayındır üst üste güvertedesin, sadakat ödülü +{bonus} 🪙"
+        elif streak >= 2:
+            text += f" 🔥 {streak} yayın üst üste"
+        say(text, platform)
 
 
 async def tips_loop():

@@ -549,6 +549,23 @@ async def run(sb, obs, tmp):
         check("yedek geri yükleme veriyi değiştirir, önceki veri geri alınabilir", restored == ["Yeni"] and len(state()["topCrew"]) > 1
               and any("geri-yukleme-oncesi" in b.name for b in (tmp / "backups").glob("*.json")), str(restored))
         check("Discord özeti gece istatistikleriyle gitti", "sefer bitti" in summary and "Kraken 1/1" in summary and "Baskınlar" in summary, summary[:200])
+        n = len(sb.said)
+        for i in range(3):
+            if i:
+                await asyncio.sleep(1.1)  # show ids have one-second resolution
+                await p.act("resetShow")
+            await sb.chat("twitch", "Sadik", "selam kaptan")
+            await p.drain()
+        said = sb.said_since(n)
+        check("3 yayın üst üste gelen sadakat ödülü aldı", any("3 yayındır üst üste" in t and "+15" in t for t in said)
+              and crew_db_of(tmp).get("twitch:sadik", {}).get("loot", 0) >= 15, str(said))
+
+
+def crew_db_of(tmp):
+    try:
+        return json.loads((tmp / ".crew.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
 
 
 async def _state_is(panel, predicate):
