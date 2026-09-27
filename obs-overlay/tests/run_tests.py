@@ -84,7 +84,8 @@ class FakeStreamerBot:
 class FakeOBS:
     def __init__(self):
         self.scene, self.live, self.muted, self.ws = "Sahne", False, False, None
-        self.bytes = self.frames = 0
+        self.bytes = self.frames = self.record_starts = 0
+        self.recording = None  # None: records whenever live
 
     async def handler(self, ws):
         await ws.send(json.dumps({"op": 0, "d": {"rpcVersion": 1}}))
@@ -107,7 +108,10 @@ class FakeOBS:
                 data = {"outputActive": self.live, "outputTimecode": "00:10:00.000", "outputBytes": self.bytes,
                         "outputTotalFrames": self.frames, "outputSkippedFrames": 0, "outputCongestion": 0}
             elif t == "GetRecordStatus":
-                data = {"outputActive": self.live, "outputTimecode": "00:09:58.000"}
+                data = {"outputActive": self.live if self.recording is None else self.recording, "outputTimecode": "00:09:58.000"}
+            elif t == "StartRecord":
+                self.recording, self.record_starts = True, self.record_starts + 1
+                data = {}
             elif t == "GetSpecialInputs":
                 data = {"mic1": "Mic/Aux"}
             elif t == "GetInputMute":
@@ -471,6 +475,7 @@ async def run(sb, obs, tmp):
         check("vedada sıradaki yayın saati var", bye and re.search(r"Bir sonraki sefer \w+ 20:30'da", bye[0]), str(bye))
         await obs.set_scene("Sahne")
         await p.drain()
+        obs.recording = False
         obs.live, obs.muted = True, True
 
         async def muted_seen():
@@ -478,6 +483,9 @@ async def run(sb, obs, tmp):
             h = state().get("health") or {}
             return h.get("live") and h.get("micMuted")
         check("yayındayken mikrofon kapalı uyarısı", await wait_until(muted_seen, 10))
+        await p.drain(0.5)
+        check("yayın açılınca kapalı OBS kaydı bir kez başlatıldı", obs.record_starts == 1 and (state().get("health") or {}).get("rec"), f"{obs.record_starts} {state().get('health')}")
+        obs.recording = None
         clips_before = len([c for c in sb.calls if c[0] == "QedyClip"])
         await p.act("toggleAutoClip")
         for _ in range(3):
@@ -613,6 +621,9 @@ async def run(sb, obs, tmp):
         check("3 yayın üst üste gelen sadakat ödülü aldı", any("3 yayındır üst üste" in t and "+15" in t for t in said)
               and crew_db_of(tmp).get("twitch:sadik", {}).get("loot", 0) >= 15, str(said))
         check("overlay'e sadakat serisi gidiyor", any(c["name"] == "Sadik" and c.get("streak") == 3 for c in state()["crew"]), str(state()["crew"][-3:]))
+        logged = [json.loads(l)["type"] for l in (tmp / ".events.jsonl").read_text(encoding="utf-8").splitlines()]
+        check("nadir olayların ham verisi kaydedildi, sohbet kaydedilmedi", {"Follow", "Raid", "HypeTrainStart", "AdRun"} <= set(logged)
+              and "ChatMessage" not in logged, str(sorted(set(logged))))
         check("yayın özetinde sadık mürettebat var", "Sadık mürettebat: Sadik (3 yayın" in (state().get("summaryText") or ""), (state().get("summaryText") or "")[-300:])
 
 

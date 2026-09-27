@@ -54,7 +54,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
 - **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
-- **Testler:** `python obs-overlay/tests/run_tests.py` (76 kontrol, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır. Ofis bilgisayarının Türkçe konsolunda ✓ işaretleri yüzünden çöker; orada başına `PYTHONIOENCODING=utf-8` koy (evde gerek yok).
+- **Testler:** `python obs-overlay/tests/run_tests.py` (78 kontrol, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır. Ofis bilgisayarının Türkçe konsolunda ✓ işaretleri yüzünden çöker; orada başına `PYTHONIOENCODING=utf-8` koy (evde gerek yok).
 - **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları. `.crew.json` (rütbe/ganimet) ve `.nights.jsonl` (yayın arşivi) bilgisayara özel: taşımak için kumanda → Ayarlar → "💾 Yedeği indir", diğer bilgisayarda "📂 Yedeği geri yükle".
 
 ## 25 Eylül öğleden sonra — ofis bilgisayarında eklenenler
@@ -68,7 +68,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 **Yayından önce (ev bilgisayarı):**
 - [ ] `git pull` (ofiste eklenenler: klip scripti, yelkenliler, radar düzeltmesi)
 - [ ] ffmpeg kur: `winget install Gyan.FFmpeg` (klip scripti için; şu an sadece ofiste kurulu)
-- [ ] OBS kaydının yayınla birlikte açıldığını ve hangi klasöre yazdığını kontrol et; `Videos` değilse `show-config.local.json > clips.recordingDir`
+- [x] ~~OBS kaydı~~ — ev bilgisayarında kayıt `C:\Users\pc\Videos`'a yazıyor, ffmpeg kurulu. OBS'te "yayında otomatik kaydet" kapalı ama köprü artık yayın açılınca kaydı kendisi başlatıyor (kumandada "⏺ kayıt" görünmeli)
 - [ ] Kick bio'yu işle (`planning/comeback-plan.md` Bölüm 9'daki metin)
 - [ ] Varsa Discord Mürettebat rol ID'si → `show-config.json > discordLive.roleId`
 - [ ] `python obs-overlay/tests/run_tests.py` → hepsi geçmeli
@@ -88,6 +88,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - [ ] `python obs-overlay/make-clips.py --preview` → PNG'de kamera ve oyun doğru kırpılmış mı; değilse `clips.camera` / `clips.game` kutularını ayarla
 - [ ] `python obs-overlay/make-clips.py` → klipleri Reels/Shorts/TikTok'a yükle (plandaki 1 numaralı büyüme taktiği)
 - [ ] Kumandadan 📊 yayın özetini Discord'a gönder
+- [ ] `obs-overlay/.events.jsonl`'a bak (ya da Claude'a baktır): baskın/Hype Train/reklam/takip/abone olaylarının gerçek alan adları köprünün okuduklarıyla aynı mı
 
 ## Açık maddeler
 

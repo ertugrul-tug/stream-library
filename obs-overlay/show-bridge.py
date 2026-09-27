@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("QEDY_DATA_DIR") or ROOT)
 STATE_FILE = DATA_DIR / ".show-state.json"
 CREW_FILE = DATA_DIR / ".crew.json"  # points/ranks that survive between streams
+EVENTS_FILE = DATA_DIR / ".events.jsonl"  # raw Streamer.bot payloads of rare events, to check field names after a real stream
 NIGHTS_FILE = DATA_DIR / ".nights.jsonl"  # one summary line per past show, for the weekly metrics
 BACKUP_DIR = DATA_DIR / "backups"  # rotating copies of crew + nights (gitignored, never served)
 CONFIG_FILE = Path(os.environ.get("QEDY_CONFIG") or ROOT / "show-config.json")
@@ -758,6 +759,8 @@ async def streamer_bot():
                         if platform not in ("twitch", "kick") or not isinstance(data, dict):
                             continue
                         name = person(data)
+                        if kind != "ChatMessage":
+                            log_event(platform, kind, data)
                         if kind == "ChatMessage":
                             message = clean(data.get("text") or data.get("message"), 300)
                             if not name or not message or is_own_echo(message):
@@ -957,7 +960,8 @@ async def obs_client():
                         continue
                     future = obs_pending.get(d.get("requestId"))
                     if future and not future.done():
-                        future.set_result(d.get("responseData") or {})
+                        ok = (d.get("requestStatus") or {}).get("result", True)
+                        future.set_result((d.get("responseData") or {}) if ok else None)  # failed request = no answer
         except (OSError, TimeoutError, Exception) as exc:
             obs_conn["ws"] = None
             if state["obsConnection"] != "waiting":
@@ -1700,6 +1704,20 @@ def score_text():
     return f"🏆 Bu akşam {wins}G · {len(m) - wins}M" + tail
 
 
+def log_event(platform, kind, data):
+    """Keep the raw payload of every non-chat event (follows, subs, raids, Hype Train, ads...) in .events.jsonl."""
+    try:
+        line = json.dumps({"at": datetime.now().isoformat(timespec="seconds"), "platform": platform, "type": kind, "data": data},
+                          ensure_ascii=False, default=str)
+        with EVENTS_FILE.open("a", encoding="utf-8") as f:
+            f.write(line[:20000] + "\n")
+        if EVENTS_FILE.stat().st_size > 2_000_000:  # keep the newest half
+            lines = EVENTS_FILE.read_text(encoding="utf-8").splitlines(keepends=True)
+            EVENTS_FILE.write_text("".join(lines[len(lines) // 2:]), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -1937,6 +1955,7 @@ async def lol_watcher():
 async def obs_health():
     """Every 3 s: live time, bitrate (last ~15 s), dropped frames (last ~60 s) and whether the mic is muted."""
     samples = []  # (time, bytes, skipped, total) while live
+    rec_tried = False  # auto-record once per live session, so a manual stop mid-stream is respected
     while True:
         await asyncio.sleep(3)
         if not obs_conn.get("ws"):
@@ -1954,6 +1973,14 @@ async def obs_health():
             if reply is not None:
                 muted.append(bool(reply.get("inputMuted")))
         live = bool(st.get("outputActive"))
+        rec = bool((await obs_request("GetRecordStatus") or {}).get("outputActive"))
+        if not live:
+            rec_tried = False
+        elif not rec and not rec_tried and CONFIG.get("autoRecord", True):
+            rec_tried = True  # clips (make-clips.py) need the local recording
+            if await obs_request("StartRecord") is not None:
+                rec = True
+                print("OBS kaydı başlatıldı (yayın açık, kayıt kapalıydı)")
         if live:
             samples.append((time.time(), st.get("outputBytes", 0), st.get("outputSkippedFrames", 0), st.get("outputTotalFrames", 0)))
             del samples[:-21]
@@ -1968,7 +1995,7 @@ async def obs_health():
             drop = round(100 * (b[2] - first[2]) / frames, 1) if frames > 0 else 0.0
         health = {"live": live, "time": str(st.get("outputTimecode") or "").split(".")[0] if live else "",
                   "kbps": kbps, "drop": drop, "congestion": round(st.get("outputCongestion") or 0, 2) if live else 0,
-                  "micMuted": bool(muted) and all(muted), "mic": mics[0] if mics else ""}
+                  "micMuted": bool(muted) and all(muted), "mic": mics[0] if mics else "", "rec": rec}
         if health != state["health"]:
             state["health"] = health
             await publish()
