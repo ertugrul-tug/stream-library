@@ -11,6 +11,7 @@ import asyncio
 import http.server
 import json
 import os
+from datetime import datetime
 import re
 import shutil
 import socket
@@ -518,7 +519,8 @@ async def run(sb, obs, tmp):
         await sb.chat("twitch", "Ali", "!program")
         await p.drain()
         check("!program yayın takvimini söyledi", any("Pazartesi–Cuma her akşam 20:30" in t for t in sb.said_since(n5)), str(sb.said_since(n5)))
-        check("!program günün temasını söyledi", any("🎭" in t for t in sb.said_since(n5)), str(sb.said_since(n5)))
+        themed_day = datetime.now().weekday() < 5  # show-config themes cover Mon–Fri; weekends have none
+        check("!program günün temasını söyledi (hafta içi)", any(("🎭" in t) == themed_day for t in sb.said_since(n5)), str(sb.said_since(n5)))
         n5 = len(sb.said)
         await sb.chat("kick", "Veli", "!hafta")
         await p.drain()
