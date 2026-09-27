@@ -54,7 +54,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - **LoL:** maçlar Riot'un yerel API'sinden otomatik (tahmin aç/kilitle, G/M). TFT sayılmaz.
 - **Streamer.bot'ta 8 action kurulu:** QedyStreamInfo, QedyClip, QedySayTwitch/Kick, ModTimeoutTwitch/Kick, ModBanTwitch/Kick.
 - **OBS (24 Eylül):** Twitch + Kick 6000 kbps, NVENC p5, dinamik bitrate açık. Yükleme ~50 Mbps, kablolu; o geceden beri kare kaybı yok.
-- **Testler:** `python obs-overlay/tests/run_tests.py` (78 kontrol, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır. Ofis bilgisayarının Türkçe konsolunda ✓ işaretleri yüzünden çöker; orada başına `PYTHONIOENCODING=utf-8` koy (evde gerek yok).
+- **Testler:** `python obs-overlay/tests/run_tests.py` (79 kontrol, ~3 dk, gerçek sohbete/Discord'a dokunmaz). Köprüde değişiklikten sonra çalıştır. Ofis bilgisayarının Türkçe konsolunda ✓ işaretleri yüzünden çöker; orada başına `PYTHONIOENCODING=utf-8` koy (evde gerek yok).
 - **Diğer bilgisayarda gerekenler (git'e girmez):** `obs-overlay/show-config.local.json` (Discord webhook + PIN), masaüstü kısayolu, Streamer.bot action'ları, OBS profil ayarları. `.crew.json` (rütbe/ganimet) ve `.nights.jsonl` (yayın arşivi) bilgisayara özel: taşımak için kumanda → Ayarlar → "💾 Yedeği indir", diğer bilgisayarda "📂 Yedeği geri yükle".
 
 ## 25 Eylül öğleden sonra — ofis bilgisayarında eklenenler
@@ -82,7 +82,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - [ ] Mini oyunların gerçek sohbetle ilk turu: olta, Kraken (çok mu kolay/zor), yelken yarışı
 - [ ] Olta kartı ekranda yeterince fark ediliyor mu (küçük olabilir; gerekirse nadir avda büyütülür)
 - [ ] Baskın / Hype Train (`level`) / reklam (`length`) gelirse: Streamer.bot'un gerçek verisindeki alanlar doğru okunuyor mu
-- [ ] Neyin kırıldığını ya da garip durduğunu not al — salı günü düzeltme listesi bu olacak
+- [ ] Neyin kırıldığını ya da garip durduğunu kumandanın üstündeki 📝 ile not al — salı günü düzeltme listesi bu olacak
 
 **Yayından sonra (aynı gece, "Yeni yayın"a basmadan — işaretleri o sıfırlar):**
 - [ ] `python obs-overlay/make-clips.py --preview` → PNG'de kamera ve oyun doğru kırpılmış mı; değilse `clips.camera` / `clips.game` kutularını ayarla

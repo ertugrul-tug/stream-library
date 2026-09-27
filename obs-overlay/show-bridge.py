@@ -206,7 +206,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -374,7 +374,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -2162,6 +2162,21 @@ async def client(ws):
                     result = await sb_do_action("QedyClip", {"note": note or "Anı"})
                     clip = sb_action_notice("QedyClip", result, "klip isteği Streamer.bot'a gitti")
                     await send_notice(ws, result == "ok", f"İşaretlendi ✓ · {clip}", "marker")
+                elif action == "testNote":
+                    text = clean(msg.get("text"), 200)
+                    if text:
+                        h = state.get("health") or {}
+                        note = {"at": datetime.now().strftime("%d.%m %H:%M"), "vod": h.get("time") or "", "scene": state.get("scene") or "", "text": text}
+                        state["testNotes"] = (state["testNotes"] + [note])[-50:]
+                        try:
+                            with (DATA_DIR / ".test-notes.md").open("a", encoding="utf-8") as f:
+                                f.write(f"- {note['at']} · {note['vod'] or '—'} · {note['scene'] or '—'} · {text}" + chr(10))
+                        except OSError:
+                            pass
+                elif action == "testNoteRemove":
+                    index = int(msg.get("index", -1))
+                    if 0 <= index < len(state["testNotes"]):
+                        state["testNotes"].pop(index)
                 elif action == "removeMarker":
                     index = int(msg.get("index", -1))
                     if 0 <= index < len(state["markers"]):

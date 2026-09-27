@@ -2,6 +2,7 @@
 .crew.json
 .nights.jsonl
 .events.jsonl
+.test-notes.md
 backups/
 __pycache__/
 show-config.local.json
