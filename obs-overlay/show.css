@@ -80,8 +80,8 @@
 .chat-scene .show-events{left:5%;top:7.5%;transform:none;width:38%}
 .show-events .show-card{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:100%}
 .show-events .show-rankup{width:auto;min-width:45%}
-.show-hype,.show-raid,.show-kraken,.show-race,.show-fish,.show-queue{display:none}
-.show-hype.active,.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
+.show-hype,.show-raid,.show-kraken,.show-race,.show-fish,.show-queue,.show-tug{display:none}
+.show-hype.active,.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active,.show-tug.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
 .show-kraken{border-color:rgba(255,61,127,.75);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(255,61,127,.35)}
 .show-kraken .show-label{color:#ff7aa6}
 .show-kraken .kr-body{display:flex;align-items:center;gap:1vw}
@@ -165,3 +165,33 @@
 .show-crew .last-line{margin-top:.5vw;color:#bfe6ff;letter-spacing:.04em}
 .season-line.week-line,.show-crew .last-line{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.5}
 .season-line.week-line{margin-top:.4vw;padding-top:.4vw}
+
+.show-tug{border-color:rgba(145,70,255,.6);box-shadow:0 1vw 3vw rgba(0,0,0,.35),-1vw 0 2vw rgba(145,70,255,.3),1vw 0 2vw rgba(83,252,24,.25)}
+.show-tug .tug-row{display:flex;align-items:center;gap:.8vw;margin:.5vw 0}
+.show-tug .tug-side{font-family:var(--font-display,'Unbounded',sans-serif);font-size:.95vw;font-weight:800;white-space:nowrap}.show-tug .tug-side.twitch{color:#c9a8ff}.show-tug .tug-side.kick{color:#9dff77}
+.show-tug .tug-rope{position:relative;flex:1;height:.5vw;border-radius:1vw;background:repeating-linear-gradient(115deg,#c8a36a 0 .5vw,#8a6a3d .5vw 1vw)}
+.show-tug .tug-knot{position:absolute;top:50%;width:1.3vw;height:1.3vw;margin:-.65vw 0 0 -.65vw;border-radius:50%;background:#ff3d7f;box-shadow:0 0 .8vw rgba(255,61,127,.7);transition:left .4s ease-out}
+.show-tug[data-winner="twitch"]{border-color:rgba(145,70,255,.9)}.show-tug[data-winner="kick"]{border-color:rgba(83,252,24,.9)}
+.show-cup{border-color:rgba(255,206,84,.7);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 1.6vw rgba(255,206,84,.3)}.show-cup .show-label{color:#ffce54}
+.show-cup .cup-row{margin:.25vw 0;font-size:.8vw;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.show-cup .kr-line{margin-top:.35vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.66vw;letter-spacing:.08em;color:#ffe29a}
+.show-tug .kr-line{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.66vw;letter-spacing:.08em;color:#dbe7f2}
+.emote-drop{position:absolute;top:-8%;width:3.2vw;height:3.2vw;object-fit:contain;z-index:70;pointer-events:none;animation:emoteFall 3s cubic-bezier(.4,0,.8,.6) both;filter:drop-shadow(0 .3vw .5vw rgba(0,0,0,.4))}
+@keyframes emoteFall{from{transform:translateY(0) rotate(0)}to{transform:translateY(118vh) rotate(var(--spin,180deg))}}
+.mood-layer{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity 4s ease}
+.mood-layer[data-mood="sun"]{opacity:1;background:radial-gradient(ellipse 60% 55% at 88% -12%,rgba(255,196,84,.34),rgba(255,160,60,.12) 45%,transparent 70%)}
+.mood-layer[data-mood="storm"]{opacity:1;background:radial-gradient(ellipse 90% 60% at 50% -25%,rgba(14,18,34,.62),transparent 70%),linear-gradient(rgba(12,16,30,.2),transparent 35%)}
+.mood-layer[data-mood="storm"]::after{content:'';position:absolute;inset:0;background:#dfe9ff;opacity:0;animation:lightning 19s infinite}
+@keyframes lightning{0%,92%,100%{opacity:0}93%{opacity:.16}94%{opacity:0}95.5%{opacity:.1}97%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.mood-layer::after{animation:none!important}}
+.fish-reveal{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;text-align:center;animation:frLife 4.8s ease both}
+.fish-reveal .fr-rays{position:absolute;left:50%;top:38%;width:26vw;height:26vw;margin:-13vw 0 0 -13vw;border-radius:50%;background:repeating-conic-gradient(rgba(255,214,102,.28) 0 10deg,transparent 10deg 24deg);-webkit-mask:radial-gradient(circle,#000 25%,transparent 68%);mask:radial-gradient(circle,#000 25%,transparent 68%);animation:frSpin 9s linear infinite}
+.fish-reveal .fr-emoji{position:relative;font-size:9vw;line-height:1;filter:drop-shadow(0 0 2vw rgba(255,206,84,.8));animation:frPop .7s cubic-bezier(.2,1.6,.3,1) both}
+.fish-reveal .fr-label{position:relative;margin-top:.6vw;font-family:var(--font-display,'Unbounded',sans-serif);font-size:2.2vw;font-weight:800;letter-spacing:.08em;color:#ffce54;text-shadow:0 .2vw 1vw rgba(0,0,0,.6)}
+.fish-reveal .fr-name{position:relative;margin-top:.3vw;font-size:1.1vw;font-weight:700;color:#fff;text-shadow:0 .15vw .6vw rgba(0,0,0,.7)}
+.fish-reveal[data-platform="twitch"] .fr-name{color:#e2d2ff}.fish-reveal[data-platform="kick"] .fr-name{color:#c9ffb0}
+@keyframes frLife{0%{opacity:0}8%,85%{opacity:1}100%{opacity:0}}@keyframes frSpin{to{transform:rotate(360deg)}}@keyframes frPop{from{transform:scale(.2) rotate(-20deg)}to{transform:none}}
+@media(prefers-reduced-motion:reduce){.fish-reveal,.fish-reveal *{animation:none!important}}
+.show-guest{left:4%;top:auto;bottom:11%;width:15%;padding:.7vw 1vw;display:none;border-color:rgba(255,206,84,.6)}.show-guest.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}.show-guest .show-label{color:#ffce54}
+.show-guest .rank-name{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-scene .show-guest{top:auto;bottom:24%;left:5%;width:22%}

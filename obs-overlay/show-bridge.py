@@ -205,8 +205,8 @@ def defaults():
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
-        "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
-        "catches": [], "kraken": None, "race": None, "pirate": None, "krakenRandom": True, "sfx": True,
+        "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
+        "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
         "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
@@ -377,7 +377,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -393,7 +393,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -611,6 +611,35 @@ def unsettle_stakes():
             add_loot(e["platform"], e["name"], -profit)
 
 
+def guess_open(question):
+    """Number prediction ("Kaç kez öleceğim?"): chat answers !tahmin 5, the closest guess wins when the host enters the answer."""
+    state["guess"] = {"id": f"g{time.time()}", "status": "open", "question": question or "Kaç?", "votes": {}, "answer": None, "winners": []}
+    say(f"🔢 SAYI TAHMİNİ: {state['guess']['question']} · cevabını yaz: !tahmin 5 · en yakın tahmin ganimeti alır!")
+
+
+def guess_vote(platform, name, n):
+    g = state["guess"]
+    if g and g["status"] == "open" and 0 <= n <= 9999:
+        g["votes"][f"{platform}:{name.casefold()}"] = {"platform": platform, "name": name, "n": n}
+
+
+def guess_answer(answer):
+    g = state["guess"]
+    g.update(status="done", answer=answer)
+    votes = list(g["votes"].values())
+    if not votes:
+        say(f"🔢 Cevap: {answer} · kimse tahmin etmemişti.")
+    else:
+        best = min(abs(v["n"] - answer) for v in votes)
+        winners = [v for v in votes if abs(v["n"] - answer) == best]
+        for v in winners:
+            add_loot(v["platform"], v["name"], 30 + (20 if best == 0 else 0))
+        g["winners"] = [v["name"] for v in winners]
+        hit = "tam isabet! +50" if best == 0 else f"{best} farkla en yakın, +30"
+        say(f"🔢 Cevap: {answer}! {', '.join(g['winners'])} · {hit} ganimet ({len(votes)} tahmin)")
+    _clear_later("guess", g["id"], 20)
+
+
 def predict_open():
     refund_stakes()
     state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0, "stakes": {}}
@@ -642,7 +671,7 @@ _save_warned = [False]
 
 async def publish():
     try:
-        STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "pirate", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
+        STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "pirate", "tug", "fishCup", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
         _save_warned[0] = False
     except OSError as exc:  # a locked/synced file must not stop the show; the overlays still update
         if not _save_warned[0]:
@@ -836,6 +865,7 @@ async def streamer_bot():
                                 continue
                             _active[f"{platform}:{name.casefold()}"] = time.time()
                             race_boost(platform, name)
+                            tug_pull(platform, name)
                             item = {"platform": platform, "name": name, "text": message, "parts": chat_parts(data, message),
                                     "id": f"{platform}-{datetime.now().timestamp()}"}
                             state["chat"] = (state["chat"] + [item])[-30:]
@@ -862,7 +892,9 @@ async def streamer_bot():
                                 if index < len(state["routes"]):
                                     state["votes"][platform + ":" + name.casefold()] = index
                             guess = re.fullmatch(r"!tahmin\s+(\S+)(?:\s+(\S+))?", message, re.IGNORECASE)
-                            if guess and state["prediction"]["status"] == "open":
+                            if guess and guess.group(1).isdigit() and not guess.group(2):
+                                guess_vote(platform, name, int(guess.group(1)))
+                            elif guess and state["prediction"]["status"] == "open":
                                 pick = PREDICT_WORDS.get(guess.group(1).casefold())
                                 if pick:
                                     predict_vote(platform, name, pick, guess.group(2))
@@ -1148,8 +1180,54 @@ def loot_text(platform, name):
     return f"@{name} 🎣 ganimet: {balance(entry)} (toplam kazanılan {entry.get('loot', 0)}){tail}"
 
 
+CUP_CFG = GAMES.get("fishCup") or {}
+CUP_PRIZES = [50, 30, 15]
+
+
+def cup_start():
+    minutes = float(CUP_CFG.get("minutes") or 5)
+    cid = f"c{time.time()}"
+    state["fishCup"] = {"id": cid, "status": "active", "endsAt": int((time.time() + minutes * 60) * 1000), "best": {}}
+    say(f"🏆 OLTA TURNUVASI BAŞLADI! {minutes:g} dakika boyunca !olta at, en değerli avı çıkaran kazanır · "
+        f"ödüller {' / '.join(f'+{x}' for x in CUP_PRIZES)} ganimet · turnuvada olta beklemesi {CUP_COOLDOWN} sn")
+
+    async def timer():
+        await asyncio.sleep(minutes * 60)
+        c = state["fishCup"]
+        if c and c["id"] == cid and c["status"] == "active":
+            cup_finish()
+            await publish()
+    _spawn(timer())
+
+
+def cup_top(limit=3):
+    return sorted(state["fishCup"]["best"].values(), key=lambda b: (-b["points"], b["at"]))[:limit]
+
+
+def cup_finish(cancelled=False):
+    c = state["fishCup"]
+    c["status"] = "done"
+    top = [] if cancelled else cup_top()
+    for prize, b in zip(CUP_PRIZES, top):
+        add_loot(b["platform"], b["name"], prize)
+    c["podium"] = top
+    if cancelled:
+        say("🏆 Olta turnuvası iptal edildi.")
+    elif not top:
+        say("🏆 Olta turnuvası bitti ama kimse olta atmadı 🎣")
+    else:
+        medals = " · ".join(f"{m} {b['name']} {b['emoji']} {b['item']} (+{p})" for m, b, p in zip("🥇🥈🥉", top, CUP_PRIZES))
+        auto_marker(f"🏆 Olta turnuvası: {top[0]['name']}")
+        say(f"🏆 OLTA TURNUVASI BİTTİ! {medals}")
+    _clear_later("fishCup", c["id"], 15)
+
+
+CUP_COOLDOWN = int(CUP_CFG.get("cooldownSec") or 30)
+
+
 def cast_line(platform, name):
-    if not cooldown(f"fish:{platform}:{name.casefold()}", 5 if platform == "kaptan" else FISH_COOLDOWN):
+    cup = state["fishCup"] if state["fishCup"] and state["fishCup"]["status"] == "active" else None
+    if not cooldown(f"fish:{platform}:{name.casefold()}", 5 if platform == "kaptan" else CUP_COOLDOWN if cup else FISH_COOLDOWN):
         return False
     item, emoji, points, _ = random.choices(LOOT, weights=[x[3] for x in LOOT])[0]
     rarity = "efsane" if points >= 40 else "nadir" if points >= 15 else "sıradan"
@@ -1161,6 +1239,10 @@ def cast_line(platform, name):
     complete = new and len(caught) == len(LOOT)
     total = add_loot(platform, name, points + (100 if complete else 0), {"name": item, "emoji": emoji, "points": points})
     state["night"]["casts"] += 1
+    if cup and platform in ("twitch", "kick"):
+        key = f"{platform}:{name.casefold()}"
+        if points > (cup["best"].get(key) or {}).get("points", -1):
+            cup["best"][key] = {"platform": platform, "name": name, "points": points, "item": item, "emoji": emoji, "at": time.time()}
     state["catches"] = (state["catches"] + [{"id": f"f{time.time()}", "platform": platform, "name": name,
                                              "item": item, "emoji": emoji, "points": points, "rarity": rarity, "new": new}])[-12:]
     if complete:
@@ -1870,7 +1952,57 @@ async def kraken_random():
 
 
 def event_busy():
-    return state["kraken"] or state["race"] or state["pirate"]
+    return state["kraken"] or state["race"] or state["pirate"] or state["tug"]
+
+
+# Tug of war, Twitch vs Kick: every chat message pulls the rope toward its platform for durationSec.
+TUG_CFG = GAMES.get("tug") or {}
+
+
+def tug_start():
+    duration = int(TUG_CFG.get("durationSec") or 60)
+    tid = f"t{time.time()}"
+    state["tug"] = {"id": tid, "status": "active", "endsAt": int((time.time() + duration) * 1000),
+                    "twitch": 0, "kick": 0, "pullers": {}, "winner": None, "top": None}
+    say(f"🪢 HALAT ÇEKME: TWITCH vs KICK! {duration} saniye boyunca yazdığın her mesaj halatı kendi tarafına çeker. Kazanan sohbete ganimet!")
+
+    async def timer():
+        await asyncio.sleep(duration)
+        t = state["tug"]
+        if t and t["id"] == tid and t["status"] == "active":
+            tug_finish()
+            await publish()
+    _spawn(timer())
+
+
+def tug_pull(platform, name):
+    t = state["tug"]
+    if not t or t["status"] != "active" or name.casefold() in BROADCASTERS or not cooldown(f"tug:{platform}:{name.casefold()}", 1):
+        return
+    t[platform] += 1
+    p = t["pullers"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "pulls": 0})
+    p["pulls"] += 1
+
+
+def tug_finish(cancelled=False):
+    t = state["tug"]
+    t["status"] = "done"
+    if cancelled:
+        say("🪢 Halat çekme iptal edildi.")
+    elif t["twitch"] == t["kick"]:
+        t["winner"] = "draw"
+        say(f"🪢 Berabere! {t['twitch']} – {t['kick']} · halat ortada kaldı, iki sohbet de güçlü 💪")
+    else:
+        win = "twitch" if t["twitch"] > t["kick"] else "kick"
+        t["winner"] = win
+        side = [p for p in t["pullers"].values() if p["platform"] == win]
+        top = max(side, key=lambda p: p["pulls"])
+        t["top"] = top["name"]
+        for p in side:
+            add_loot(p["platform"], p["name"], 10 + (10 if p is top else 0))
+        auto_marker(f"🪢 Halat çekmeyi {win.title()} kazandı")
+        say(f"🪢 {win.upper()} KAZANDI! {t['twitch']} – {t['kick']} · {len(side)} kişiye +10 ganimet, en güçlü kol {top['name']} (+10)")
+    _clear_later("tug", t["id"], 10)
 
 
 # Pirate ship: crosses the screen in durationSec; every !ateş is a cannonball that hits ~45% of the time.
@@ -2074,6 +2206,8 @@ async def lol_watcher():
                     "done": False, "locked": gtime >= LOL_LOCK_AFTER}
             if not game["skip"] and gtime < LOL_LOCK_AFTER and state["prediction"]["status"] in ("off", "done"):
                 predict_open()
+            if not game["skip"]:
+                await lol_scene("sohbet", game_scene())
             changed = True
         if not game["skip"]:
             end = next((e for e in events if e.get("EventName") == "GameEnd"), None)
@@ -2082,6 +2216,7 @@ async def lol_watcher():
                 result = {"Win": "W", "Lose": "L"}.get(end.get("Result"))
                 if result and len(state["matches"]) == game["matchCount"]:  # skip if entered by hand already
                     add_match(result)
+                _spawn(lol_scene_later(game_scene(), chat_scene(), 12))  # a moment on the end screen first
                 changed = True
             elif not game["locked"] and gtime >= LOL_LOCK_AFTER:
                 game["locked"] = True
@@ -2093,6 +2228,24 @@ async def lol_watcher():
         if changed:
             await publish()
 
+
+
+def chat_scene():
+    return next((n for n in CONFIG.get("obsScenes") or [] if "sohbet" in n.casefold()), None)
+
+
+async def lol_scene(from_word, to):
+    """Match start/end: switch scenes, but only away from the scene we expect (never off a break or start screen)."""
+    current = (state.get("scene") or "").casefold()
+    if state["lolScenes"] and to and from_word and from_word.casefold() in current and current != to.casefold():
+        if await obs_set_scene(to):
+            on_scene(to)
+
+
+async def lol_scene_later(from_name, to, seconds):
+    await asyncio.sleep(seconds)
+    await lol_scene(from_name, to)
+    await publish()
 
 
 async def obs_health():
@@ -2191,6 +2344,42 @@ async def client(ws):
                     if not state["kraken"] or state["kraken"]["status"] != "active":
                         continue
                     kraken_finish(False, retreat=True)
+                elif action == "guestSet":
+                    guest = clean(msg.get("name"), 40)
+                    if guest and guest != state["guest"]:
+                        say(f"🎙️ Bu akşam güvertede bir misafir kaptanımız var: {guest}! Hoş geldin ⚓")
+                    state["guest"] = guest or None
+                elif action == "guessOpen":
+                    guess_open(clean(msg.get("question"), 80))
+                elif action == "guessLock":
+                    if not state["guess"] or state["guess"]["status"] != "open":
+                        continue
+                    state["guess"]["status"] = "locked"
+                    say(f"🔒 Sayı tahminleri kapandı · {len(state['guess']['votes'])} tahmin")
+                elif action == "guessAnswer":
+                    answer = msg.get("answer")
+                    if not state["guess"] or state["guess"]["status"] == "done" or not isinstance(answer, int) or answer < 0:
+                        continue
+                    guess_answer(answer)
+                elif action == "guessClear":
+                    state["guess"] = None
+                elif action == "cupStart":
+                    if state["fishCup"] and state["fishCup"]["status"] == "active":
+                        continue
+                    cup_start()
+                elif action == "cupStop":
+                    if not state["fishCup"] or state["fishCup"]["status"] != "active":
+                        continue
+                    cup_finish(cancelled=bool(msg.get("cancel")))
+                elif action == "tugStart":
+                    if event_busy():
+                        await send_notice(ws, False, "Önce süren etkinlik bitsin")
+                        continue
+                    tug_start()
+                elif action == "tugStop":
+                    if not state["tug"] or state["tug"]["status"] != "active":
+                        continue
+                    tug_finish(cancelled=True)
                 elif action == "pirateStart":
                     if event_busy():
                         await send_notice(ws, False, "Önce süren etkinlik bitsin")
@@ -2354,6 +2543,8 @@ async def client(ws):
                 elif action == "predictLock":
                     if not predict_lock():
                         continue
+                elif action == "toggleLolScenes":
+                    state["lolScenes"] = not state["lolScenes"]
                 elif action == "toggleLolAuto":
                     state["lolAuto"] = not state["lolAuto"]
                 elif action == "predictClear":

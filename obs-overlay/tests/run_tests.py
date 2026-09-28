@@ -317,6 +317,15 @@ async def run(sb, obs, tmp):
         check("maç geri alınınca kazanç da geri alındı", ali_loot() == before, str(ali_loot()))
         await p.act("addMatch", result="W")
         check("tekrar girilince bir kez daha ödendi (çift ödeme yok)", ali_loot() == before + 10, str(ali_loot()))
+        await p.act("guessOpen", question="Kaç kez öleceğim?")
+        await sb.chat("twitch", "Ali", "!tahmin 5")
+        await sb.chat("kick", "Veli", "!tahmin 9")
+        await p.drain()
+        n = len(sb.said)
+        before = ali_loot()
+        await p.act("guessAnswer", answer=6)
+        g = state()["guess"]
+        check("sayı tahmini: en yakın kazandı", g["winners"] == ["Ali"] and ali_loot() == before + 30 and any("Cevap: 6" in t for t in sb.said_since(n)), str(g)[:160])
 
         print("\nOlta · market · soru")
         catches = len(state()["catches"])
@@ -420,6 +429,33 @@ async def run(sb, obs, tmp):
               and next((c["loot"] for c in state()["topLoot"] if c["name"] == "Ali"), 0) > ali_loot_before, str(pr)[:200])
         await p.act("krakenStart")
         check("korsan ekrandayken Kraken engellendi", p.notices and "etkinlik" in p.notices[-1])
+        await asyncio.sleep(10.5)
+        await p.drain()
+
+        await p.act("tugStart")
+        n = len(sb.said)
+        for text in ("çek", "hadi twitch", "yine"):
+            await sb.chat("twitch", "Ali", text)
+            await asyncio.sleep(1.1)
+        await sb.chat("kick", "Veli", "kick burada")
+        await p.drain()
+        tug = state()["tug"]
+        check("halat: mesajlar kendi platformunu çekti", (tug["twitch"], tug["kick"]) == (3, 1), str(tug)[:160])
+        await asyncio.sleep(3)
+        await p.drain()
+        n2 = len(sb.said)
+        await p.act("guestSet", name="DenizKurdu")
+        check("misafir kaptan ekranda ve duyuruldu", state()["guest"] == "DenizKurdu" and any("DenizKurdu" in t for t in sb.said_since(n2)))
+        await p.act("guestSet", name="")
+        await p.act("cupStart")
+        await sb.chat("kick", "Veli", "!olta")
+        await p.drain()
+        n2 = len(sb.said)
+        await p.act("cupStop")
+        cup = state()["fishCup"]
+        check("olta turnuvası: av sayıldı, bitince ödül duyuruldu", cup["status"] == "done" and cup["podium"] and cup["podium"][0]["name"] == "Veli"
+              and any("OLTA TURNUVASI BİTTİ" in t and "Veli" in t for t in sb.said_since(n2)), str(cup)[:160])
+        check("halat: Twitch kazandı, duyuruldu", state()["tug"]["winner"] == "twitch" and any("TWITCH KAZANDI" in t for t in sb.said_since(n)), str(state()["tug"])[:160])
         await asyncio.sleep(10.5)
         await p.drain()
         await p.act("krakenStart")
@@ -581,13 +617,21 @@ async def run(sb, obs, tmp):
         obs.live = obs.muted = False
         await p.act("predictClear")
         matches = len(state()["matches"])
+        async def scene_is(name):
+            return obs.scene == name
+        await obs.set_scene("Sohbet Güvertesi")
+        await p.drain()
         LOL_STATE.update(up=True, time=5.0, end=None)
         check("LoL: maç başında tahmin açıldı", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8))
+        check("LoL: maç başlayınca sohbetten oyun sahnesine geçildi", await wait_until(lambda: scene_is("Sahne"), 4), obs.scene)
         LOL_STATE["time"] = 190.0
         check("LoL: 3. dakikada kilitlendi", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "locked"), 8))
         LOL_STATE["end"] = "Win"
         check("LoL: galibiyet kendiliğinden girildi", await wait_until(lambda: _state_is(p, lambda s: len(s["matches"]) == matches + 1 and s["matches"][-1] == "W"), 8))
         LOL_STATE["up"] = False
+        check("LoL: maç bitince sohbet sahnesine dönüldü", await wait_until(lambda: scene_is("Sohbet Güvertesi"), 16), obs.scene)
+        await obs.set_scene("Sahne")
+        await p.drain()
 
         print("\nYayın öncesi kontrol · prova")
         n = len(sb.said)
@@ -684,7 +728,7 @@ async def main():
     config["obs"] = {"url": f"ws://127.0.0.1:{OBS}/", "password": ""}
     config["lolAuto"] = {"url": f"http://127.0.0.1:{LOL}/liveclientdata/", "lockAfterSec": 180}
     config["games"] = {"fishCooldownSec": 60, "kraken": {"durationSec": 60, "randomMinMinutes": 999, "randomMaxMinutes": 999, "raidMinViewers": 99},
-                       "race": {"joinSec": 2, "maxBoats": 8}, "pirate": {"durationSec": 60, "hitChance": 1}}
+                       "race": {"joinSec": 2, "maxBoats": 8}, "pirate": {"durationSec": 60, "hitChance": 1}, "tug": {"durationSec": 6}}
     config["tips"] = {"everyMinutes": 999}
     config["chatLinks"] = {"!site": "⚓ https://ertugrul-tug.github.io/stream-library/", "!discord": ""}  # "" = unset link stays silent
     (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
