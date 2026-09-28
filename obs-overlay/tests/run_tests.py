@@ -651,6 +651,19 @@ async def run(sb, obs, tmp):
         await p.drain()
         check("yayıncı hesabı ekrandaki sohbetten ve radardan gizleniyor", "kaptanqedy" in (state().get("broadcasters") or [])
               and not any(c["name"].casefold() == "kaptanqedy" for c in state()["crew"]), str(state().get("broadcasters")))
+        from datetime import timedelta
+        old = (datetime.now() - timedelta(minutes=2)).strftime("%Y-%m-%d %H:%M:%S.000")
+        (tmp / "sblogs" / "log_test.log").write_text(f"[{old} INF] KickService :: Connected to Broadcaster Chat Client\n"
+                                                      f"[{old} INF] KickService :: Disconnected from Broadcaster Chat Client\n", encoding="utf-8")
+        down = await wait_until(lambda: _state_is(p, lambda s: s.get("kickChat") == "down"), 6)
+        with (tmp / "sblogs" / "log_test.log").open("a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}.000 INF] KickService :: Connected to Broadcaster Chat Client\n")
+        up = await wait_until(lambda: _state_is(p, lambda s: s.get("kickChat") == "ok"), 6)
+        check("Streamer.bot Kick sohbeti kopunca kumanda uyardı, dönünce kalktı", down and up)
+        n7 = len(sb.said)
+        await sb.chat("kick", "Veli", "!tahmin M")
+        await p.drain()
+        check("tahmin kapalıyken !tahmin yazana cevap verildi", state()["prediction"]["status"] != "open" and any("tahmin" in t and "Veli" in t for t in sb.said_since(n7)), str(sb.said_since(n7)))
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
         n5 = len(sb.said)
         await sb.chat("twitch", "Ali", "!program")
@@ -830,6 +843,7 @@ async def main():
     (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
     (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/",
                                                             "spotify": {"clientId": "test"}}), encoding="utf-8")
+    (tmp / "sblogs").mkdir()
     (tmp / ".spotify.json").write_text(json.dumps({"refresh_token": "fake-refresh"}), encoding="utf-8")
     (tmp / ".crew.json").write_text(json.dumps({"twitch:zengin": {"platform": "twitch", "name": "Zengin", "points": 0, "streams": 1,
                                                                    "show": None, "last": 0, "loot": 500}}), encoding="utf-8")
@@ -838,7 +852,7 @@ async def main():
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
     serve_http(SPOT, SpotifyHandler)
-    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1",
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1", "QEDY_SB_LOGS": str(tmp / "sblogs"), "QEDY_SB_LOG_SEC": "1",
            "QEDY_SPOTIFY_ACCOUNTS": f"http://127.0.0.1:{SPOT}", "QEDY_SPOTIFY_API": f"http://127.0.0.1:{SPOT}/v1", "QEDY_CONFIG": str(tmp / "show-config.json"),
            "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
     log = open(tmp / "bridge.log", "w", encoding="utf-8")

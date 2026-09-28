@@ -235,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True, "kickChat": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -406,7 +406,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit", "kickChat")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -929,10 +929,12 @@ async def streamer_bot():
                             guess = re.fullmatch(r"!tahmin\s+(\S+)(?:\s+(\S+))?", message, re.IGNORECASE)
                             if guess and guess.group(1).isdigit() and not guess.group(2):
                                 guess_vote(platform, name, int(guess.group(1)))
-                            elif guess and state["prediction"]["status"] == "open":
-                                pick = PREDICT_WORDS.get(guess.group(1).casefold())
-                                if pick:
-                                    predict_vote(platform, name, pick, guess.group(2))
+                            elif guess and guess.group(1).casefold() in PREDICT_WORDS:
+                                if state["prediction"]["status"] == "open":
+                                    predict_vote(platform, name, PREDICT_WORDS[guess.group(1).casefold()], guess.group(2))
+                                elif cooldown(f"predclosed:{platform}:{name.casefold()}", 60):
+                                    locked = state["prediction"]["status"] == "locked"
+                                    say(f"🔒 @{name} " + ("tahminler kilitlendi, sonucu bekliyoruz!" if locked else "maç tahmini şu an kapalı, maç başlayınca açılır!"), platform)
                             command = message.split()[0].casefold()
                             if command in ("!rütbe", "!rutbe", "!rank") and cooldown(f"rank:{platform}:{name.casefold()}", 20):
                                 say(rank_text(platform, name), platform)
@@ -2133,6 +2135,48 @@ async def music_action(action, msg):
     return ok
 
 
+# ------------------------------------------------------- Streamer.bot log --
+# Streamer.bot can say "Kick connected" while its Kick chat client is down (seen on the first real
+# stream: 40 minutes of Kick chat lost). Its own log is the only honest signal, so we read the tail.
+SB_LOG_DIR = Path(os.environ.get("QEDY_SB_LOGS") or CONFIG.get("streamerbotLogs") or
+                  Path(os.environ.get("LOCALAPPDATA") or "") / "Microsoft/WinGet/Packages/streamerbot.streamerbot_Microsoft.Winget.Source_8wekyb3d8bbwe/logs")
+KICK_DOWN = "KickService :: Disconnected from Broadcaster Chat Client"
+KICK_UP = "KickService :: Connected to Broadcaster Chat Client"
+
+
+def kick_chat_status():
+    """'down' if the newest Kick chat line in today's Streamer.bot log is a disconnect older than 30 s, else 'ok' (None if no log)."""
+    try:
+        log = max(SB_LOG_DIR.glob("log_*.log"), key=lambda f: f.stat().st_mtime)
+        with log.open("rb") as f:
+            f.seek(max(0, log.stat().st_size - 400_000))
+            tail = f.read().decode("utf-8", "replace")
+    except (OSError, ValueError):
+        return None
+    down, up = tail.rfind(KICK_DOWN), tail.rfind(KICK_UP)
+    if down <= up:
+        return "ok"
+    stamp = re.search(r"\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)", tail[tail.rfind("\n", 0, down) + 1:down + 1])
+    try:
+        age = time.time() - datetime.strptime(stamp.group(1), "%Y-%m-%d %H:%M:%S").timestamp()
+    except (AttributeError, ValueError):
+        age = 999
+    return "down" if age > 30 else "ok"
+
+
+async def sb_log_watch():
+    warned = False
+    while True:
+        await asyncio.sleep(float(os.environ.get("QEDY_SB_LOG_SEC") or 20))
+        status = await asyncio.to_thread(kick_chat_status)
+        if status != state.get("kickChat"):
+            state["kickChat"] = status
+            if status == "down" and not warned:
+                print("⚠ Streamer.bot Kick sohbet bağlantısı kopuk: Platforms → Kick → Disconnect / Connect", flush=True)
+            warned = status == "down"
+            await publish()
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -2915,9 +2959,63 @@ async def main():
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
         loops = {"Streamer.bot": streamer_bot, "OBS": obs_client, "LoL": lol_watcher, "Kraken": kraken_random,
-                 "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck, "Spotify": spotify_loop}
+                 "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck, "Spotify": spotify_loop, "SB günlüğü": sb_log_watch}
         await asyncio.gather(*(supervised(name, fn) for name, fn in loops.items()))
 
 
+class _Tee:
+    """Bridge output goes to the window and to .bridge.log (so a crash can be read after the window is gone)."""
+    def __init__(self, stream, file):
+        self.stream, self.file, self.fresh = stream, file, True
+
+    def write(self, text):
+        try:
+            self.stream.write(text)
+        except Exception:
+            pass
+        try:
+            for part in text.splitlines(keepends=True):
+                if self.fresh:
+                    self.file.write(datetime.now().strftime("[%m-%d %H:%M:%S] "))
+                self.file.write(part)
+                self.fresh = part.endswith("\n")
+            self.file.flush()
+        except Exception:
+            pass
+        return len(text)
+
+    def flush(self):
+        for s in (self.stream, self.file):
+            try:
+                s.flush()
+            except Exception:
+                pass
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+
+def start_log():
+    import sys
+    path = DATA_DIR / ".bridge.log"
+    try:
+        if path.exists() and path.stat().st_size > 5_000_000:
+            path.replace(DATA_DIR / ".bridge.old.log")
+        file = path.open("a", encoding="utf-8")
+    except OSError:
+        return
+    sys.stdout, sys.stderr = _Tee(sys.stdout, file), _Tee(sys.stderr, file)
+    print(f"--- köprü başladı {datetime.now():%Y-%m-%d %H:%M:%S} ---", flush=True)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    start_log()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+    except BaseException:
+        import traceback
+        print("KÖPRÜ ÇÖKTÜ:", flush=True)
+        traceback.print_exc()
+        raise

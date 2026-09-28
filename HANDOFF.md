@@ -127,3 +127,13 @@ Kaptan seçti; gerçek sohbet verisi gelince ayarları ona göre yapılacak.
 - Push sonrası build'i beklemeden devam etme tercih edildi — sadece istenirse kontrol ediliyor
 - Marka renkleri: Twitch mor `#9146FF`, Kick yeşil `#53FC18`, site genel paleti koyu lacivert/siyah + elektrik mavisi `#22aef0` + pembe `#ff3d7f`
 - Animasyon felsefesi: "her şeyin kendi hikayesi olsun" — tek seferlik fade yerine mümkün olduğunca scroll'a gerçekten bağlı (scrub), ama her zaman `prefers-reduced-motion` ve JS'siz durumda tam görünür statik hale düşecek şekilde (progressive enhancement, `.js`/`.scrub` class gating deseni tüm sayfalarda tutarlı)
+
+## 28 Eylül — ilk gerçek yayından çıkanlar
+
+- **Kick sohbeti 20:44–21:24 koptu:** Streamer.bot "bağlı" diyordu ama Kick sohbet istemcisi yetki hatasıyla düşmüştü; Platforms → Kick → Disconnect/Connect ile düzeldi. Artık köprü Streamer.bot günlüğünden bunu yakalayıp kumandada uyarıyor.
+- **Köprü bir kez kapandı** (sebep görülemedi, pencere gitmişti): artık `run-bridge.cmd` ile kendiliğinden yeniden başlıyor, çıktı `.bridge.log`'da.
+- **Twitch bit hızı yayın başında 50 kbps'e kadar düştü** (dinamik bit hızı); upload 48 Mbps, sorun Twitch sunucusuna giden yolda. Yapılacak: sabit en yakın sunucu + OBS "ağ iyileştirmeleri".
+- **Fırtına havasındaki şimşek** ekranı beyaz yanıp söndürüyordu: kaldırıldı.
+- **Olay alanları doğrulandı:** reklam `length_seconds`, Twitch takip `targetUser`, Kick takip `user`, kanal puanı `reward.title` — köprünün okuduklarıyla aynı.
+- **Klip kırpma:** kayıt 1920×1080; oyun sahnesine göre `show-config.local.json > clips` ayarlandı (kamera sol altta). Sohbet sahnesindeki anlarda kamera büyük olduğu için kırpma o anlarda iyi olmayabilir.
+- **LoL tahmini** maç yüklenince açılıyor, şampiyon seçiminde değil (Riot'un oyun içi verisi o zaman yok). İstenirse LoL istemcisinin yerel arayüzüyle (lockfile) şampiyon seçiminde açılabilir.

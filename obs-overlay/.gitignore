@@ -7,3 +7,5 @@
 backups/
 __pycache__/
 show-config.local.json
+.bridge.log
+.bridge.old.log
