@@ -235,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -406,7 +406,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -2078,8 +2078,8 @@ async def song_request(platform, name, query):
         say(f"🎵 @{name} bulamadım, sanatçıyla birlikte yazmayı dene.", platform)
         return
     t = track_info(items[0])
-    if t["explicit"]:
-        say(f"🎵 @{name} o şarkı yayın için fazla sert, başka bir tane dene.", platform)
+    if t["explicit"] and not state["musicExplicit"]:
+        say(f"🎵 @{name} küfürlü şarkılar şu an kapalı, başka bir tane dene.", platform)
         return
     if t["ms"] > SONG_MAX_MS:
         say(f"🎵 @{name} 7 dakikadan uzun şarkılar alınmıyor.", platform)
@@ -2757,6 +2757,8 @@ async def client(ws):
                                           if action == "musicAdd" else "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
                     elif action == "musicAdd":
                         await send_notice(ws, True, "🎵 Sıraya eklendi")
+                elif action == "toggleMusicExplicit":
+                    state["musicExplicit"] = not state["musicExplicit"]
                 elif action == "toggleMusicAuto":
                     state["musicAuto"] = not state["musicAuto"]
                 elif action == "toggleMusicOpen":

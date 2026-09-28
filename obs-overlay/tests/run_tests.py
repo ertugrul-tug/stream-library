@@ -667,6 +667,7 @@ async def run(sb, obs, tmp):
         await p.drain()
         check("istekler kapalıyken !şarkı listeye girmedi", not state()["musicRequests"] and any("kapalı" in t for t in sb.said_since(n6)))
         await p.act("toggleMusicOpen")
+        await p.act("toggleMusicExplicit")  # default allows explicit songs; the captain can switch the filter on
         await sb.chat("twitch", "Ali", "!şarkı sailing")
         await sb.chat("kick", "Veli", "!şarkı çok sert şarkı")
         await sb.chat("kick", "Ayse", "!şarkı yok böyle bir şey")
@@ -674,10 +675,15 @@ async def run(sb, obs, tmp):
         reqs = state()["musicRequests"]
         said6 = sb.said_since(n6)
         check("!şarkı: istek onaya gitti, sert ve bulunamayan reddedildi", len(reqs) == 1 and reqs[0]["name"] == "Ali"
-              and any("fazla sert" in t for t in said6) and any("bulamadım" in t for t in said6), str(reqs) + str(said6))
+              and any("küfürlü şarkılar şu an kapalı" in t for t in said6) and any("bulamadım" in t for t in said6), str(reqs) + str(said6))
         await sb.chat("twitch", "Ali", "!şarkı başka şarkı")
         await p.drain(1)
         check("aynı kişi 5 dk içinde ikinci istek yapamadı", len(state()["musicRequests"]) == 1)
+        await p.act("toggleMusicExplicit")
+        await sb.chat("twitch", "Mert", "!şarkı yine sert şarkı")
+        await p.drain(1)
+        check("küfürlü şarkı filtresi kapalıyken istek kabul edildi", len(state()["musicRequests"]) == 2, str(state()["musicRequests"]))
+        await p.act("musicReject", id=state()["musicRequests"][-1]["id"])
         await p.act("musicApprove", id=reqs[0]["id"])
         check("onaylanan şarkı Spotify sırasına girdi", SPOTIFY["queue"] == [reqs[0]["uri"]] and not state()["musicRequests"], str(SPOTIFY["queue"]))
         SPOTIFY["now"] = {**TRACK, "uri": reqs[0]["uri"], "name": "Sailing"}
