@@ -466,7 +466,7 @@ def pct_tr(n):
 # ------------------------------------------------------------- hosting --
 # Welcome people on their first message of the show and drop a rotating tip while chat is active.
 
-QUIET_NAMES = {"nightbot", "streamelements", "moobot", "streamlabs", "fossabot", "wizebot", "botrix", "kickbot", "sery_bot"}
+QUIET_NAMES = {"nightbot", "streamelements", "moobot", "soundalerts", "streamlabs", "fossabot", "wizebot", "botrix", "kickbot", "sery_bot"}
 BROADCASTERS = set()  # this channel's own account names, filled from Streamer.bot
 _greet_times, _chat_since_tip = [], [0]
 TIPS = [
@@ -520,8 +520,14 @@ async def tips_loop():
         _chat_since_tip[0] = 0
 
 
+def is_viewer(name):
+    """Leaderboards and prizes are for the crew: not this channel's own accounts or chat bots."""
+    lowered = str(name or "").casefold()
+    return lowered not in BROADCASTERS and lowered not in QUIET_NAMES
+
+
 def loot_king():
-    return max(state["night"]["loot"].values(), key=lambda x: x["loot"], default=None)
+    return max((x for x in state["night"]["loot"].values() if is_viewer(x["name"])), key=lambda x: x["loot"], default=None)
 
 
 def ask_question(platform, name, text):
@@ -1601,7 +1607,7 @@ def season_name():
 
 def season_top(limit):
     rows = [{"platform": e["platform"], "name": e["name"], "loot": (e.get("season") or {}).get("loot", 0)}
-            for e in crew_db.values() if (e.get("season") or {}).get("id") == season_id() and e["platform"] in ("twitch", "kick")]
+            for e in crew_db.values() if (e.get("season") or {}).get("id") == season_id() and e["platform"] in ("twitch", "kick") and is_viewer(e.get("name"))]
     return sorted([r for r in rows if r["loot"]], key=lambda r: r["loot"], reverse=True)[:limit]
 
 
@@ -1613,7 +1619,7 @@ def week_id(when=None):
 def week_top(limit, wid=None):
     wid = wid or week_id()
     rows = [{"platform": e["platform"], "name": e["name"], "loot": (e.get("week") or {}).get("loot", 0)}
-            for e in crew_db.values() if (e.get("week") or {}).get("id") == wid and e["platform"] in ("twitch", "kick")]
+            for e in crew_db.values() if (e.get("week") or {}).get("id") == wid and e["platform"] in ("twitch", "kick") and is_viewer(e.get("name"))]
     return sorted([r for r in rows if r["loot"]], key=lambda r: r["loot"], reverse=True)[:limit]
 
 
