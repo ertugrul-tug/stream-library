@@ -170,6 +170,8 @@
   }
   .tonight-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--blue));flex:none;box-shadow:0 0 0 0 color-mix(in srgb,var(--c,var(--blue)) 55%,transparent);animation:live-pulse 1.8s ease-out infinite;}
   @media (prefers-reduced-motion:reduce){ .tonight-pill .dot{animation:none;} }
+  .tonight-pill.live{--c:#ff3b3b !important;cursor:pointer;}
+  .tonight-pill.live:hover{background:color-mix(in srgb,var(--c) 24%,transparent);}
   .scroll-cue{
     position:relative;z-index:1;margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;
     font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
@@ -746,6 +748,20 @@
     } else {
       pillText.textContent = 'Bugün YouTube günü — haftanın en iyileri kanalda';
     }
+    // Live now? decapi.me answers "<name> is offline" or the uptime; if it's down the pill just stays as is.
+    var plannedText = pillText.textContent;
+    pill.addEventListener('click', function(){ if(pill.classList.contains('live')) document.querySelector('[data-watch-live]').click(); });
+    function checkLive(){
+      fetch('https://decapi.me/twitch/uptime/kaptanqedy', {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
+        var live = !!t && !/offline|error|not found/i.test(t);
+        pill.classList.toggle('live', live);
+        pill.setAttribute('role', live ? 'button' : 'status');
+        pillText.textContent = live ? 'ŞU AN CANLI — güverteye gel, tıkla izle' : plannedText;
+        document.querySelectorAll('[data-watch-live]').forEach(function(b){ b.textContent = live ? '🔴 Şu an canlı · İzle' : 'Canlı İzle'; });
+      }).catch(function(){});
+    }
+    checkLive();
+    setInterval(function(){ if(!document.hidden) checkLive(); }, 60000);
   })();
 
   var ticking = false;

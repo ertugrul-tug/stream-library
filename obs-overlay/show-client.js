@@ -18,13 +18,13 @@
   const predict = kind === 'overlay' ? card('show-predict','MAÇ TAHMİNİ') : null;
   let predictDoneSig = null, predictDoneAt = 0;
   const rankUp = kind === 'overlay' ? card('show-rankup','RÜTBE ATLADI') : null;
-  let rankUpShown = 0;
+  let rankUpShown = 0, idCardShown = 0;
   // Mini games (game scene only): one centered event lane under the segment strip, rank-up toast at its end.
   let games = null;
   if (kind !== 'end') {  // game scene, chat scene, and the start/break screens (viewers fish and race while waiting)
     const lane = document.createElement('div'); lane.className = 'show-events'; root.append(lane);
-    games = { hype: card('show-hype','HYPE TRAIN'), raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA'), queue: card('show-queue','BİRLİKTE OYNA') };
-    lane.append(games.hype, games.raid, games.kraken, games.race, games.fish, games.queue);
+    games = { hype: card('show-hype','HYPE TRAIN'), raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA'), queue: card('show-queue','BİRLİKTE OYNA'), idcard: card('show-rankup show-idcard','MÜRETTEBAT KARTI') };
+    lane.append(games.hype, games.raid, games.kraken, games.race, games.fish, games.queue, games.idcard);
     if (rankUp) lane.append(rankUp);
   }
   let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
@@ -395,7 +395,8 @@
       const lw=document.createElement('span'); lw.className='w'; lw.textContent=`GALİBİYET ${total?Math.round(100*w/total):0}%`;
       const ll=document.createElement('span'); ll.className='l'; ll.textContent=`${total?Math.round(100*l/total):0}% MAĞLUBİYET`;
       legend.append(lw,ll);
-      div(predict,'show-small', p.status==='open' ? `!tahmin G  ·  !tahmin M   —   ${total} tahmin` : p.status==='locked' ? `🔒 Tahminler kilitlendi · ${total} tahmin` : `Maç sonucu: ${p.result==='W'?'GALİBİYET':'MAĞLUBİYET'}`);
+      if(p.pot && p.status!=='done') div(predict,'show-small predict-pot',`💰 KASA · ${p.pot} GANİMET`);
+      div(predict,'show-small', p.status==='open' ? `!tahmin G 50  ·  !tahmin M 50   —   ${total} tahmin` : p.status==='locked' ? `🔒 Tahminler kilitlendi · ${total} tahmin` : `Maç sonucu: ${p.result==='W'?'GALİBİYET':'MAĞLUBİYET'}`);
     }
     if(segment) { lastSchedule=s.schedule||{}; segmentOn=s.segmentVisible!==false; const st=s.stats||{}; goalInfo=s.goal&&s.goal.target?{target:s.goal.target,reached:s.goal.reached,count:((st.twitch||{}).follow||0)+((st.kick||{}).follow||0)}:null; renderSegment(); }
     if(rankUp && s.rankUp && s.rankUp.at!==rankUpShown && Date.now()-s.rankUp.at<10000) {
@@ -406,6 +407,19 @@
       div(rankUp,'rank-title','⚓ '+s.rankUp.rank);
       rankUp.classList.remove('active'); void rankUp.offsetWidth; rankUp.classList.add('active');
       clearTimeout(rankUp._t); rankUp._t=setTimeout(()=>rankUp.classList.remove('active'),6000);
+    }
+    const cc=s.crewCard, ic=games&&games.idcard;
+    if(ic && cc && cc.at!==idCardShown && Date.now()-cc.at<10000) {
+      idCardShown=cc.at;
+      ic.querySelectorAll('.rank-name,.rank-title,.id-line').forEach(n=>n.remove());
+      ic.dataset.platform=cc.platform;
+      div(ic,'rank-name',cc.name);
+      div(ic,'rank-title','⚓ '+cc.rank);
+      div(ic,'id-line',`🪙 ${cc.loot} ganimet · ⛵ ${cc.streams} sefer${cc.streak>=2?` · 🔥 ${cc.streak} üst üste`:''}`);
+      const since=cc.first?new Date(cc.first+'T12:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}):'';
+      if(since||cc.best) div(ic,'id-line',[since&&`🗓️ ${since}'den beri`,cc.best&&`${cc.best.emoji} en iyi av: ${cc.best.name}`].filter(Boolean).join(' · '));
+      ic.classList.remove('active'); void ic.offsetWidth; ic.classList.add('active');
+      clearTimeout(ic._t); ic._t=setTimeout(()=>ic.classList.remove('active'),8000);
     }
     if(score) {
       const t=tally(s.matches);
@@ -439,7 +453,7 @@
       }
     }
   }
-  const demo={nextShow:'Pazartesi 20:30',weekChamps:{week:'2026-W39',top:[{name:'MaviKaptan',loot:240},{name:'YesilLiman',loot:180},{name:'Denizci42',loot:95}]},nights:[{date:'2026-09-24',game:'League of Legends',chat:412,follows:9,wins:4,losses:2,king:'MaviKaptan'}],game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},firstTimers:['kick:yesilliman'],season:{name:'Eylül',top:[{name:'YesilLiman',loot:128},{name:'MaviKaptan',loot:74},{name:'Denizci42',loot:31}]},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
+  const demo={nextShow:'Pazartesi 20:30',weekChamps:{week:'2026-W39',top:[{name:'MaviKaptan',loot:240},{name:'YesilLiman',loot:180},{name:'Denizci42',loot:95}]},nights:[{date:'2026-09-24',game:'League of Legends',chat:412,follows:9,wins:4,losses:2,king:'MaviKaptan'}],game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},crewCard:location.search.includes('card')?{platform:'kick',name:'YesilLiman',rank:'Usta Gemici',loot:128,streams:7,streak:4,first:'2026-09-21',best:{emoji:'🐙',name:'Ahtapot'},at:Date.now()}:null,highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},firstTimers:['kick:yesilliman'],season:{name:'Eylül',top:[{name:'YesilLiman',loot:128},{name:'MaviKaptan',loot:74},{name:'Denizci42',loot:31}]},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
   if(sample) { fishSeen=new Set(); if(location.search.includes('hype')) demo.hype={id:'h1',status:'active',level:3}; if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e0',type:'support',name:'⭐ MaviKaptan abone oldu!',platform:'twitch',big:true},{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;

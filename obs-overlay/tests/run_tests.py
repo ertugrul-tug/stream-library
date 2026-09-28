@@ -285,6 +285,11 @@ async def run(sb, obs, tmp):
         replies = [(pl, t) for pl, t in sb.said[n:] if "@Ali" in t]
         check("!rütbe sadece sorulan platformda cevaplandı", replies and all(pl == "twitch" for pl, _ in replies), str(replies))
 
+        await sb.chat("twitch", "Ali", "!kart")
+        await p.drain()
+        cc = state()["crewCard"] or {}
+        check("!kart ekrana mürettebat kartı çıkardı", cc.get("name") == "Ali" and cc.get("first") and "streams" in cc, str(cc))
+
         n = len(sb.said)
         await sb.chat("kick", "Veli", "!site")
         await sb.chat("kick", "Veli", "!discord")
@@ -292,15 +297,26 @@ async def run(sb, obs, tmp):
         check("link komutu cevaplandı, boş link sessiz", sb.said_since(n) == [t for t in sb.said_since(n) if "stream-library" in t] and len(sb.said_since(n)) == 1, str(sb.said_since(n)))
 
         print("\nTahmin ve maç")
+        await p.act("giveLoot", platform="twitch", name="Ali")
+        await p.act("giveLoot", platform="kick", name="Veli")
+        ali_loot = lambda: next((c["loot"] for c in state()["topLoot"] if c["name"] == "Ali"), 0)
+        before = ali_loot()
         await p.act("predictOpen")
-        await sb.chat("twitch", "Ali", "!tahmin G")
-        await sb.chat("kick", "Veli", "!tahmin m")
+        await sb.chat("twitch", "Ali", "!tahmin G 4")
+        await sb.chat("twitch", "Ali", "!tahmin G 10")
+        await sb.chat("kick", "Veli", "!tahmin m 999")
         await p.drain()
         check("tahmin oyları sayıldı", (state()["prediction"]["w"], state()["prediction"]["l"]) == (1, 1))
+        check("yatırılan ganimet kasada (fikir değiştiren iade aldı, fazlası bakiyeyle sınırlı)", state()["prediction"]["pot"] == 20, str(state()["prediction"]))
         n = len(sb.said)
         await p.act("predictLock")
         await p.act("addMatch", result="W")
         check("maç sonucu ve isabet duyuruldu", any("Galibiyet" in t and "%50'si" in t for t in sb.said_since(n)), str(sb.said_since(n)))
+        check("bilen kasadan payını aldı", ali_loot() == before + 10 and any("kasadan pay" in t for t in sb.said_since(n)), f"{before}->{ali_loot()}")
+        await p.act("undoMatch")
+        check("maç geri alınınca kazanç da geri alındı", ali_loot() == before, str(ali_loot()))
+        await p.act("addMatch", result="W")
+        check("tekrar girilince bir kez daha ödendi (çift ödeme yok)", ali_loot() == before + 10, str(ali_loot()))
 
         print("\nOlta · market · soru")
         catches = len(state()["catches"])

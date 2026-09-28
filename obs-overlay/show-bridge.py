@@ -133,6 +133,7 @@ def award_chat(platform, name, show_id):
     """Returns the new rank name if this message pushed the member up a rank, else None."""
     entry = crew_db.setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "points": 0, "streams": 0, "show": None, "last": 0})
     entry["name"] = name
+    entry.setdefault("first", show_id[:10])
     before = rank_for(entry["points"])
     now = time.time()
     if entry["show"] != show_id:
@@ -200,7 +201,7 @@ def defaults():
         "returnMessage": clean(CONFIG.get("returnMessage"), 100),
         "routes": [clean(x, 65) for x in CONFIG.get("routes", [])][:3],
         "routesVisible": True, "segmentVisible": True,
-        "markers": [], "rankUp": None,
+        "markers": [], "rankUp": None, "crewCard": None,
         "matches": [], "scoreVisible": True,
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
@@ -232,7 +233,7 @@ def snapshot():
     p = state["prediction"]
     w = sum(v == "W" for v in p["votes"].values())
     l = sum(v == "L" for v in p["votes"].values())
-    result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"]}
+    result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"], "pot": sum((p.get("stakes") or {}).values())}
     result["summaryText"] = summary_text()
     result["activeChatters"] = recent_chatters()
     result["nextShow"] = schedule_text(next_only=True)
@@ -314,6 +315,7 @@ def summary_text():
 
 PREDICT_WORDS = {"g": "W", "w": "W", "kazan": "W", "kazanır": "W", "kazanir": "W",
                  "m": "L", "l": "L", "kaybet": "L", "kaybeder": "L"}
+STAKE_MAX = int((CONFIG.get("games") or {}).get("stakeMax") or 500)
 
 
 def load_nights():
@@ -371,6 +373,7 @@ def import_data(payload):
 
 
 def reset_show():
+    refund_stakes()
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
@@ -390,7 +393,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -535,6 +538,7 @@ def add_match(result):
             right = sum(v == result for v in p["votes"].values())
             state["predictionHistory"].append({"right": right, "total": total, "matchCount": len(state["matches"])})
             guessed = f" · 🔮 Sohbetin {pct_tr(round(100 * right / total))} bildi ({right}/{total})"
+        guessed += settle_stakes(result)
     m = state["matches"]
     streak = next((i for i, x in enumerate(reversed(m)) if x != result), len(m))
     fire = f" · 🔥 {streak} galibiyet serisi!" if result == "W" and streak >= 2 else ""
@@ -544,9 +548,73 @@ def add_match(result):
     say(f"{head} Bu akşam {m.count('W')}G {m.count('L')}M{fire}{guessed}")
 
 
+def predict_vote(platform, name, pick, stake_arg):
+    """!tahmin G [miktar]: optional loot stake, taken from the balance now and paid back on a right guess."""
+    p, key = state["prediction"], f"{platform}:{name.casefold()}"
+    stakes = p.setdefault("stakes", {})
+    entry = crew_db.get(key)
+    if entry and key in stakes:  # changed their mind: the old stake comes back first
+        entry["spent"] = entry.get("spent", 0) - stakes.pop(key)
+    p["votes"][key] = pick
+    if not stake_arg or not stake_arg.isdigit() or not entry:
+        return
+    amount = min(int(stake_arg), balance(entry), STAKE_MAX)
+    if amount <= 0:
+        say(f"@{name} yatıracak ganimetin yok, önce !olta at 🎣", platform)
+        return
+    entry["spent"] = entry.get("spent", 0) + amount
+    stakes[key] = amount
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+
+
+def refund_stakes():
+    """Prediction cancelled or replaced before a result: everyone gets their stake back."""
+    p = state["prediction"]
+    if p["status"] == "done":
+        return
+    for key, amount in (p.get("stakes") or {}).items():
+        if key in crew_db:
+            crew_db[key]["spent"] = crew_db[key].get("spent", 0) - amount
+    p["stakes"] = {}
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+
+
+def settle_stakes(result):
+    """Right guessers get their stake back plus a share of the wrong side's stakes, by stake size."""
+    p = state["prediction"]
+    stakes = p.get("stakes") or {}
+    won = {k: v for k, v in stakes.items() if p["votes"].get(k) == result and k in crew_db}
+    lost_pot = sum(v for k, v in stakes.items() if k not in won)
+    p["paid"] = {}
+    for key, amount in won.items():
+        profit = lost_pot * amount // sum(won.values())
+        e = crew_db[key]
+        e["spent"] = e.get("spent", 0) - amount
+        add_loot(e["platform"], e["name"], profit)
+        p["paid"][key] = [amount, profit]
+    CREW_FILE.write_text(json.dumps(crew_db, ensure_ascii=False), encoding="utf-8")
+    if not stakes:
+        return ""
+    if not won:
+        return f" · 💰 {sum(stakes.values())} ganimetlik kasa denize gömüldü"
+    best = max(p["paid"], key=lambda k: p["paid"][k][1])
+    return f" · 💰 {len(won)} kişi kasadan pay aldı, en büyük vurgun {crew_db[best]['name']} +{p['paid'][best][1]}"
+
+
+def unsettle_stakes():
+    """undoMatch after a settled prediction: take the payouts back, stakes are on the table again."""
+    p = state["prediction"]
+    for key, (amount, profit) in (p.pop("paid", None) or {}).items():
+        e = crew_db.get(key)
+        if e:
+            e["spent"] = e.get("spent", 0) + amount
+            add_loot(e["platform"], e["name"], -profit)
+
+
 def predict_open():
-    state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0}
-    say("🔮 Maç tahmini açıldı! Sonucu bil: !tahmin G (galibiyet) · !tahmin M (mağlubiyet)")
+    refund_stakes()
+    state["prediction"] = {"status": "open", "votes": {}, "result": None, "matchCount": 0, "stakes": {}}
+    say("🔮 Maç tahmini açıldı! Sonucu bil: !tahmin G · !tahmin M · ganimet yatırmak için: !tahmin G 50")
 
 
 def predict_lock():
@@ -555,7 +623,8 @@ def predict_lock():
         return False
     p["status"] = "locked"
     w = sum(v == "W" for v in p["votes"].values())
-    say(f"🔒 Tahminler kapandı · {w} kişi galibiyet, {len(p['votes']) - w} kişi mağlubiyet dedi.")
+    pot = sum((p.get("stakes") or {}).values())
+    say(f"🔒 Tahminler kapandı · {w} kişi galibiyet, {len(p['votes']) - w} kişi mağlubiyet dedi." + (f" 💰 Kasada {pot} ganimet var." if pot else ""))
     return True
 
 
@@ -792,14 +861,16 @@ async def streamer_bot():
                                 index = int(match.group(1)) - 1
                                 if index < len(state["routes"]):
                                     state["votes"][platform + ":" + name.casefold()] = index
-                            guess = re.fullmatch(r"!tahmin\s+(\S+)", message, re.IGNORECASE)
+                            guess = re.fullmatch(r"!tahmin\s+(\S+)(?:\s+(\S+))?", message, re.IGNORECASE)
                             if guess and state["prediction"]["status"] == "open":
                                 pick = PREDICT_WORDS.get(guess.group(1).casefold())
                                 if pick:
-                                    state["prediction"]["votes"][platform + ":" + name.casefold()] = pick
+                                    predict_vote(platform, name, pick, guess.group(2))
                             command = message.split()[0].casefold()
                             if command in ("!rütbe", "!rutbe", "!rank") and cooldown(f"rank:{platform}:{name.casefold()}", 20):
                                 say(rank_text(platform, name), platform)
+                            elif command in ("!kart", "!kimlik"):
+                                show_card(platform, name)
                             elif command in ("!olta", "!balık", "!balik"):
                                 cast_line(platform, name)
                             elif command in CHAT_LINKS and cooldown(f"link:{platform}:{command}", 30):
@@ -1145,6 +1216,19 @@ def collection_text(platform, name):
     shelf = " ".join(emoji if item in caught else "❔" for item, emoji, _, _ in LOOT)
     tail = " · 🏆 Balıkçı Reisi!" if len(caught) == len(LOOT) else " · tamamlayana +100 ganimet"
     return f"@{name} 🎣 koleksiyon {len(caught)}/{len(LOOT)}: {shelf}{tail}"
+
+
+def show_card(platform, name):
+    """!kart: the member's crew card on screen for a few seconds, plus the same facts in chat."""
+    if not cooldown(f"card:{platform}:{name.casefold()}", 60) or not cooldown("card", 12):
+        return False
+    entry = crew_db.get(f"{platform}:{name.casefold()}") or {}
+    state["crewCard"] = {"platform": platform, "name": name, "rank": rank_for(entry.get("points", 0)),
+                         "points": entry.get("points", 0), "loot": balance(entry), "streams": entry.get("streams", 0),
+                         "streak": entry.get("streak", 0), "first": entry.get("first"), "best": entry.get("best"),
+                         "at": int(time.time() * 1000)}
+    say(rank_text(platform, name), platform)
+    return True
 
 
 def follows_tonight():
@@ -2191,6 +2275,7 @@ async def client(ws):
                         continue
                     p = state["prediction"]
                     if p["status"] == "done" and p["matchCount"] == len(state["matches"]):
+                        unsettle_stakes()
                         p.update(status="locked", result=None)
                     history = state["predictionHistory"]
                     if history and history[-1]["matchCount"] == len(state["matches"]):
@@ -2204,6 +2289,7 @@ async def client(ws):
                 elif action == "toggleLolAuto":
                     state["lolAuto"] = not state["lolAuto"]
                 elif action == "predictClear":
+                    refund_stakes()
                     state["prediction"]["status"] = "off"
                 elif action == "resetMatches":
                     state["matches"] = []
