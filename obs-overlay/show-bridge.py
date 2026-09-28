@@ -206,7 +206,7 @@ def defaults():
         "prediction": {"status": "off", "votes": {}, "result": None, "matchCount": 0},
         "predictionHistory": [],
         "lolAuto": True, "lolGame": None, "title": "", "botChat": True,
-        "catches": [], "kraken": None, "race": None, "krakenRandom": True, "sfx": True,
+        "catches": [], "kraken": None, "race": None, "pirate": None, "krakenRandom": True, "sfx": True,
         "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [],
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
@@ -393,7 +393,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -642,7 +642,7 @@ _save_warned = [False]
 
 async def publish():
     try:
-        STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
+        STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "pirate", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
         _save_warned[0] = False
     except OSError as exc:  # a locked/synced file must not stop the show; the overlays still update
         if not _save_warned[0]:
@@ -921,6 +921,8 @@ async def streamer_bot():
                                 kraken_hit(platform, name)
                             elif command in ("!katıl", "!katil"):
                                 race_join(platform, name)
+                            elif command in ("!ateş", "!ates", "!ateş!", "!fire"):
+                                pirate_fire(platform, name)
                             elif command in ("!komutlar", "!komut", "!help") and cooldown(f"help:{platform}", 30):
                                 say(HELP_TEXT, platform)
                         elif kind == "AdRun":
@@ -1595,7 +1597,7 @@ def on_reward(platform, name, data):
         _cmd_last.pop(f"fish:{platform}:{name.casefold()}", None)  # paid with points: skip the cooldown
         cast_line(platform, name)
     elif what == "kraken":
-        if state["kraken"] or state["race"]:
+        if event_busy():
             say(f"@{name} 🐙 şu an başka bir etkinlik sürüyor, Kraken birazdan! (kanal puanı iadesi için kaptana yaz)", platform)
             return
         say(f"🐙 {name} kanal puanıyla Krakeni uyandırdı!")
@@ -1862,9 +1864,66 @@ async def kraken_random():
         await asyncio.sleep(random.uniform(low, high) * 60)
         status = await obs_request("GetStreamStatus")
         if state["krakenRandom"] and status and status.get("outputActive") and recent_chatters() \
-                and not state["kraken"] and not state["race"]:
+                and not event_busy():
             kraken_start()
             await publish()
+
+
+def event_busy():
+    return state["kraken"] or state["race"] or state["pirate"]
+
+
+# Pirate ship: crosses the screen in durationSec; every !ateş is a cannonball that hits ~45% of the time.
+PIRATE_CFG = GAMES.get("pirate") or {}
+
+
+def pirate_start():
+    duration = int(PIRATE_CFG.get("durationSec") or 45)
+    hp = min(40, 6 + 4 * recent_chatters())
+    pid = f"p{time.time()}"
+    state["pirate"] = {"id": pid, "status": "active", "hp": hp, "max": hp, "endsAt": int((time.time() + duration) * 1000),
+                       "startedAt": int(time.time() * 1000), "hits": {}, "shots": [], "sinker": None}
+    say(f"🏴‍☠️ DÜŞMAN GEMİSİ UFUKTA! !ateş yazıp top atın, {duration} saniyede batırın!")
+
+    async def timer():
+        await asyncio.sleep(duration)
+        s = state["pirate"]
+        if s and s["id"] == pid and s["status"] == "active":
+            pirate_finish(False)
+            await publish()
+    _spawn(timer())
+
+
+def pirate_fire(platform, name):
+    s = state["pirate"]
+    if not s or s["status"] != "active" or not cooldown(f"fire:{platform}:{name.casefold()}", 3):
+        return
+    hit = random.random() < float(PIRATE_CFG.get("hitChance") or 0.45)
+    s["shots"] = (s["shots"] + [{"id": f"{time.time()}", "name": name, "platform": platform, "hit": hit}])[-8:]
+    if not hit:
+        return
+    s["hp"] -= 1
+    gunner = s["hits"].setdefault(f"{platform}:{name.casefold()}", {"platform": platform, "name": name, "hits": 0})
+    gunner["hits"] += 1
+    if s["hp"] <= 0:
+        s["sinker"] = name
+        pirate_finish(True)
+
+
+def pirate_finish(sunk, retreat=False):
+    s = state["pirate"]
+    s["status"] = "sunk" if sunk else "escaped"
+    if sunk:
+        top = max(s["hits"].values(), key=lambda h: h["hits"])
+        for h in s["hits"].values():
+            add_loot(h["platform"], h["name"], min(30, 5 + 2 * h["hits"]) + (20 if h is top else 0) + (15 if h["name"] == s["sinker"] else 0))
+        s["top"] = top["name"]
+        auto_marker(f"🏴‍☠️ Korsan gemisi battı · son top {s['sinker']}")
+        say(f"🏴‍☠️ KORSAN GEMİSİ BATTI! Son top: {s['sinker']} (+15) · en iyi topçu: {top['name']} ({top['hits']} isabet, +20) · "
+            f"ateş eden {len(s['hits'])} kişiye ganimet!")
+    else:
+        say("🏴‍☠️ Korsanlar geri çekildi." if retreat else "🏴‍☠️ Korsan gemisi kaçtı… Toplar daha hızlı ateşlenmeli!")
+    _clear_later("pirate", s["id"], 10)
 
 
 def race_start():
@@ -1956,7 +2015,7 @@ def on_raid(platform, data):
         if platform == "twitch" and login:
             say(f"📣 {name} harika bir yayıncı, kanalına bir takip bırakın: twitch.tv/{login}")
         await asyncio.sleep(14)
-        if viewers >= int(KRAKEN_CFG.get("raidMinViewers") or 3) and not state["kraken"] and not state["race"]:
+        if viewers >= int(KRAKEN_CFG.get("raidMinViewers") or 3) and not event_busy():
             kraken_start()
         await publish()
     _spawn(follow_up())
@@ -2124,7 +2183,7 @@ async def client(ws):
                     if not cast_line("kaptan", "Kaptan"):
                         continue
                 elif action == "krakenStart":
-                    if state["kraken"] or state["race"]:
+                    if event_busy():
                         await send_notice(ws, False, "Önce süren etkinlik bitsin")
                         continue
                     kraken_start()
@@ -2132,8 +2191,17 @@ async def client(ws):
                     if not state["kraken"] or state["kraken"]["status"] != "active":
                         continue
                     kraken_finish(False, retreat=True)
+                elif action == "pirateStart":
+                    if event_busy():
+                        await send_notice(ws, False, "Önce süren etkinlik bitsin")
+                        continue
+                    pirate_start()
+                elif action == "pirateStop":
+                    if not state["pirate"] or state["pirate"]["status"] != "active":
+                        continue
+                    pirate_finish(False, retreat=True)
                 elif action == "raceStart":
-                    if state["kraken"] or state["race"]:
+                    if event_busy():
                         await send_notice(ws, False, "Önce süren etkinlik bitsin")
                         continue
                     race_start()
@@ -2164,7 +2232,7 @@ async def client(ws):
                     await ws.send(json.dumps({"type": "preflight", "items": await preflight()}, ensure_ascii=False))
                     continue
                 elif action == "rehearsal":
-                    if _rehearsing[0] or state["kraken"] or state["race"]:
+                    if _rehearsing[0] or event_busy():
                         await send_notice(ws, False, "Prova şu an başlatılamaz (süren etkinlik var)")
                         continue
                     _spawn(rehearsal())

@@ -20,7 +20,7 @@
 
   // Waterline at y=0, bow toward +x. Big boats ~66 units long and ~70 tall; the dinghy about half.
   function hull(ctx, c) {
-    ctx.fillStyle = '#f3f6f9';
+    ctx.fillStyle = c.hull || '#f3f6f9';
     ctx.beginPath();
     ctx.moveTo(-30, -9); ctx.lineTo(24, -9); ctx.lineTo(34, -7); ctx.lineTo(26, 0); ctx.lineTo(-26, 0); ctx.lineTo(-31, -4);
     ctx.closePath(); ctx.fill();
@@ -41,7 +41,7 @@
     ctx.fillStyle = 'rgba(160,178,196,.45)';
     ctx.beginPath(); ctx.moveTo(-1, -64); ctx.lineTo(-1, -12); ctx.lineTo(-7, -12); ctx.closePath(); ctx.fill();
     ctx.fillStyle = `rgb(${c.a})`; ctx.fillRect(-14, -24, 8, 3);
-    ctx.fillStyle = '#e9eef3';
+    ctx.fillStyle = c.jib || '#e9eef3';
     ctx.beginPath(); ctx.moveTo(0, -58); ctx.lineTo(29, -9); ctx.lineTo(1, -11); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(143,160,176,.8)'; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(-2, -66); ctx.lineTo(31, -8); ctx.stroke();
@@ -70,7 +70,7 @@
     ctx.beginPath(); ctx.moveTo(1, -68); ctx.quadraticCurveTo(-18, -40, -28, -15); ctx.lineTo(1, -15); ctx.closePath(); ctx.fill();
     ctx.fillStyle = `rgb(${c.a})`;
     ctx.beginPath(); ctx.moveTo(1, -68); ctx.quadraticCurveTo(-4, -58, -7, -50); ctx.lineTo(1, -50); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e9eef3';
+    ctx.fillStyle = c.jib || '#e9eef3';
     ctx.beginPath(); ctx.moveTo(2, -60); ctx.lineTo(24, -15); ctx.lineTo(2, -15); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#dfe6ec'; ctx.fillRect(-24, -15, 50, 4);
     ctx.fillStyle = '#f3f6f9';
@@ -103,6 +103,9 @@
     return { draw, c: style(), dir, size: 0.8 + rnd() * 0.4, spd: SPEED.get(draw) * (0.7 + rnd() * 0.6),
              x: x !== undefined ? x : (dir > 0 ? -0.2 : 1.2) };
   }
+
+  // One boat on its own (the pirate ship in the overlay): same waterline/bow convention as above.
+  window.qedyBoat = (ctx, type, c) => ({ yacht, spinnaker, catamaran, dinghy })[type](ctx, c);
 
   window.qedyFleet = function (ctx) {
     const spread = (n, layer) => Array.from({ length: n }, (_, i) => roll(layer, (i + rnd() * 0.8) / n));

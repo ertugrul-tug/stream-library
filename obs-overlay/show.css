@@ -96,6 +96,8 @@
 .show-kraken[data-status="won"]{border-color:rgba(92,240,160,.8);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(92,240,160,.4)}
 .show-kraken[data-status="won"] .kr-emoji{animation:krSink 1.2s ease-in forwards}
 .show-kraken[data-status="lost"] .kr-emoji{animation:none;opacity:.45}
+.show-pirate .pr-sea{display:block;width:100%;height:6vw;margin:.2vw 0 .4vw;border-radius:.5vw;background:linear-gradient(#4f7ea3,#9cc3de 70%)}
+.show-pirate[data-status="sunk"]{border-color:rgba(92,240,160,.8);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(92,240,160,.4)}
 .show-race{border-color:rgba(34,174,240,.65)}
 .show-race .race-line{margin-bottom:.5vw;font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.66vw;letter-spacing:.08em;color:#bfe9ff}
 .show-race .race-chips{display:flex;flex-wrap:wrap;gap:.35vw}

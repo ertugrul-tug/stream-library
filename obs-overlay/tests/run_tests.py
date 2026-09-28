@@ -404,7 +404,24 @@ async def run(sb, obs, tmp):
         await p.act("queueToggle")
         check("!çık ile sıradan çıkıldı, sıra kapandı", not state()["playQueue"] and not state()["playQueueOpen"])
 
-        print("\nKraken · yarış · baskın")
+        print("\nKorsan · Kraken · yarış · baskın")
+        await p.act("pirateStart")
+        hp = state()["pirate"]["max"]
+        ali_loot_before = next((c["loot"] for c in state()["topLoot"] if c["name"] == "Ali"), 0)
+
+        async def pirate_done():
+            await sb.chat("twitch", "Ali", "!ateş")
+            await sb.chat("kick", "Veli", "!ates")
+            await p.drain(3.1)
+            return state()["pirate"]["status"] != "active"
+        await wait_until(pirate_done, 60)
+        pr = state()["pirate"]
+        check(f"korsan gemisi ({hp} delik) battı, topçular ganimet aldı", pr["status"] == "sunk" and pr["sinker"] in ("Ali", "Veli")
+              and next((c["loot"] for c in state()["topLoot"] if c["name"] == "Ali"), 0) > ali_loot_before, str(pr)[:200])
+        await p.act("krakenStart")
+        check("korsan ekrandayken Kraken engellendi", p.notices and "etkinlik" in p.notices[-1])
+        await asyncio.sleep(10.5)
+        await p.drain()
         await p.act("krakenStart")
         hp = state()["kraken"]["max"]
 
@@ -667,7 +684,7 @@ async def main():
     config["obs"] = {"url": f"ws://127.0.0.1:{OBS}/", "password": ""}
     config["lolAuto"] = {"url": f"http://127.0.0.1:{LOL}/liveclientdata/", "lockAfterSec": 180}
     config["games"] = {"fishCooldownSec": 60, "kraken": {"durationSec": 60, "randomMinMinutes": 999, "randomMaxMinutes": 999, "raidMinViewers": 99},
-                       "race": {"joinSec": 2, "maxBoats": 8}}
+                       "race": {"joinSec": 2, "maxBoats": 8}, "pirate": {"durationSec": 60, "hitChance": 1}}
     config["tips"] = {"everyMinutes": 999}
     config["chatLinks"] = {"!site": "⚓ https://ertugrul-tug.github.io/stream-library/", "!discord": ""}  # "" = unset link stays silent
     (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")

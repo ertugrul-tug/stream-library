@@ -23,8 +23,8 @@
   let games = null;
   if (kind !== 'end') {  // game scene, chat scene, and the start/break screens (viewers fish and race while waiting)
     const lane = document.createElement('div'); lane.className = 'show-events'; root.append(lane);
-    games = { hype: card('show-hype','HYPE TRAIN'), raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA'), queue: card('show-queue','BİRLİKTE OYNA'), idcard: card('show-rankup show-idcard','MÜRETTEBAT KARTI') };
-    lane.append(games.hype, games.raid, games.kraken, games.race, games.fish, games.queue, games.idcard);
+    games = { hype: card('show-hype','HYPE TRAIN'), raid: card('show-raid','BASKIN'), kraken: card('show-kraken','KRAKEN'), race: card('show-race','YELKEN YARIŞI'), fish: card('show-fish','OLTA'), queue: card('show-queue','BİRLİKTE OYNA'), pirate: card('show-kraken show-pirate','KORSAN SALDIRISI'), idcard: card('show-rankup show-idcard','MÜRETTEBAT KARTI') };
+    lane.append(games.hype, games.raid, games.kraken, games.pirate, games.race, games.fish, games.queue, games.idcard);
     if (rankUp) lane.append(rankUp);
   }
   let krakenId = null, krakenHp = null, krakenState = null, krakenStatus = null, raceId = null, raceState = null, raceStatus = null;
@@ -142,6 +142,75 @@
     line.textContent = k.status === 'active' ? `!saldır yaz · ${secsLeft(k.endsAt)} sn · ${k.hp}/${k.max} can`
       : k.status === 'won' ? `Son vuruş: ${k.killer} · saldıran herkese ganimet` : 'Bir dahaki sefere daha sert vurun!';
   }
+  // Pirate ship: the ship crosses the card while each !ateş arcs a cannonball at it (💥 hit / 💦 miss).
+  let pirateState = null, pirateId = null, pirateSeen = new Set(), pirateBalls = [], pirateFx = [], pirateLoop = false, pirateEndAt = 0;
+  function renderPirate(p) {
+    const c = games.pirate;
+    c.classList.toggle('active', !!p);
+    pirateState = p;
+    if (!p) { pirateId = null; return; }
+    if (p.id !== pirateId) {
+      pirateId = p.id; pirateBalls = []; pirateFx = []; pirateEndAt = 0;
+      pirateSeen = new Set((p.shots || []).map(x => x.id));
+      c.querySelectorAll('.pr-body').forEach(n => n.remove());
+      const body = div(c, 'pr-body', '');
+      body.append(Object.assign(document.createElement('canvas'), { className: 'pr-sea' }));
+      div(body, 'kr-title', ''); div(body, 'kr-bar', '').append(document.createElement('i')); div(body, 'kr-line', ''); div(body, 'kr-hits', '');
+      if (p.status === 'active') sfx.krakenStart();
+    }
+    (p.shots || []).forEach(x => { if (!pirateSeen.has(x.id)) { pirateSeen.add(x.id); pirateBalls.push({ ...x, t0: performance.now() }); } });
+    if (p.status !== 'active' && !pirateEndAt) { pirateEndAt = performance.now(); (p.status === 'sunk' ? sfx.win : sfx.lose)(); }
+    c.dataset.status = p.status;
+    c.querySelector('.kr-title').textContent = p.status === 'active' ? 'DÜŞMAN GEMİSİ!' : p.status === 'sunk' ? 'KORSAN GEMİSİ BATTI!' : 'KORSANLAR KAÇTI…';
+    c.querySelector('.kr-bar i').style.width = (100 * Math.max(0, p.hp) / p.max) + '%';
+    c.querySelector('.kr-hits').textContent = (p.shots || []).slice(-4).reverse().map(x => `${x.name} ${x.hit ? '💥' : '💦'}`).join('   ·   ');
+    tickPirate();
+    if (!pirateLoop) { pirateLoop = true; requestAnimationFrame(drawPirate); }
+  }
+  function tickPirate() {
+    const p = pirateState, line = games && games.pirate.querySelector('.kr-line');
+    if (!p || !line) return;
+    line.textContent = p.status === 'active' ? `!ateş yaz · ${secsLeft(p.endsAt)} sn · ${Math.max(0, p.hp)}/${p.max} delik kaldı`
+      : p.status === 'sunk' ? `Son top: ${p.sinker} · en iyi topçu: ${p.top}` : 'Toplar daha hızlı ateşlenmeli!';
+  }
+  function drawPirate(now) {
+    const p = pirateState, cv = games.pirate.querySelector('.pr-sea');
+    if (!p || !cv) { pirateLoop = false; return; }
+    const W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight, ctx = cv.getContext('2d');
+    const t = now / 1000, wave = x => H * 0.72 + Math.sin(x * 0.03 + t * 2) * H * 0.04;
+    ctx.fillStyle = '#1f6fa3'; ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) ctx.lineTo(x, wave(x));
+    ctx.lineTo(W, H); ctx.fill();
+    const span = Math.max(1, p.endsAt - p.startedAt), prog = Math.min(1, (Date.now() - p.startedAt) / span);
+    const after = pirateEndAt ? (now - pirateEndAt) / 1000 : 0;
+    const sx = W * (0.35 + 0.55 * prog) + (p.status === 'escaped' ? after * W * 0.4 : 0), sy = wave(sx);
+    const k = H / 80, sink = p.status === 'sunk' ? Math.min(1, after / 2) : 0;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, sy + 2); ctx.clip();          // below the waterline stays hidden while it sinks
+    ctx.translate(sx, sy + sink * H * 0.9); ctx.rotate(sink * 0.5 + Math.sin(t * 2) * 0.03); ctx.scale(k, k);
+    if (window.qedyBoat) {
+      qedyBoat(ctx, 'yacht', { a: '255,61,77', b: '20,20,24', sail: '#262a33', stripe: '#c21832', hull: '#1b1e25', jib: '#3a3f4a' });
+      ctx.fillStyle = '#111'; ctx.fillRect(-2, -66, -16, 10);
+      ctx.fillStyle = '#fff'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('☠', -10, -58);
+    }
+    ctx.restore();
+    const gx = W * 0.04, gy = H * 0.8;
+    pirateBalls = pirateBalls.filter(b => {
+      const f = (now - b.t0) / 650;
+      const tx = sx + (b.hit ? 0 : (b.id.length % 2 ? -1 : 1) * W * 0.08), ty = b.hit ? sy - 18 * k : wave(tx);
+      if (f >= 1) { pirateFx.push({ x: tx, y: ty, hit: b.hit, t0: now }); if (b.hit) sfx.hit(); return false; }
+      ctx.fillStyle = '#1a1a1a'; ctx.beginPath();
+      ctx.arc(gx + (tx - gx) * f, gy + (ty - gy) * f - Math.sin(f * Math.PI) * H * 0.55, Math.max(2, H * 0.04), 0, 7); ctx.fill();
+      return true;
+    });
+    pirateFx = pirateFx.filter(e => {
+      const f = (now - e.t0) / 500;
+      if (f >= 1) return false;
+      ctx.globalAlpha = 1 - f; ctx.fillStyle = e.hit ? '#ffb03b' : '#dff4ff';
+      ctx.beginPath(); ctx.arc(e.x, e.y, (e.hit ? 14 : 9) * k * (0.4 + f), 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      return true;
+    });
+    requestAnimationFrame(drawPirate);
+  }
   function renderRace(r) {
     const c = games.race;
     c.classList.toggle('active', !!r);
@@ -181,7 +250,7 @@
     const r = raceState, line = games && games.race.querySelector('.race-line');
     if (r && r.status === 'join' && line) line.textContent = `!katıl yaz · ${secsLeft(r.endsAt)} sn · ${r.boats.length} gemi`;
   }
-  if (games) setInterval(() => { tickKraken(); tickRace(); }, 500);
+  if (games) setInterval(() => { tickKraken(); tickRace(); tickPirate(); }, 500);
   function renderRaid(r) {
     const c = games.raid;
     c.classList.toggle('active', !!r);
@@ -298,7 +367,7 @@
       hc.querySelectorAll('.hype-line').forEach(n => n.remove());
       if (hy) div(hc, 'hype-line', hy.status === 'ended' ? `🚂 Seviye ${hy.level}'de durdu · teşekkürler! 💜` : `🚂 Seviye ${hy.level} · abone ve bitlerle vagonları doldurun!`);
     }
-    if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderRace(s.race); renderFish(s.catches); }
+    if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderPirate(s.pirate); renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
       const list=div(crew,'crew-list','');
@@ -454,7 +523,7 @@
     }
   }
   const demo={nextShow:'Pazartesi 20:30',weekChamps:{week:'2026-W39',top:[{name:'MaviKaptan',loot:240},{name:'YesilLiman',loot:180},{name:'Denizci42',loot:95}]},nights:[{date:'2026-09-24',game:'League of Legends',chat:412,follows:9,wins:4,losses:2,king:'MaviKaptan'}],game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},crewCard:location.search.includes('card')?{platform:'kick',name:'YesilLiman',rank:'Usta Gemici',loot:128,streams:7,streak:4,first:'2026-09-21',best:{emoji:'🐙',name:'Ahtapot'},at:Date.now()}:null,highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},firstTimers:['kick:yesilliman'],season:{name:'Eylül',top:[{name:'YesilLiman',loot:128},{name:'MaviKaptan',loot:74},{name:'Denizci42',loot:31}]},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
-  if(sample) { fishSeen=new Set(); if(location.search.includes('hype')) demo.hype={id:'h1',status:'active',level:3}; if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e0',type:'support',name:'⭐ MaviKaptan abone oldu!',platform:'twitch',big:true},{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } render(demo); } else render({routes:[],crew:[],stats:{}});
+  if(sample) { fishSeen=new Set(); if(location.search.includes('hype')) demo.hype={id:'h1',status:'active',level:3}; if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e0',type:'support',name:'⭐ MaviKaptan abone oldu!',platform:'twitch',big:true},{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } if(location.search.includes('pirate')) { demo.kraken=null; const t0=Date.now(); demo.pirate={id:'p1',status:'active',hp:14,max:18,startedAt:t0,endsAt:t0+45000,shots:[],sinker:null}; let n=0; setInterval(()=>{ const pr=demo.pirate; if(pr.status!=='active') return; const hit=Math.random()<0.5; pr.shots=[...pr.shots,{id:'s'+(n++),name:['MaviKaptan','YesilLiman','Denizci42'][n%3],platform:'twitch',hit}].slice(-8); if(hit) pr.hp--; if(pr.hp<=0) Object.assign(pr,{status:'sunk',sinker:'MaviKaptan',top:'YesilLiman'}); render({...demo}); },700); } render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
     try { ws=new WebSocket('ws://127.0.0.1:8765/'); } catch(_) { setTimeout(connect,3000); return; }
