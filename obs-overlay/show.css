@@ -181,7 +181,7 @@
 .mood-layer{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity 4s ease}
 .mood-layer[data-mood="sun"]{opacity:1;background:radial-gradient(ellipse 60% 55% at 88% -12%,rgba(255,196,84,.34),rgba(255,160,60,.12) 45%,transparent 70%)}
 .mood-layer[data-mood="storm"]{opacity:1;background:radial-gradient(ellipse 90% 60% at 50% -25%,rgba(14,18,34,.62),transparent 70%),linear-gradient(rgba(12,16,30,.2),transparent 35%)}
-.mood-layer[data-mood="storm"]::after{content:'';position:absolute;inset:0;background:#dfe9ff;opacity:0;animation:lightning 19s infinite}
+/* no lightning flash: a full-screen white pulse every few seconds is distracting on stream (and bad for photosensitive viewers) */
 @keyframes lightning{0%,92%,100%{opacity:0}93%{opacity:.16}94%{opacity:0}95.5%{opacity:.1}97%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.mood-layer::after{animation:none!important}}
 .fish-reveal{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;text-align:center;animation:frLife 4.8s ease both}
