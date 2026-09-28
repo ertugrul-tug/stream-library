@@ -66,8 +66,11 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 ## Pazartesi 28 Eylül — kontrol listesi
 
 **Yayından önce (ev bilgisayarı):**
-- [ ] `git pull` (ofiste eklenenler: klip scripti, yelkenliler, radar düzeltmesi)
-- [ ] ffmpeg kur: `winget install Gyan.FFmpeg` (klip scripti için; şu an sadece ofiste kurulu)
+- [ ] `git pull` (ofiste eklenenler: klip scripti, yelkenliler, radar düzeltmesi; 28 Eylül: `!kart`, tahmine ganimet yatırma, korsan gemisi, sitede ŞU AN CANLI) → **köprüyü yeniden başlat**, yoksa yeni komutlar çalışmaz
+- [x] ~~ffmpeg kur~~ — ev bilgisayarında kurulu
+- [ ] Kumanda → Mini oyunlar → "🏴‍☠️ Korsan gemisi"ne bir kez bas, OBS'te bak: dalgalar alttan yükseliyor mu, gemi görünüyor mu, kamerayı çok mu kapatıyor (bitince "Korsanları kaçır")
+- [ ] Sohbete kendin `!kart` ve (tahmin açıkken) `!tahmin G 10` yaz → kart ekrana çıkıyor mu, kasa tahmin kartında görünüyor mu
+- [ ] İsteğe bağlı: Streamer.bot → Voice Control ile sesli komut ("klip", "mola"); vakit yoksa sonraki yayına
 - [x] ~~OBS kaydı~~ — ev bilgisayarında kayıt `C:\Users\pc\Videos`'a yazıyor, ffmpeg kurulu. OBS'te "yayında otomatik kaydet" kapalı ama köprü artık yayın açılınca kaydı kendisi başlatıyor (kumandada "⏺ kayıt" görünmeli)
 - [ ] Kick bio'yu işle (`planning/comeback-plan.md` Bölüm 9'daki metin)
 - [ ] Varsa Discord Mürettebat rol ID'si → `show-config.json > discordLive.roleId`
@@ -81,6 +84,9 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - [ ] Bot mesajları (karşılama, ipuçları, sahneye göre satırlar, 📣 tanıtım) — sıklık rahatsız edici mi
 - [ ] Mini oyunların gerçek sohbetle ilk turu: olta, Kraken (çok mu kolay/zor), yelken yarışı
 - [ ] Olta kartı ekranda yeterince fark ediliyor mu (küçük olabilir; gerekirse nadir avda büyütülür)
+- [ ] Korsan gemisi: 45 sn, ~%45 isabet, can = 6 + 4 × aktif sohbet — çok mu kolay/zor? (`games.pirate.durationSec` / `hitChance`)
+- [ ] Tahmine ganimet yatırma: sohbet anlıyor mu, "kasa" mesajları sohbeti boğuyor mu
+- [ ] Yayın açıkken siteye telefondan bak: üstteki hap kırmızı "ŞU AN CANLI" oluyor mu (dakikada bir kontrol eder)
 - [ ] Baskın / Hype Train (`level`) / reklam (`length`) gelirse: Streamer.bot'un gerçek verisindeki alanlar doğru okunuyor mu
 - [ ] Neyin kırıldığını ya da garip durduğunu kumandanın üstündeki 📝 ile not al — salı günü düzeltme listesi bu olacak
 
