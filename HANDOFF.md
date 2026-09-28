@@ -93,7 +93,8 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 
 **Yayından sonra (aynı gece, "Yeni yayın"a basmadan — işaretleri o sıfırlar):**
 - [ ] `python obs-overlay/make-clips.py --preview` → PNG'de kamera ve oyun doğru kırpılmış mı; değilse `clips.camera` / `clips.game` kutularını ayarla
-- [ ] `python obs-overlay/make-clips.py` → klipleri Reels/Shorts/TikTok'a yükle (plandaki 1 numaralı büyüme taktiği)
+- [ ] `python obs-overlay/make-clips.py` → klipleri Reels/Shorts/TikTok'a yükle (plandaki 1 numaralı büyüme taktiği); açıklamalar `aciklama.txt`'de hazır. Bu çalıştırma gecenin işaretlerini haftalık özet için de saklar
+- [ ] Sabah: `python obs-overlay/make-clips.py --reel` → 60 sn "Seyir Defteri" Reel'i + `reel-aciklama.txt`
 - [ ] Kumandadan 📊 yayın özetini Discord'a gönder
 - [ ] `obs-overlay/.events.jsonl`'a bak (ya da Claude'a baktır): baskın/Hype Train/reklam/takip/abone olaylarının gerçek alan adları köprünün okuduklarıyla aynı mı
 
@@ -103,9 +104,9 @@ Kaptan seçti; gerçek sohbet verisi gelince ayarları ona göre yapılacak.
 
 - [ ] **⛵ Gemi yükseltme:** sohbetin ortak ganimeti tek bir gemiye akar (sal → kayık → yelkenli → yat …); seviye atlayınca ekranda kutlama, gemi yayın sahnelerinde görünür. Ganimet harcamanın ortak hedefi.
 - [ ] **🐙 Haftalık boss (Kraken Kralı):** çok canlı, 3–4 yayına yayılan dövüş; kalan can yayınlar arasında saklanır, bitiren yayında büyük ödül.
-- [ ] **📱 Sabah Reel'i (Seyir Defteri 60 sn):** `make-clips.py --reel` → gecenin en iyi 3 işaretini tek dikey videoda birleştir + hazır açıklama/hashtag metni.
-- [ ] **📼 Haftalık özet (YouTube):** `make-clips.py --week` → haftanın işaretlerinden 3–4 dk yatay derleme + bölüm listesi; Pazar yüklemesi.
-- [ ] **🏷️ Klipler seri adıyla:** işaret notlarına göre sabit seri adları ("Kraken Düştü", "Efsane Av", "Korsan Battı") dosya adında ve açıklamada.
+- [x] **📱 Sabah Reel'i (Seyir Defteri 60 sn):** `make-clips.py --reel` → gecenin en iyi 3 işaretini tek dikey videoda birleştir + hazır açıklama/hashtag metni.
+- [x] **📼 Haftalık özet (YouTube):** `make-clips.py --week` → haftanın işaretlerinden 3–4 dk yatay derleme + bölüm listesi; Pazar yüklemesi.
+- [x] **🏷️ Klipler seri adıyla:** işaret notlarına göre sabit seri adları ("Kraken Düştü", "Efsane Av", "Korsan Battı") dosya adında ve açıklamada.
 - [ ] **💬 Discord rol eşitleme:** yayındaki rütbe = Discord rolü (Discord botu gerekir; webhook yetmez).
 - [ ] **🏛️ Şöhret duvarı (sitede):** ay sonu sezon ilk 3'ü siteye; ev bilgisayarından `crew` verisini dışa aktaran küçük script + push.
 - [ ] **⚔️ Mürettebat vs Kaptan gecesi:** ayda bir LoL özel oda; `!oyna` sırasından takım kurma, sonuç ekranda.
