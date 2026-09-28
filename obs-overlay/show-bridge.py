@@ -36,6 +36,8 @@ import socket
 import ssl
 import threading
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 from functools import partial
@@ -180,6 +182,32 @@ class StaticHandler(SimpleHTTPRequestHandler):
             return None
         return super().send_head()
 
+    def do_GET(self):
+        path, _, query = self.path.partition("?")
+        if path in ("/spotify-login", "/spotify-callback"):
+            if self.client_address[0] != "127.0.0.1" or not SPOTIFY_ID:
+                self.send_error(404)
+                return
+            if path == "/spotify-login":
+                self.send_response(302)
+                self.send_header("Location", spotify_login_url())
+                self.end_headers()
+                return
+            try:
+                ok = spotify_callback(query)
+            except Exception as exc:
+                print(f"Spotify girişi başarısız: {type(exc).__name__}", flush=True)
+                ok = False
+            body = ("<h2>🎵 Spotify bağlandı, bu sekmeyi kapatabilirsin.</h2>" if ok else
+                    "<h2>Spotify bağlanamadı · kumandadan tekrar dene.</h2>").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
@@ -207,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [],
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -377,7 +405,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -393,7 +421,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program !şarkı · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -943,6 +971,9 @@ async def streamer_bot():
                                 say(queue_position_text(platform, name), platform)
                             elif command in ("!çık", "!cik", "!çik"):
                                 queue_leave(platform, name)
+                            elif command in ("!şarkı", "!sarki", "!sr", "!çalan", "!calan"):
+                                query = message.split(None, 1)[1].strip() if " " in message and command in ("!şarkı", "!sarki", "!sr") else ""
+                                _spawn(song_request(platform, name, query))
                             elif command == "!soru":
                                 ask_question(platform, name, message.split(None, 1)[1] if " " in message else "")
                             elif command in ("!koleksiyon", "!kolleksiyon") and cooldown(f"coll:{platform}:{name.casefold()}", 20):
@@ -1886,6 +1917,189 @@ def log_event(platform, kind, data):
         pass
 
 
+# ---------------------------------------------------------------- spotify --
+# Now playing, playback control from the panel and chat song requests (!şarkı). Login once on this PC:
+# panel "Spotify'a bağlan" → /spotify-login → Spotify → /spotify-callback (PKCE, no client secret).
+# The refresh token lives in .spotify.json (gitignored, never served over HTTP).
+SPOTIFY_ID = str((CONFIG.get("spotify") or {}).get("clientId") or "").strip()
+SPOTIFY_ACCOUNTS = os.environ.get("QEDY_SPOTIFY_ACCOUNTS") or "https://accounts.spotify.com"
+SPOTIFY_API = os.environ.get("QEDY_SPOTIFY_API") or "https://api.spotify.com/v1"
+SPOTIFY_SEC = float(os.environ.get("QEDY_SPOTIFY_SEC") or 5)
+SPOTIFY_FILE = DATA_DIR / ".spotify.json"
+SPOTIFY_REDIRECT = f"http://127.0.0.1:{HTTP_PORT}/spotify-callback"
+SPOTIFY_SCOPES = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
+SONG_MAX_MS = 7 * 60 * 1000
+_spotify_verifier, _spotify_token, _requested = {}, {}, {}  # PKCE by state key · access token · track uri → requester
+
+
+def spotify_login_url():
+    verifier = secrets.token_urlsafe(72)[:96]
+    key = secrets.token_urlsafe(16)
+    _spotify_verifier.clear()
+    _spotify_verifier[key] = verifier
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+    return f"{SPOTIFY_ACCOUNTS}/authorize?" + urllib.parse.urlencode({
+        "client_id": SPOTIFY_ID, "response_type": "code", "redirect_uri": SPOTIFY_REDIRECT, "scope": SPOTIFY_SCOPES,
+        "code_challenge_method": "S256", "code_challenge": challenge, "state": key})
+
+
+def _spotify_token_request(fields):
+    body = urllib.parse.urlencode({"client_id": SPOTIFY_ID, **fields}).encode()
+    req = urllib.request.Request(f"{SPOTIFY_ACCOUNTS}/api/token", data=body,
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read())
+
+
+def _spotify_keep(tok):
+    if tok.get("refresh_token"):
+        SPOTIFY_FILE.write_text(json.dumps({"refresh_token": tok["refresh_token"]}), encoding="utf-8")
+    _spotify_token.clear()
+    _spotify_token.update(access_token=tok["access_token"], expires_at=time.time() + int(tok.get("expires_in") or 3600) - 60)
+
+
+def spotify_callback(query):
+    """Runs in the HTTP thread: swap the login code for tokens."""
+    params = urllib.parse.parse_qs(query)
+    verifier = _spotify_verifier.pop((params.get("state") or [""])[0], None)
+    code = (params.get("code") or [""])[0]
+    if not code or not verifier:
+        return False
+    _spotify_keep(_spotify_token_request({"grant_type": "authorization_code", "code": code,
+                                          "redirect_uri": SPOTIFY_REDIRECT, "code_verifier": verifier}))
+    return True
+
+
+def _spotify_sync(method, path, params=None):
+    if not (_spotify_token.get("access_token") and time.time() < _spotify_token.get("expires_at", 0)):
+        try:
+            saved = json.loads(SPOTIFY_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        _spotify_keep(_spotify_token_request({"grant_type": "refresh_token", "refresh_token": saved["refresh_token"]}))
+    url = SPOTIFY_API + path + ("?" + urllib.parse.urlencode(params) if params else "")
+    req = urllib.request.Request(url, method=method, headers={"Authorization": f"Bearer {_spotify_token['access_token']}"},
+                                 data=b"" if method in ("POST", "PUT") else None)
+    with urllib.request.urlopen(req, timeout=8) as r:
+        raw = r.read()
+    return json.loads(raw) if raw.strip() else {}
+
+
+async def spotify(method, path, params=None):
+    """Spotify Web API call; None when not connected or it failed (the reason goes to the bridge window)."""
+    if not SPOTIFY_ID:
+        return None
+    try:
+        return await asyncio.to_thread(_spotify_sync, method, path, params)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            _spotify_token.clear()
+        print(f"Spotify {method} {path}: HTTP {exc.code}", flush=True)
+    except Exception as exc:
+        print(f"Spotify hatası: {type(exc).__name__}", flush=True)
+    return None
+
+
+def spotify_linked():
+    return bool(SPOTIFY_ID) and SPOTIFY_FILE.exists()
+
+
+def track_info(t):
+    images = (t.get("album") or {}).get("images") or []
+    return {"uri": t.get("uri"), "title": clean(t.get("name"), 90), "artist": clean(", ".join(a.get("name", "") for a in t.get("artists") or []), 90),
+            "art": images[-1]["url"] if images else "", "ms": int(t.get("duration_ms") or 0), "explicit": bool(t.get("explicit"))}
+
+
+async def spotify_refresh():
+    data = await spotify("GET", "/me/player/currently-playing")
+    if data is None:
+        return
+    item = data.get("item") if isinstance(data, dict) else None
+    now = {"linked": True, "playing": bool(data.get("is_playing")) and bool(item), **(track_info(item) if item else {"title": ""})}
+    now["by"] = _requested.get(now.get("uri"))
+    old = state.get("music") or {}
+    if now.get("uri") and now["uri"] != old.get("uri") and now["by"] and now["playing"]:
+        say(f"🎵 Şimdi çalıyor: {now['title']} — {now['artist']} · istek: {now['by']['name']}")
+    if now != old:
+        state["music"] = now
+        await publish()
+
+
+async def spotify_loop():
+    while True:
+        await asyncio.sleep(SPOTIFY_SEC)
+        if spotify_linked():
+            await spotify_refresh()
+        elif state.get("music") != ({"linked": False} if SPOTIFY_ID else None):
+            state["music"] = {"linked": False} if SPOTIFY_ID else None
+            await publish()
+
+
+def music_now_text():
+    m = state.get("music") or {}
+    if not m.get("playing") or not m.get("title"):
+        return "🎵 Şu an müzik çalmıyor."
+    return f"🎵 Şu an çalıyor: {m['title']} — {m['artist']}" + (f" · istek: {m['by']['name']}" if m.get("by") else "")
+
+
+async def song_request(platform, name, query):
+    """!şarkı <isim>: search, then wait for the captain's ✓ in the panel (nothing plays without approval)."""
+    if not query:
+        if cooldown("song:now", 15):
+            say(music_now_text(), platform)
+        return
+    if not spotify_linked() or not state["musicOpen"]:
+        if cooldown(f"song:closed:{platform}", 60):
+            say("🎵 Şarkı istekleri şu an kapalı.", platform)
+        return
+    if len(state["musicRequests"]) >= 10:
+        if cooldown("song:full", 30):
+            say("🎵 İstek listesi dolu, kaptan biraz eritsin!", platform)
+        return
+    key = f"song:{platform}:{name.casefold()}"
+    if _cmd_last.get(key, 0) > time.time() - 300:
+        return
+    found = await spotify("GET", "/search", {"q": query[:100], "type": "track", "limit": 1})
+    items = ((found or {}).get("tracks") or {}).get("items") or []
+    if not items:
+        say(f"🎵 @{name} bulamadım, sanatçıyla birlikte yazmayı dene.", platform)
+        return
+    t = track_info(items[0])
+    if t["explicit"]:
+        say(f"🎵 @{name} o şarkı yayın için fazla sert, başka bir tane dene.", platform)
+        return
+    if t["ms"] > SONG_MAX_MS:
+        say(f"🎵 @{name} 7 dakikadan uzun şarkılar alınmıyor.", platform)
+        return
+    if any(r["uri"] == t["uri"] for r in state["musicRequests"]):
+        say(f"🎵 {t['title']} zaten listede.", platform)
+        return
+    cooldown(key, 300)
+    state["musicRequests"].append({**t, "id": f"s{time.time()}", "platform": platform, "name": name})
+    say(f"🎵 {t['title']} — {t['artist']} kaptanın onayına gitti, @{name}!", platform)
+    await publish()
+
+
+async def music_action(action, msg):
+    if action == "musicApprove":
+        req = next((r for r in state["musicRequests"] if r["id"] == msg.get("id")), None)
+        if req and await spotify("POST", "/me/player/queue", {"uri": req["uri"]}) is not None:
+            state["musicRequests"].remove(req)
+            _requested[req["uri"]] = {"name": req["name"], "platform": req["platform"]}
+            say(f"✅ {req['title']} sıraya girdi · istek: {req['name']}", req["platform"])
+            return True
+        return False
+    if action == "musicReject":
+        state["musicRequests"] = [r for r in state["musicRequests"] if r["id"] != msg.get("id")]
+        return True
+    paths = {"musicPlay": ("PUT", "/me/player/play"), "musicPause": ("PUT", "/me/player/pause"),
+             "musicNext": ("POST", "/me/player/next"), "musicPrev": ("POST", "/me/player/previous")}
+    ok = await spotify(*paths[action]) is not None
+    await asyncio.sleep(0.4)
+    await spotify_refresh()
+    return ok
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -2503,6 +2717,14 @@ async def client(ws):
                     result = await sb_do_action("QedyClip", {"note": note or "Anı"})
                     clip = sb_action_notice("QedyClip", result, "klip isteği Streamer.bot'a gitti")
                     await send_notice(ws, result == "ok", f"İşaretlendi ✓ · {clip}", "marker")
+                elif action in ("musicPlay", "musicPause", "musicNext", "musicPrev", "musicApprove", "musicReject"):
+                    if not await music_action(action, msg):
+                        await send_notice(ws, False, "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
+                elif action == "toggleMusicOpen":
+                    state["musicOpen"] = not state["musicOpen"]
+                    say("🎵 Şarkı istekleri açıldı! !şarkı <şarkı adı> · kaptan onaylayınca sıraya girer" if state["musicOpen"] else "🎵 Şarkı istekleri kapandı.")
+                elif action == "toggleMusicVisible":
+                    state["musicVisible"] = not state["musicVisible"]
                 elif action == "testNote":
                     text = clean(msg.get("text"), 200)
                     if text:
@@ -2652,7 +2874,7 @@ async def main():
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
         loops = {"Streamer.bot": streamer_bot, "OBS": obs_client, "LoL": lol_watcher, "Kraken": kraken_random,
-                 "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck}
+                 "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck, "Spotify": spotify_loop}
         await asyncio.gather(*(supervised(name, fn) for name, fn in loops.items()))
 
 

@@ -3,6 +3,7 @@
 .nights.jsonl
 .events.jsonl
 .test-notes.md
+.spotify.json
 backups/
 __pycache__/
 show-config.local.json

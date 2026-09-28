@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import urllib.parse
 import time
 import traceback
 import urllib.error
@@ -31,7 +32,7 @@ from websockets.exceptions import ConnectionClosed
 
 HERE = Path(__file__).resolve().parent
 OVERLAY = HERE.parent
-WS, HTTP, SB, OBS, LOL, HOOK = 18765, 18766, 18080, 14455, 12999, 19999
+WS, HTTP, SB, OBS, LOL, HOOK, SPOT = 18765, 18766, 18080, 14455, 12999, 19999, 19998
 PIN = "4321"
 
 
@@ -176,6 +177,52 @@ class HookHandler(http.server.BaseHTTPRequestHandler):
         HOOK_POSTS.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
         self.send_response(204)
         self.end_headers()
+
+
+SPOTIFY = {"queue": [], "calls": [], "now": None}
+TRACK = {"uri": "spotify:track:1", "name": "Sailing", "duration_ms": 240000, "explicit": False,
+         "artists": [{"name": "Rod Stewart"}], "album": {"images": [{"url": "http://img/64.jpg"}]}}
+
+
+class SpotifyHandler(http.server.BaseHTTPRequestHandler):
+    """Fake accounts.spotify.com + api.spotify.com/v1."""
+    def log_message(self, *a):
+        pass
+
+    def _json(self, data, code=200):
+        body = json.dumps(data).encode() if data is not None else b""
+        self.send_response(code if data is not None else 204)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        path, _, query = self.path.partition("?")
+        SPOTIFY["calls"].append(("GET", path, query))
+        if path == "/v1/search":
+            q = urllib.parse.parse_qs(query).get("q", [""])[0]
+            if "yok" in q:
+                return self._json({"tracks": {"items": []}})
+            track = {**TRACK, "uri": f"spotify:track:{abs(hash(q)) % 10000}", "name": q.title(), "explicit": "sert" in q}
+            return self._json({"tracks": {"items": [track]}})
+        if path == "/v1/me/player/currently-playing":
+            now = SPOTIFY["now"]
+            return self._json({"is_playing": True, "item": now} if now else None)
+        self._json({}, 404)
+
+    def do_POST(self):
+        path, _, query = self.path.partition("?")
+        length = int(self.headers.get("Content-Length") or 0)
+        self.rfile.read(length)
+        SPOTIFY["calls"].append(("POST", path, query))
+        if path == "/api/token":
+            return self._json({"access_token": "fake", "expires_in": 3600})
+        if path == "/v1/me/player/queue":
+            SPOTIFY["queue"].append(urllib.parse.parse_qs(query)["uri"][0])
+            return self._json(None)
+        self._json(None)
+
+    do_PUT = do_POST
 
 
 # ---------------------------------------------------------------- harness --
@@ -605,6 +652,31 @@ async def run(sb, obs, tmp):
         await sb.chat("kick", "Veli", "!hafta")
         await p.drain()
         check("!hafta haftanın mürettebatını söyledi", any("Haftanın mürettebatı" in t or "Bu hafta henüz" in t for t in sb.said_since(n5)), str(sb.said_since(n5)))
+        n6 = len(sb.said)
+        await sb.chat("twitch", "Ali", "!şarkı sailing")
+        await p.drain()
+        check("istekler kapalıyken !şarkı listeye girmedi", not state()["musicRequests"] and any("kapalı" in t for t in sb.said_since(n6)))
+        await p.act("toggleMusicOpen")
+        await sb.chat("twitch", "Ali", "!şarkı sailing")
+        await sb.chat("kick", "Veli", "!şarkı çok sert şarkı")
+        await sb.chat("kick", "Ayse", "!şarkı yok böyle bir şey")
+        await p.drain(1)
+        reqs = state()["musicRequests"]
+        said6 = sb.said_since(n6)
+        check("!şarkı: istek onaya gitti, sert ve bulunamayan reddedildi", len(reqs) == 1 and reqs[0]["name"] == "Ali"
+              and any("fazla sert" in t for t in said6) and any("bulamadım" in t for t in said6), str(reqs) + str(said6))
+        await sb.chat("twitch", "Ali", "!şarkı başka şarkı")
+        await p.drain(1)
+        check("aynı kişi 5 dk içinde ikinci istek yapamadı", len(state()["musicRequests"]) == 1)
+        await p.act("musicApprove", id=reqs[0]["id"])
+        check("onaylanan şarkı Spotify sırasına girdi", SPOTIFY["queue"] == [reqs[0]["uri"]] and not state()["musicRequests"], str(SPOTIFY["queue"]))
+        SPOTIFY["now"] = {**TRACK, "uri": reqs[0]["uri"], "name": "Sailing"}
+        playing = await wait_until(lambda: _state_is(p, lambda s: (s.get("music") or {}).get("by", {}) and s["music"]["by"]["name"] == "Ali"), 6)
+        check("çalan şarkı ekranda, isteyen adıyla, sohbete duyuruldu", playing and any("Şimdi çalıyor: Sailing" in t for t in sb.said_since(n6)),
+              str(state().get("music")))
+        await p.act("musicNext")
+        check("kumandadan ⏭ Spotify'a gitti", any(c[:2] == ("POST", "/v1/me/player/next") for c in SPOTIFY["calls"]))
+        await p.act("toggleMusicOpen")
         check("!lurk bir kez cevaplandı, !hedef çalıştı", sum("ambara indi" in t for t in said2) == 1 and any("🎯" in t for t in said2), str(said2))
         n3 = len(sb.said)
         await p.act("shoutout", platform="kick", name="Veli")
@@ -732,14 +804,18 @@ async def main():
     config["tips"] = {"everyMinutes": 999}
     config["chatLinks"] = {"!site": "⚓ https://ertugrul-tug.github.io/stream-library/", "!discord": ""}  # "" = unset link stays silent
     (tmp / "show-config.json").write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
-    (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/"}), encoding="utf-8")
+    (tmp / "show-config.local.json").write_text(json.dumps({"pin": PIN, "discordWebhook": f"http://127.0.0.1:{HOOK}/",
+                                                            "spotify": {"clientId": "test"}}), encoding="utf-8")
+    (tmp / ".spotify.json").write_text(json.dumps({"refresh_token": "fake-refresh"}), encoding="utf-8")
     (tmp / ".crew.json").write_text(json.dumps({"twitch:zengin": {"platform": "twitch", "name": "Zengin", "points": 0, "streams": 1,
                                                                    "show": None, "last": 0, "loot": 500}}), encoding="utf-8")
     (tmp / ".show-state.json").mkdir()  # the state file can never be written: the whole show must run anyway
     sb, obs = FakeStreamerBot(), FakeOBS()
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
-    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_CONFIG": str(tmp / "show-config.json"),
+    serve_http(SPOT, SpotifyHandler)
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1",
+           "QEDY_SPOTIFY_ACCOUNTS": f"http://127.0.0.1:{SPOT}", "QEDY_SPOTIFY_API": f"http://127.0.0.1:{SPOT}/v1", "QEDY_CONFIG": str(tmp / "show-config.json"),
            "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
     log = open(tmp / "bridge.log", "w", encoding="utf-8")
     async with serve(sb.handler, "127.0.0.1", SB), serve(obs.handler, "127.0.0.1", OBS):

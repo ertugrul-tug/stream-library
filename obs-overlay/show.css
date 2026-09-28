@@ -80,8 +80,8 @@
 .chat-scene .show-events{left:5%;top:7.5%;transform:none;width:38%}
 .show-events .show-card{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:100%}
 .show-events .show-rankup{width:auto;min-width:45%}
-.show-hype,.show-raid,.show-kraken,.show-race,.show-fish,.show-queue,.show-tug{display:none}
-.show-hype.active,.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active,.show-tug.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
+.show-music,.show-hype,.show-raid,.show-kraken,.show-race,.show-fish,.show-queue,.show-tug{display:none}
+.show-music.active,.show-hype.active,.show-raid.active,.show-kraken.active,.show-race.active,.show-fish.active,.show-queue.active,.show-tug.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
 .show-kraken{border-color:rgba(255,61,127,.75);box-shadow:0 1vw 3vw rgba(0,0,0,.35),0 0 2vw rgba(255,61,127,.35)}
 .show-kraken .show-label{color:#ff7aa6}
 .show-kraken .kr-body{display:flex;align-items:center;gap:1vw}
@@ -195,3 +195,10 @@
 .show-guest{display:none;flex:none;padding:.55vw .9vw;border-bottom:1px solid rgba(255,206,84,.35);background:linear-gradient(90deg,rgba(255,206,84,.18),rgba(255,206,84,.04))}.show-guest.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
 .show-guest .guest-label{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.55vw;font-weight:700;letter-spacing:.16em;color:#ffce54}.show-guest .guest-name{margin-top:.15vw;font-family:var(--font-display,'Unbounded',sans-serif);font-size:.95vw;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-panel .show-guest{padding:.8vw 1.2vw}.chat-panel .show-guest .guest-label{font-size:.7vw}.chat-panel .show-guest .guest-name{font-size:1.25vw}
+.show-events .show-music{border-color:rgba(30,215,96,.75);padding:.6vw .8vw}
+.show-music .show-label{color:#7ef0a8}
+.show-music .music-row{display:flex;align-items:center;gap:.6vw}
+.show-music img{width:2.6vw;height:2.6vw;border-radius:.3vw;object-fit:cover;flex:none}
+.show-music .music-text{min-width:0}
+.show-music .music-title{font-family:var(--font-display,'Unbounded',sans-serif);font-size:.85vw;font-weight:800;color:#f2fff6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.show-music .music-artist{font-size:.7vw;color:#b9d8c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
