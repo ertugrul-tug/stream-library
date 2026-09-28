@@ -53,7 +53,7 @@
   "weekly": {
     "days": [0, 1, 2, 3, 4],
     "time": "20:30",
-    "themes": {"0": "Serbest", "1": "Hikayeli · Baldur's Gate 3", "2": "Competitive", "3": "Survival", "4": "Toplu Ekip"}
+    "themes": {"0": "Serbest", "1": "Hikayeli · Baldur's Gate 3", "2": "Competitive · League of Legends", "3": "Survival · Minecraft", "4": "Toplu Ekip · LoL özel oda"}
   },
 
   "schedule": {
