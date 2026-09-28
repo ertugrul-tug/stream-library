@@ -235,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -264,6 +264,7 @@ def snapshot():
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"], "pot": sum((p.get("stakes") or {}).values())}
     result["summaryText"] = summary_text()
     result["activeChatters"] = recent_chatters()
+    result["broadcasters"] = sorted(BROADCASTERS)  # the on-screen chat boxes hide the captain's own messages
     result["nextShow"] = schedule_text(next_only=True)
     result["crew"] = [{**c, "rank": crew_rank(c["platform"], c["name"]),
                        "streak": (crew_db.get(f"{c['platform']}:{c['name'].casefold()}") or {}).get("streak", 0)} for c in state["crew"]]
@@ -405,7 +406,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -916,7 +917,7 @@ async def streamer_bot():
                                 state["rankUp"] = {"platform": platform, "name": name, "rank": new_rank,
                                                    "at": int(time.time() * 1000)}
                                 say(f"🎖️ {name} rütbe atladı: artık {new_rank}!", platform)
-                            if not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
+                            if name.casefold() not in BROADCASTERS and not any(x["platform"] == platform and x["name"].casefold() == name.casefold() for x in state["crew"]):
                                 state["crew"] = (state["crew"] + [{"platform": platform, "name": name}])[-24:]
                             if "🔥" in message and _suggestion and time.time() < _suggestion["until"] and name.casefold() not in BROADCASTERS:
                                 _suggestion["fans"].add(f"{platform}:{name.casefold()}")
@@ -2023,6 +2024,9 @@ async def spotify_refresh():
     item = data.get("item") if isinstance(data, dict) else None
     now = {"linked": True, "playing": bool(data.get("is_playing")) and bool(item), **(track_info(item) if item else {"title": ""})}
     now["by"] = _requested.get(now.get("uri"))
+    upcoming = await spotify("GET", "/me/player/queue")
+    now["next"] = [{**{k: v for k, v in track_info(t).items() if k in ("title", "artist")}, "by": (_requested.get(t.get("uri")) or {}).get("name")}
+                   for t in ((upcoming or {}).get("queue") or [])[:5] if t]
     old = state.get("music") or {}
     if now.get("uri") and now["uri"] != old.get("uri") and now["by"] and now["playing"]:
         say(f"🎵 Şimdi çalıyor: {now['title']} — {now['artist']} · istek: {now['by']['name']}")
@@ -2081,20 +2085,40 @@ async def song_request(platform, name, query):
         say(f"🎵 {t['title']} zaten listede.", platform)
         return
     cooldown(key, 300)
-    state["musicRequests"].append({**t, "id": f"s{time.time()}", "platform": platform, "name": name})
-    say(f"🎵 {t['title']} — {t['artist']} kaptanın onayına gitti, @{name}!", platform)
+    req = {**t, "id": f"s{time.time()}", "platform": platform, "name": name}
+    if state["musicAuto"]:
+        if await queue_track(req):
+            say(f"✅ {t['title']} — {t['artist']} sıraya girdi, @{name}!", platform)
+        else:
+            _cmd_last.pop(key, None)
+            say(f"🎵 @{name} şu an sıraya eklenemedi, birazdan tekrar dene.", platform)
+    else:
+        state["musicRequests"].append(req)
+        say(f"🎵 {t['title']} — {t['artist']} kaptanın onayına gitti, @{name}!", platform)
     await publish()
+
+
+async def queue_track(req):
+    if await spotify("POST", "/me/player/queue", {"uri": req["uri"]}) is None:
+        return False
+    if req.get("name"):
+        _requested[req["uri"]] = {"name": req["name"], "platform": req["platform"]}
+    await spotify_refresh()
+    return True
 
 
 async def music_action(action, msg):
     if action == "musicApprove":
         req = next((r for r in state["musicRequests"] if r["id"] == msg.get("id")), None)
-        if req and await spotify("POST", "/me/player/queue", {"uri": req["uri"]}) is not None:
+        if req and await queue_track(req):
             state["musicRequests"].remove(req)
-            _requested[req["uri"]] = {"name": req["name"], "platform": req["platform"]}
             say(f"✅ {req['title']} sıraya girdi · istek: {req['name']}", req["platform"])
             return True
         return False
+    if action == "musicAdd":  # the captain's own pick from the panel: no filters, straight into the queue
+        found = await spotify("GET", "/search", {"q": clean(msg.get("query"), 100), "type": "track", "limit": 1})
+        items = ((found or {}).get("tracks") or {}).get("items") or []
+        return bool(items) and await queue_track(track_info(items[0]))
     if action == "musicReject":
         state["musicRequests"] = [r for r in state["musicRequests"] if r["id"] != msg.get("id")]
         return True
@@ -2723,9 +2747,15 @@ async def client(ws):
                     result = await sb_do_action("QedyClip", {"note": note or "Anı"})
                     clip = sb_action_notice("QedyClip", result, "klip isteği Streamer.bot'a gitti")
                     await send_notice(ws, result == "ok", f"İşaretlendi ✓ · {clip}", "marker")
-                elif action in ("musicPlay", "musicPause", "musicNext", "musicPrev", "musicApprove", "musicReject"):
-                    if not await music_action(action, msg):
-                        await send_notice(ws, False, "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
+                elif action in ("musicPlay", "musicPause", "musicNext", "musicPrev", "musicApprove", "musicReject", "musicAdd"):
+                    ok = await music_action(action, msg)
+                    if not ok:
+                        await send_notice(ws, False, "Şarkı bulunamadı ya da Spotify cevap vermedi · Spotify bir cihazda açık mı?"
+                                          if action == "musicAdd" else "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
+                    elif action == "musicAdd":
+                        await send_notice(ws, True, "🎵 Sıraya eklendi")
+                elif action == "toggleMusicAuto":
+                    state["musicAuto"] = not state["musicAuto"]
                 elif action == "toggleMusicOpen":
                     state["musicOpen"] = not state["musicOpen"]
                     say("🎵 Şarkı istekleri açıldı! !şarkı <şarkı adı> · kaptan onaylayınca sıraya girer" if state["musicOpen"] else "🎵 Şarkı istekleri kapandı.")

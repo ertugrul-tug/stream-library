@@ -74,6 +74,7 @@ html,body{background:transparent}
     if (payload?.event?.type !== 'ChatMessage') return;
     const platform=String(payload.event.source || '').toLowerCase();
     const data=payload.data || {};
+    if (window.qedyHidden?.has(String(data.user?.name || data.user?.login || '').toLowerCase())) return;
     add(platform,data.user?.name || data.user?.login,data.text,qedyEmotes.parse(data));
   }
   function connect() {

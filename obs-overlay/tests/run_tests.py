@@ -205,6 +205,8 @@ class SpotifyHandler(http.server.BaseHTTPRequestHandler):
                 return self._json({"tracks": {"items": []}})
             track = {**TRACK, "uri": f"spotify:track:{abs(hash(q)) % 10000}", "name": q.title(), "explicit": "sert" in q}
             return self._json({"tracks": {"items": [track]}})
+        if path == "/v1/me/player/queue":
+            return self._json({"queue": [{**TRACK, "uri": u, "name": "Queued"} for u in SPOTIFY["queue"]]})
         if path == "/v1/me/player/currently-playing":
             now = SPOTIFY["now"]
             return self._json({"is_playing": True, "item": now} if now else None)
@@ -641,6 +643,10 @@ async def run(sb, obs, tmp):
         await p.act("testNote", text="Kraken çok kolaydı")
         check("canlı test notu kaydedildi", any(x["text"] == "Kraken çok kolaydı" for x in state().get("testNotes") or [])
               and "Kraken çok kolaydı" in (tmp / ".test-notes.md").read_text(encoding="utf-8"))
+        await sb.chat("twitch", "KaptanQedy", "selam millet")
+        await p.drain()
+        check("yayıncı hesabı ekrandaki sohbetten ve radardan gizleniyor", "kaptanqedy" in (state().get("broadcasters") or [])
+              and not any(c["name"].casefold() == "kaptanqedy" for c in state()["crew"]), str(state().get("broadcasters")))
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
         n5 = len(sb.said)
         await sb.chat("twitch", "Ali", "!program")
@@ -674,6 +680,14 @@ async def run(sb, obs, tmp):
         playing = await wait_until(lambda: _state_is(p, lambda s: (s.get("music") or {}).get("by", {}) and s["music"]["by"]["name"] == "Ali"), 6)
         check("çalan şarkı ekranda, isteyen adıyla, sohbete duyuruldu", playing and any("Şimdi çalıyor: Sailing" in t for t in sb.said_since(n6)),
               str(state().get("music")))
+        check("sıradaki şarkılar kumandaya geldi", len((state().get("music") or {}).get("next") or []) == 1, str((state().get("music") or {}).get("next")))
+        await p.act("toggleMusicAuto")
+        await sb.chat("kick", "Veli", "!şarkı wellerman")
+        await p.drain(1)
+        check("otomatik onayda istek doğrudan sıraya girdi", len(SPOTIFY["queue"]) == 2 and not state()["musicRequests"], str(SPOTIFY["queue"]))
+        await p.act("toggleMusicAuto")
+        await p.act("musicAdd", query="kaptanin sarkisi")
+        check("kumandadan yazılan şarkı sıraya eklendi", len(SPOTIFY["queue"]) == 3, str(SPOTIFY["queue"]))
         await p.act("musicNext")
         check("kumandadan ⏭ Spotify'a gitti", any(c[:2] == ("POST", "/v1/me/player/next") for c in SPOTIFY["calls"]))
         await p.act("toggleMusicOpen")

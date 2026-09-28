@@ -202,3 +202,4 @@
 .show-music .music-text{min-width:0}
 .show-music .music-title{font-family:var(--font-display,'Unbounded',sans-serif);font-size:.85vw;font-weight:800;color:#f2fff6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .show-music .music-artist{font-size:.7vw;color:#b9d8c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.show-music .music-next{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.55vw;letter-spacing:.05em;color:#7ef0a8;margin-top:.15vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

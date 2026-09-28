@@ -196,6 +196,7 @@
     const data = payload?.data || {};
     if (!colors[source]) return;
     if (type === 'ChatMessage') {
+      if (window.qedyHidden?.has(String(data.user?.name || data.user?.login || '').toLowerCase())) return;
       push({type:'chat', platform:source, name:data.user?.name || data.user?.login, text:data.text, parts:qedyEmotes.parse(data)});
     } else if (type === 'Follow') {
       const follower = source === 'twitch' ? data.targetUser : data.user;
