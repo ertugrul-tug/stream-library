@@ -664,6 +664,23 @@ async def run(sb, obs, tmp):
         await sb.chat("kick", "Veli", "!tahmin M")
         await p.drain()
         check("tahmin kapalıyken !tahmin yazana cevap verildi", state()["prediction"]["status"] != "open" and any("tahmin" in t and "Veli" in t for t in sb.said_since(n7)), str(sb.said_since(n7)))
+        n8 = len(sb.said)
+        await p.act("wheelSpin")
+        spun = await wait_until(lambda: _state_is(p, lambda s: (s.get("wheel") or {}).get("status") == "done"), 6)
+        wh = state().get("wheel") or {}
+        check("kütüphane çarkı döndü, kazanan seçenekler arasında ve duyuruldu", spun and wh.get("winner") in wh.get("options", [])
+              and len(wh.get("options", [])) == 12 and state().get("wheelLast") == wh.get("winner")
+              and any("Çark durdu" in t and wh.get("winner", "?") in t for t in sb.said_since(n8)), str(wh)[:200])
+        calls_before = len([c for c in sb.calls if c[0] == "QedyStreamInfo"])
+        before = {k: state()[k] for k in ("game", "returnMessage", "routes")}
+        await p.act("wheelPlay", updateInfo=True)
+        info = [c for c in sb.calls if c[0] == "QedyStreamInfo"][calls_before:]
+        check("çarkın seçimi oynanıyor: oyun ve Twitch/Kick kategorisi güncellendi", state()["game"] == wh.get("winner")
+              and len(info) == 1 and info[0][1].get("game") == wh.get("winner"), str(info))
+        await p.act("wheelClose")
+        check("çark ekrandan kaldırıldı", state().get("wheel") is None)
+        await p.act("setDetails", game=before["game"], returnMessage=before["returnMessage"])  # later checks expect the show's own game
+        await p.act("setRoutes", routes=before["routes"])
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
         n5 = len(sb.said)
         await sb.chat("twitch", "Ali", "!program")
@@ -852,7 +869,7 @@ async def main():
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
     serve_http(SPOT, SpotifyHandler)
-    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1", "QEDY_SB_LOGS": str(tmp / "sblogs"), "QEDY_SB_LOG_SEC": "1",
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1", "QEDY_WHEEL_MS": "600", "QEDY_SB_LOGS": str(tmp / "sblogs"), "QEDY_SB_LOG_SEC": "1",
            "QEDY_SPOTIFY_ACCOUNTS": f"http://127.0.0.1:{SPOT}", "QEDY_SPOTIFY_API": f"http://127.0.0.1:{SPOT}/v1", "QEDY_CONFIG": str(tmp / "show-config.json"),
            "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
     log = open(tmp / "bridge.log", "w", encoding="utf-8")

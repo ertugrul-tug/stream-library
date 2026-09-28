@@ -235,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True, "kickChat": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True, "kickChat": None, "wheel": None, "wheelLast": None,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -406,7 +406,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit", "kickChat")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit", "kickChat", "wheelLast")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -422,7 +422,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !program !şarkı · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !çark !program !şarkı · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -952,6 +952,9 @@ async def streamer_bot():
                                 say(uptime_text(), platform)
                             elif command in ("!program", "!takvim") and cooldown("schedule", 30):
                                 say(schedule_text(), platform)
+                            elif command in ("!çark", "!cark") and cooldown("wheel", 20):
+                                last = state.get("wheelLast")
+                                say(f"🎡 Çarkın son seçimi: {last}" if last else "🎡 Kütüphane çarkı bu akşam henüz dönmedi · kaptan çevirince burada!", platform)
                             elif command in ("!öner", "!oner") and cooldown("suggest", 30):
                                 say(suggest_game(), platform)
                             elif command == "!hedef" and cooldown("goal", 30):
@@ -1870,14 +1873,63 @@ async def suggestion_tally(name):
     await publish()
 
 
-def suggest_game():
-    """!öner: a random pick from the streamer's own game library (steam-library.json)."""
+# ------------------------------------------------------------ library wheel --
+# "Kütüphane çarkı": 12 games from the captain's own library (chat's 🔥 picks guaranteed a slot) spin
+# on screen; the winner is played next. The bridge picks the winner up front, so every screen lands on it.
+WHEEL_MS = int(os.environ.get("QEDY_WHEEL_MS") or 7000)
+NOT_GAMES = ("soundtrack", "dedicated server", "sdk", "overlay", "wallpaper", "demo", "playtest", "benchmark",
+             "editor", "tool", "deathmatch", "multiplayer", "vr edition", "artbook", "bonus content")
+
+
+def load_library():
     if not _library:
         try:
             _library.extend(g for g in json.loads((ROOT / "steam-library.json").read_text(encoding="utf-8")) if g.get("name"))
         except (OSError, ValueError):
             pass
-    picks = [g for g in _library if g["name"].casefold() != str(state.get("game") or "").casefold()]
+    return _library
+
+
+def steam_link(name):
+    game = next((g for g in load_library() if g["name"] == name), {})
+    return f"https://store.steampowered.com/app/{game['appid']}" if game.get("appid") else ""
+
+
+async def wheel_spin():
+    wheel = state.get("wheel") or {}
+    if wheel.get("status") == "spinning":
+        return False
+    playing = str(state.get("game") or "").casefold()
+    wish = [w["name"] for w in state["wishlist"] if w["name"].casefold() != playing][:4]
+    pool = sorted({g["name"] for g in load_library() if g["name"] not in wish and g["name"].casefold() != playing
+                   and not any(word in g["name"].casefold() for word in NOT_GAMES)})
+    if len(pool) + len(wish) < 2:
+        return False
+    options = wish + random.sample(pool, min(len(pool), 12 - len(wish)))
+    random.shuffle(options)
+    index = random.randrange(len(options))
+    wid = f"w{time.time()}"
+    state["wheel"] = {"id": wid, "status": "spinning", "options": options, "index": index, "winner": options[index],
+                      "wish": wish, "at": int(time.time() * 1000), "durationMs": WHEEL_MS}
+    say(f"🎡 Kütüphane çarkı dönüyor! {len(load_library())} oyunluk kütüphaneden sıradaki oyun geliyor...")
+    await publish()
+    await asyncio.sleep(WHEEL_MS / 1000)
+    if (state.get("wheel") or {}).get("id") != wid:
+        return True
+    winner = options[index]
+    state["wheel"]["status"] = "done"
+    state["wheelLast"] = winner
+    link = steam_link(winner)
+    say(f"🎡 Çark durdu: {winner}!" + (" 🔥 Sohbetin isteğiydi!" if winner in wish else "") + (f" · {link}" if link else ""))
+    auto_marker(f"🎡 Çark: {winner}")
+    await publish()
+    _clear_later("wheel", wid, 30)
+    return True
+
+
+def suggest_game():
+    """!öner: a random pick from the streamer's own game library (steam-library.json)."""
+    picks = [g for g in load_library() if g["name"].casefold() != str(state.get("game") or "").casefold()]
     if not picks:
         return "🎲 Kütüphane şu an açılamadı, bir dahaki sefere!"
     game = random.choice(picks)
@@ -2801,6 +2853,28 @@ async def client(ws):
                                           if action == "musicAdd" else "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
                     elif action == "musicAdd":
                         await send_notice(ws, True, "🎵 Sıraya eklendi")
+                elif action == "wheelSpin":
+                    if (state.get("wheel") or {}).get("status") == "spinning":
+                        continue
+                    _spawn(wheel_spin())
+                    continue
+                elif action == "wheelClose":
+                    state["wheel"] = None
+                elif action == "wheelPlay":
+                    game = state.get("wheelLast")
+                    if not game:
+                        continue
+                    state["game"] = game
+                    preset = (CONFIG.get("routePresets") or {}).get(game)
+                    if preset:
+                        state["routes"] = [clean(x, 65) for x in preset[:3]]
+                    state["title"] = f"🎡 Kütüphane Çarkı: {game} · Kaptan Qedy"[:140]
+                    say(f"🎮 Çarkın seçimi açılıyor: {game}! İlk izlenimler geliyor ⚓")
+                    await publish()
+                    if msg.get("updateInfo"):
+                        result = await sb_do_action("QedyStreamInfo", {"title": state["title"], "game": game})
+                        await send_notice(ws, result == "ok", sb_action_notice("QedyStreamInfo", result, f"{game} · başlık/kategori güncellendi ✓"))
+                    continue
                 elif action == "toggleMusicExplicit":
                     state["musicExplicit"] = not state["musicExplicit"]
                 elif action == "toggleMusicAuto":

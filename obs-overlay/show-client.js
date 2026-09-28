@@ -416,6 +416,50 @@
       tone(60, 0.9, { type: 'sawtooth', to: 30, gain: 0.2, lowpass: 240 }); tone(95, 0.5, { type: 'square', to: 40, gain: 0.08, lowpass: 400 });
     }
   }
+  // Kütüphane çarkı: the bridge already chose the winner; every screen spins to the same slice.
+  let wheelEl = null, wheelId = null;
+  const WHEEL_COLORS = ['#1b3a5c', '#3a1f5c', '#5c1f3a', '#1f4f3a', '#5c4a1f', '#1f3f5c'];
+  function buildWheel(w) {
+    const n = w.options.length, seg = 360 / n, box = document.createElement('div'); box.className = 'wheel-box';
+    div(box, 'wheel-title', '🎡 KÜTÜPHANE ÇARKI');
+    const stage = div(box, 'wheel-stage', ''); div(stage, 'wheel-pointer', '');
+    const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '-100 -100 200 200'); svg.classList.add('wheel-svg');
+    const pt = (deg, r) => [r * Math.sin(deg * Math.PI / 180), -r * Math.cos(deg * Math.PI / 180)];
+    w.options.forEach((name, i) => {
+      const a0 = i * seg, a1 = a0 + seg, [x0, y0] = pt(a0, 96), [x1, y1] = pt(a1, 96);
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', `M0 0 L${x0} ${y0} A96 96 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z`);
+      path.setAttribute('fill', WHEEL_COLORS[i % WHEEL_COLORS.length]); path.setAttribute('stroke', 'rgba(255,255,255,.25)'); path.setAttribute('stroke-width', '.6');
+      const text = document.createElementNS(ns, 'text'), mid = a0 + seg / 2;
+      text.setAttribute('transform', `rotate(${mid - 90}) translate(90 0)`); text.setAttribute('text-anchor', 'end'); text.setAttribute('dominant-baseline', 'middle');
+      text.setAttribute('class', (w.wish || []).includes(name) ? 'wheel-label wish' : 'wheel-label');
+      text.textContent = ((w.wish || []).includes(name) ? '🔥 ' : '') + (name.length > 22 ? name.slice(0, 21) + '…' : name);
+      svg.append(path, text);
+    });
+    const hub = document.createElementNS(ns, 'circle'); hub.setAttribute('r', '11'); hub.setAttribute('class', 'wheel-hub'); svg.append(hub);
+    stage.append(svg);
+    div(box, 'wheel-winner', '');
+    const target = 360 * 7 - (w.index + 0.5) * seg, left = w.durationMs - (Date.now() - w.at);
+    if (left <= 150 || reduceMotion) svg.style.transform = `rotate(${target}deg)`;
+    else {
+      svg.style.transform = 'rotate(0deg)';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        svg.style.transition = `transform ${left / 1000}s cubic-bezier(.1,.75,.12,1)`; svg.style.transform = `rotate(${target}deg)`;
+      }));
+      let t = 0, gap = 60;  // ticks that slow down with the wheel
+      while (t < left - 300) { const at = t; setTimeout(() => tone(1500, 0.025, { type: 'square', gain: 0.025 }), at); t += gap; gap *= 1.09; }
+    }
+    return box;
+  }
+  function renderWheel(w) {
+    if (!w) { if (wheelEl) { wheelEl.remove(); wheelEl = null; wheelId = null; } return; }
+    if (w.id !== wheelId) { if (wheelEl) wheelEl.remove(); wheelId = w.id; wheelEl = buildWheel(w); root.append(wheelEl); }
+    const done = w.status === 'done', was = wheelEl.classList.contains('done');
+    wheelEl.classList.toggle('done', done);
+    wheelEl.querySelector('.wheel-winner').textContent = done ? ((w.wish || []).includes(w.winner) ? '🔥 ' : '') + w.winner : '';
+    if (done && !was && Date.now() - w.at < w.durationMs + 3000) { sfx.win(); confetti(); }
+  }
   function renderFish(list) {
     list = list || [];
     if (fishSeen === null) { fishSeen = new Set(list.map(x => x.id)); return; }  // don't replay old catches on page load
@@ -489,6 +533,7 @@
       if (hy) div(hc, 'hype-line', hy.status === 'ended' ? `🚂 Seviye ${hy.level}'de durdu · teşekkürler! 💜` : `🚂 Seviye ${hy.level} · abone ve bitlerle vagonları doldurun!`);
     }
     if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderPirate(s.pirate); renderTug(s.tug); renderCup(s.fishCup); renderGuess(s.guess); watchEmotes(s.chat); if (guest) { guest.classList.toggle('active', !!s.guest); guest.replaceChildren(); if (s.guest) { div(guest, 'guest-label', '🎙️ MİSAFİR KAPTAN'); div(guest, 'guest-name', s.guest); } } if (mood) { const t = tally(s.matches); mood.dataset.mood = t.last === 'W' && t.streak >= 3 ? 'sun' : t.last === 'L' && t.streak >= 2 ? 'storm' : ''; } renderRace(s.race); renderFish(s.catches); }
+    if (kind !== 'end') renderWheel(s.wheel);
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
       const list=div(crew,'crew-list','');
@@ -644,7 +689,7 @@
     }
   }
   const demo={nextShow:'Pazartesi 20:30',weekChamps:{week:'2026-W39',top:[{name:'MaviKaptan',loot:240},{name:'YesilLiman',loot:180},{name:'Denizci42',loot:95}]},nights:[{date:'2026-09-24',game:'League of Legends',chat:412,follows:9,wins:4,losses:2,king:'MaviKaptan'}],game:'Sisli Vadi',returnMessage:'5 dakika sonra tekrar güvertedeyiz',routes:['Ana göreve devam','Yan görev keşfi','Haritayı aç'],crew:[{platform:'twitch',name:'MaviKaptan',rank:'Lostromo'},{platform:'kick',name:'YesilLiman',rank:'Tayfa'},{platform:'twitch',name:'Denizci42',rank:'Miço'}],schedule:{'Açılış sohbet':'20:30','Tema bloğu':'21:00','Günlük sohbet':'23:00','Kapanış':'23:30'},rankUp:{platform:'twitch',name:'MaviKaptan',rank:'Lostromo',at:Date.now()},crewCard:location.search.includes('card')?{platform:'kick',name:'YesilLiman',rank:'Usta Gemici',loot:128,streams:7,streak:4,first:'2026-09-21',best:{emoji:'🐙',name:'Ahtapot'},at:Date.now()}:null,highlights:['İlk büyük zafer','Gizli liman bulundu'],spotlight:{platform:'twitch',name:'MaviKaptan',text:'Bu akşam rota nereye dönüyor kaptan?'},voteCounts:[8,5,3],matches:['L','W','L','W','W','W'],prediction:{status:'open',w:14,l:6},predictionHistory:[{right:9,total:12},{right:5,total:10}],stats:{twitch:{chat:143,follow:6,sub:2},kick:{chat:97,follow:4,sub:1}},lootKing:{platform:'kick',name:'YesilLiman',loot:128},firstTimers:['kick:yesilliman'],season:{name:'Eylül',top:[{name:'YesilLiman',loot:128},{name:'MaviKaptan',loot:74},{name:'Denizci42',loot:31}]},goal:{target:12,reached:false},raid:location.search.includes('raid')?{id:'raid1',platform:'twitch',name:'KorsanBey',viewers:23}:null,kraken:location.search.includes('race')?null:{id:'k1',status:'active',hp:23,max:48,endsAt:Date.now()+57000,last:['MaviKaptan −3','YesilLiman −9 💥','Denizci42 −2'],killer:null},race:location.search.includes('race')?{id:'r1',status:'race',endsAt:0,podium:['twitch:mavikaptan'],boats:[{key:'kaptan:kaptan',platform:'kaptan',name:'Kaptan',pos:64},{key:'twitch:mavikaptan',platform:'twitch',name:'MaviKaptan',pos:100},{key:'kick:yesilliman',platform:'kick',name:'YesilLiman',pos:81},{key:'twitch:denizci42',platform:'twitch',name:'Denizci42',pos:37}]}:null,catches:[{id:'f1',platform:'kick',name:'YesilLiman',item:'Altın sandık',emoji:'💰',points:60,rarity:'efsane'}]};
-  if(sample) { fishSeen=new Set(); if(location.search.includes('guest')) demo.guest='DenizKurdu'; if(location.search.includes('rain')) setTimeout(()=>emoteRain('https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/3.0'),800); if(location.search.includes('tug')) { demo.kraken=null; demo.tug={id:'t1',status:'active',endsAt:Date.now()+42000,twitch:31,kick:24,winner:null}; setInterval(()=>{ if(Math.random()<0.5) demo.tug.twitch++; else demo.tug.kick++; render({...demo}); },600); } if(location.search.includes('hype')) demo.hype={id:'h1',status:'active',level:3}; if(location.search.includes('music')) demo.music={linked:true,playing:true,title:'Sailing',artist:'Rod Stewart',art:'',by:{name:'MaviKaptan',platform:'twitch'},next:[{title:'Wellerman',artist:'Nathan Evans',by:'YesilLiman'}]}; if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e0',type:'support',name:'⭐ MaviKaptan abone oldu!',platform:'twitch',big:true},{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } if(location.search.includes('pirate')) { demo.kraken=null; const t0=Date.now(); demo.pirate={id:'p1',status:'active',hp:14,max:18,startedAt:t0,endsAt:t0+45000,shots:[],sinker:null}; let n=0; setInterval(()=>{ const pr=demo.pirate; if(pr.status!=='active') return; const hit=Math.random()<0.5; pr.shots=[...pr.shots,{id:'s'+(n++),name:['MaviKaptan','YesilLiman','Denizci42'][n%3],platform:'twitch',hit}].slice(-8); if(hit) pr.hp--; if(pr.hp<=0) Object.assign(pr,{status:'sunk',sinker:'MaviKaptan',top:'YesilLiman'}); render({...demo}); },700); } render(demo); } else render({routes:[],crew:[],stats:{}});
+  if(sample) { fishSeen=new Set(); if(location.search.includes('guest')) demo.guest='DenizKurdu'; if(location.search.includes('rain')) setTimeout(()=>emoteRain('https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/3.0'),800); if(location.search.includes('tug')) { demo.kraken=null; demo.tug={id:'t1',status:'active',endsAt:Date.now()+42000,twitch:31,kick:24,winner:null}; setInterval(()=>{ if(Math.random()<0.5) demo.tug.twitch++; else demo.tug.kick++; render({...demo}); },600); } if(location.search.includes('hype')) demo.hype={id:'h1',status:'active',level:3}; if(location.search.includes('wheel')) demo.wheel={id:'w1',status:'spinning',options:['Detroit: Become Human','Hades','Portal 2','Stray','Outer Wilds','Cyberpunk 2077','The Wolf Among Us','Frostpunk','Disco Elysium','Resident Evil Village','Undertale','Metro Exodus'],index:6,winner:'The Wolf Among Us',wish:['Stray'],at:Date.now(),durationMs:7000}; if(location.search.includes('wheel')) setTimeout(()=>render({...demo,wheel:{...demo.wheel,status:'done'}}),7200); if(location.search.includes('music')) demo.music={linked:true,playing:true,title:'Sailing',artist:'Rod Stewart',art:'',by:{name:'MaviKaptan',platform:'twitch'},next:[{title:'Wellerman',artist:'Nathan Evans',by:'YesilLiman'}]}; if(location.search.includes('fx')) { fxSeen=new Set(); demo.effects=[{id:'e0',type:'support',name:'⭐ MaviKaptan abone oldu!',platform:'twitch',big:true},{id:'e1',type:'top',name:'MaviKaptan',platform:'twitch'},{id:'e2',type:'konfeti',name:'YesilLiman',platform:'kick'},{id:'e3',type:'martı',name:'Denizci42',platform:'twitch'}]; } if(location.search.includes('pirate')) { demo.kraken=null; const t0=Date.now(); demo.pirate={id:'p1',status:'active',hp:14,max:18,startedAt:t0,endsAt:t0+45000,shots:[],sinker:null}; let n=0; setInterval(()=>{ const pr=demo.pirate; if(pr.status!=='active') return; const hit=Math.random()<0.5; pr.shots=[...pr.shots,{id:'s'+(n++),name:['MaviKaptan','YesilLiman','Denizci42'][n%3],platform:'twitch',hit}].slice(-8); if(hit) pr.hp--; if(pr.hp<=0) Object.assign(pr,{status:'sunk',sinker:'MaviKaptan',top:'YesilLiman'}); render({...demo}); },700); } render(demo); } else render({routes:[],crew:[],stats:{}});
   function connect() {
     let ws;
     try { ws=new WebSocket('ws://127.0.0.1:8765/'); } catch(_) { setTimeout(connect,3000); return; }
