@@ -97,6 +97,19 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - [ ] Kumandadan 📊 yayın özetini Discord'a gönder
 - [ ] `obs-overlay/.events.jsonl`'a bak (ya da Claude'a baktır): baskın/Hype Train/reklam/takip/abone olaylarının gerçek alan adları köprünün okuduklarıyla aynı mı
 
+## Sıradaki fikirler (28 Eylül beyin fırtınası — canlı testten sonra)
+
+Kaptan seçti; gerçek sohbet verisi gelince ayarları ona göre yapılacak.
+
+- [ ] **⛵ Gemi yükseltme:** sohbetin ortak ganimeti tek bir gemiye akar (sal → kayık → yelkenli → yat …); seviye atlayınca ekranda kutlama, gemi yayın sahnelerinde görünür. Ganimet harcamanın ortak hedefi.
+- [ ] **🐙 Haftalık boss (Kraken Kralı):** çok canlı, 3–4 yayına yayılan dövüş; kalan can yayınlar arasında saklanır, bitiren yayında büyük ödül.
+- [ ] **📱 Sabah Reel'i (Seyir Defteri 60 sn):** `make-clips.py --reel` → gecenin en iyi 3 işaretini tek dikey videoda birleştir + hazır açıklama/hashtag metni.
+- [ ] **📼 Haftalık özet (YouTube):** `make-clips.py --week` → haftanın işaretlerinden 3–4 dk yatay derleme + bölüm listesi; Pazar yüklemesi.
+- [ ] **🏷️ Klipler seri adıyla:** işaret notlarına göre sabit seri adları ("Kraken Düştü", "Efsane Av", "Korsan Battı") dosya adında ve açıklamada.
+- [ ] **💬 Discord rol eşitleme:** yayındaki rütbe = Discord rolü (Discord botu gerekir; webhook yetmez).
+- [ ] **🏛️ Şöhret duvarı (sitede):** ay sonu sezon ilk 3'ü siteye; ev bilgisayarından `crew` verisini dışa aktaran küçük script + push.
+- [ ] **⚔️ Mürettebat vs Kaptan gecesi:** ayda bir LoL özel oda; `!oyna` sırasından takım kurma, sonuç ekranda.
+
 ## Açık maddeler
 
 - [ ] **Canlı test** ve **Kick bio** — Pazartesi kontrol listesinde
