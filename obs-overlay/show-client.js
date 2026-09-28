@@ -142,19 +142,25 @@
     line.textContent = k.status === 'active' ? `!saldır yaz · ${secsLeft(k.endsAt)} sn · ${k.hp}/${k.max} can`
       : k.status === 'won' ? `Son vuruş: ${k.killer} · saldıran herkese ganimet` : 'Bir dahaki sefere daha sert vurun!';
   }
-  // Pirate ship: the ship crosses the card while each !ateş arcs a cannonball at it (💥 hit / 💦 miss).
-  let pirateState = null, pirateId = null, pirateSeen = new Set(), pirateBalls = [], pirateFx = [], pirateLoop = false, pirateEndAt = 0;
+  // Pirate ship: on the game and chat scenes our waves rise from the bottom of the screen, the ship sails
+  // across them and each !ateş arcs a cannonball from the camera corner (💥 hit / 💦 miss). The card keeps the numbers.
+  let pirateState = null, pirateId = null, pirateSeen = new Set(), pirateBalls = [], pirateFx = [], pirateLoop = false, pirateEndAt = 0, pirateDownAt = 0;
+  const pirateSea = games && (kind === 'overlay' || kind === 'chat') ? Object.assign(document.createElement('canvas'), { className: 'pirate-sea' }) : null;
+  if (pirateSea) root.append(pirateSea);
   function renderPirate(p) {
     const c = games.pirate;
     c.classList.toggle('active', !!p);
     pirateState = p;
+    if (pirateSea) {
+      if (p && !pirateSea.classList.contains('up')) { pirateSea.classList.add('up'); if (!pirateLoop) { pirateLoop = true; requestAnimationFrame(drawPirate); } }
+      if (!p && pirateSea.classList.contains('up')) { pirateSea.classList.remove('up'); pirateDownAt = performance.now(); }
+    }
     if (!p) { pirateId = null; return; }
     if (p.id !== pirateId) {
       pirateId = p.id; pirateBalls = []; pirateFx = []; pirateEndAt = 0;
       pirateSeen = new Set((p.shots || []).map(x => x.id));
       c.querySelectorAll('.pr-body').forEach(n => n.remove());
       const body = div(c, 'pr-body', '');
-      body.append(Object.assign(document.createElement('canvas'), { className: 'pr-sea' }));
       div(body, 'kr-title', ''); div(body, 'kr-bar', '').append(document.createElement('i')); div(body, 'kr-line', ''); div(body, 'kr-hits', '');
       if (p.status === 'active') sfx.krakenStart();
     }
@@ -165,7 +171,6 @@
     c.querySelector('.kr-bar i').style.width = (100 * Math.max(0, p.hp) / p.max) + '%';
     c.querySelector('.kr-hits').textContent = (p.shots || []).slice(-4).reverse().map(x => `${x.name} ${x.hit ? '💥' : '💦'}`).join('   ·   ');
     tickPirate();
-    if (!pirateLoop) { pirateLoop = true; requestAnimationFrame(drawPirate); }
   }
   function tickPirate() {
     const p = pirateState, line = games && games.pirate.querySelector('.kr-line');
@@ -173,27 +178,43 @@
     line.textContent = p.status === 'active' ? `!ateş yaz · ${secsLeft(p.endsAt)} sn · ${Math.max(0, p.hp)}/${p.max} delik kaldı`
       : p.status === 'sunk' ? `Son top: ${p.sinker} · en iyi topçu: ${p.top}` : 'Toplar daha hızlı ateşlenmeli!';
   }
+  // Same three wave layers as sea.js (start/break/end screens), so the pirate sea looks like ours.
+  const PIRATE_WAVES = [
+    { yR: .40, amp: .10, freq: .012, phase: 0.0, spd: .017, a: .22 },
+    { yR: .58, amp: .075, freq: .016, phase: 2.1, spd: .013, a: .16 },
+    { yR: .76, amp: .055, freq: .010, phase: 4.2, spd: .010, a: .11 },
+  ];
+  let seaFrame = 0, seaRgb = '';
   function drawPirate(now) {
-    const p = pirateState, cv = games.pirate.querySelector('.pr-sea');
-    if (!p || !cv) { pirateLoop = false; return; }
+    const p = pirateState, cv = pirateSea;
+    if (!cv || (!p && now - pirateDownAt > 5000)) { pirateLoop = false; return; }  // keep drawing while the sea sinks away
     const W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight, ctx = cv.getContext('2d');
-    const t = now / 1000, wave = x => H * 0.72 + Math.sin(x * 0.03 + t * 2) * H * 0.04;
-    ctx.fillStyle = '#1f6fa3'; ctx.beginPath(); ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 6) ctx.lineTo(x, wave(x));
-    ctx.lineTo(W, H); ctx.fill();
+    if (!seaRgb) { const v = getComputedStyle(root).getPropertyValue('--motion-accent').trim(); seaRgb = (/^#[0-9a-f]{6}$/i.test(v) ? v : '#22aef0').slice(1).match(/../g).map(h => parseInt(h, 16)).join(','); }
+    const rgb = seaRgb, t = seaFrame++, wy = (w, x) => w.yR * H + Math.sin(x * w.freq + t * w.spd + w.phase) * w.amp * H
+      + Math.sin(x * w.freq * 2.4 + t * w.spd * 1.6 + w.phase) * w.amp * H * .3;
+    PIRATE_WAVES.forEach(w => {
+      ctx.beginPath(); ctx.moveTo(0, wy(w, 0));
+      for (let x = 0; x <= W; x += 4) ctx.lineTo(x, wy(w, x));
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+      ctx.fillStyle = `rgba(${rgb},${w.a})`; ctx.fill();
+      ctx.strokeStyle = `rgba(${rgb},.32)`; ctx.lineWidth = 1.1; ctx.stroke();
+    });
+    if (!p) { requestAnimationFrame(drawPirate); return; }
+    const wave = x => wy(PIRATE_WAVES[1], x);
     const span = Math.max(1, p.endsAt - p.startedAt), prog = Math.min(1, (Date.now() - p.startedAt) / span);
     const after = pirateEndAt ? (now - pirateEndAt) / 1000 : 0;
-    const sx = W * (0.35 + 0.55 * prog) + (p.status === 'escaped' ? after * W * 0.4 : 0), sy = wave(sx);
-    const k = H / 80, sink = p.status === 'sunk' ? Math.min(1, after / 2) : 0;
+    const sx = W * (0.25 + 0.6 * prog) + (p.status === 'escaped' ? after * W * 0.25 : 0), sy = wave(sx);
+    const k = H / 150, sink = p.status === 'sunk' ? Math.min(1, after / 2.5) : 0;
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, sy + 2); ctx.clip();          // below the waterline stays hidden while it sinks
-    ctx.translate(sx, sy + sink * H * 0.9); ctx.rotate(sink * 0.5 + Math.sin(t * 2) * 0.03); ctx.scale(k, k);
+    const tilt = Math.atan((wave(sx + 10) - wave(sx - 10)) / 20) * 0.5;       // rides the wave slope like the fleet does
+    ctx.translate(sx, sy + sink * H * 0.9); ctx.rotate(sink * 0.5 + tilt); ctx.scale(k, k);
     if (window.qedyBoat) {
       qedyBoat(ctx, 'yacht', { a: '255,61,77', b: '20,20,24', sail: '#262a33', stripe: '#c21832', hull: '#1b1e25', jib: '#3a3f4a' });
       ctx.fillStyle = '#111'; ctx.fillRect(-2, -66, -16, 10);
       ctx.fillStyle = '#fff'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('☠', -10, -58);
     }
     ctx.restore();
-    const gx = W * 0.04, gy = H * 0.8;
+    const gx = W * 0.09, gy = H * 0.45;                                          // the captain's camera corner
     pirateBalls = pirateBalls.filter(b => {
       const f = (now - b.t0) / 650;
       const tx = sx + (b.hit ? 0 : (b.id.length % 2 ? -1 : 1) * W * 0.08), ty = b.hit ? sy - 18 * k : wave(tx);
