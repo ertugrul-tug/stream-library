@@ -1,0 +1,64 @@
+<!doctype html>
+<!-- YouTube thumbnail, 1280×720. Everything that changes comes from the address bar:
+       thumbnail.html?hafta=40&oyun=League%20of%20Legends&baslik=Kraken%20D%C3%BC%C5%9Ft%C3%BC&bg=kare.jpg
+     hafta   week number (default: this ISO week)       oyun   the week's game (optional)
+     baslik  big title, 2–4 words (default: Haftanın En İyileri)
+     bg      background image next to this file, e.g. a frame from the recap video (optional)
+   To PNG (Windows, Edge is always installed):
+     "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless --disable-gpu --hide-scrollbars
+       --window-size=1280,720 --screenshot="%CD%\kapak.png" "file:///%CD%/social/thumbnail.html?hafta=40&oyun=LoL" -->
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Hafta Kapağı</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800;900&family=JetBrains+Mono:wght@600&display=swap">
+<style>
+  :root{--bg:#07090d;--ink:#f4f7fa;--blue:#22aef0;--pink:#ff3d7f;--gold:#ffce54}
+  html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:var(--bg);color:var(--ink)}
+  .cover{position:relative;width:1280px;height:720px;overflow:hidden;font-family:'Unbounded',system-ui,sans-serif}
+  .bg{position:absolute;inset:0;background:center/cover no-repeat;filter:saturate(1.15)}
+  .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,9,13,.96) 0%,rgba(7,9,13,.82) 42%,rgba(7,9,13,.15) 78%),
+    radial-gradient(700px 420px at 90% 110%,rgba(255,61,127,.35),transparent 70%),radial-gradient(600px 400px at 10% -10%,rgba(34,174,240,.3),transparent 70%)}
+  .copy{position:absolute;left:72px;top:64px;right:420px}
+  .chip{display:inline-flex;align-items:center;gap:12px;font:600 26px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--gold);
+    padding:12px 20px;border:2px solid rgba(255,206,84,.55);border-radius:100px;background:rgba(255,206,84,.1)}
+  h1{margin:34px 0 0;font-weight:900;font-size:100px;line-height:1.1;letter-spacing:-.01em;text-transform:uppercase;
+    text-shadow:0 6px 30px rgba(0,0,0,.6)}
+  h1 .hl{color:var(--blue)}
+  .game{margin-top:26px;font-weight:700;font-size:34px;color:#c9d6e2}
+  .logo{position:absolute;right:64px;bottom:70px;width:300px;height:300px;border-radius:50%;
+    box-shadow:0 0 0 10px rgba(34,174,240,.9),0 0 0 22px rgba(7,9,13,.8),0 30px 80px rgba(0,0,0,.6)}
+  .brand{position:absolute;left:72px;bottom:60px;font-weight:800;font-size:30px;letter-spacing:.06em}
+  .brand span{color:var(--pink)}
+  svg.waves{position:absolute;left:0;right:0;bottom:0;width:100%;height:120px}
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="bg" id="bg"></div>
+  <div class="shade"></div>
+  <div class="copy">
+    <div class="chip">⚓ <span id="week"></span></div>
+    <h1 id="title"></h1>
+    <div class="game" id="game"></div>
+  </div>
+  <svg class="waves" viewBox="0 0 1280 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 60 Q160 20 320 60 T640 60 T960 60 T1280 60 V120 H0Z" fill="rgba(34,174,240,.22)"/>
+    <path d="M0 85 Q160 55 320 85 T640 85 T960 85 T1280 85 V120 H0Z" fill="rgba(34,174,240,.16)"/>
+  </svg>
+  <img class="logo" src="../docs/assets/logo_cat.png" alt="">
+  <div class="brand">KAPTAN <span>QEDY</span></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const isoWeek = d => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+    return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7); };
+  document.getElementById('week').textContent = 'HAFTA ' + (q.get('hafta') || isoWeek(new Date()));
+  const words = (q.get('baslik') || 'Haftanın En İyileri').trim().split(/\s+/);
+  const title = document.getElementById('title');
+  words.forEach((w, i) => { const s = document.createElement('span'); s.textContent = w + ' '; if (i === words.length - 1) s.className = 'hl'; title.append(s); });
+  document.getElementById('game').textContent = q.get('oyun') || '';
+  if (q.get('bg')) document.getElementById('bg').style.backgroundImage = `url("${encodeURI(q.get('bg'))}")`;
+</script>
+</body>
+</html>
