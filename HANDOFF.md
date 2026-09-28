@@ -94,6 +94,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 **Yayından sonra (aynı gece, "Yeni yayın"a basmadan — işaretleri o sıfırlar):**
 - [ ] `python obs-overlay/make-clips.py --preview` → PNG'de kamera ve oyun doğru kırpılmış mı; değilse `clips.camera` / `clips.game` kutularını ayarla
 - [ ] `python obs-overlay/make-clips.py` → klipleri Reels/Shorts/TikTok'a yükle (plandaki 1 numaralı büyüme taktiği); açıklamalar `aciklama.txt`'de hazır. Bu çalıştırma gecenin işaretlerini haftalık özet için de saklar
+- [ ] `python obs-overlay/site-export.py --not "…"` → sitede "Son sefer" kartı, kaptanın notu ve kütüphanede "Sohbetin seçtikleri" güncellenir; sonra `git add docs/data/seyir.json`, commit, push (notu değiştirmeyeceksen `--not`'u yazma)
 - [ ] Sabah: `python obs-overlay/make-clips.py --reel` → 60 sn "Seyir Defteri" Reel'i + `reel-aciklama.txt`
 - [ ] Kumandadan 📊 yayın özetini Discord'a gönder
 - [ ] `obs-overlay/.events.jsonl`'a bak (ya da Claude'a baktır): baskın/Hype Train/reklam/takip/abone olaylarının gerçek alan adları köprünün okuduklarıyla aynı mı

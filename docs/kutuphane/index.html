@@ -106,6 +106,13 @@
   .js .reveal-card.in{opacity:1;transform:translateY(0);}
   @media (prefers-reduced-motion:reduce){ .js .reveal-card{opacity:1;transform:none;transition:none;} }
 
+  .picks{padding:0 20px 26px;text-align:center;}
+  .picks .eyebrow{color:#ff9a3d;margin-bottom:12px;}
+  .picks-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:900px;margin:0 auto;}
+  .pick{font:inherit;font-size:13px;font-weight:700;color:var(--ink);background:rgba(255,154,61,.1);border:1px solid rgba(255,154,61,.4);border-radius:100px;padding:7px 14px;cursor:pointer;}
+  .pick:hover{border-color:#ff9a3d;}
+  .pick small{margin-left:6px;font-family:var(--font-mono);font-size:11px;color:#ffb877;}
+
   .empty{display:none;text-align:center;padding:60px 20px;color:var(--ink-faint);font-size:14px;}
   .empty.show{display:block;}
 
@@ -137,6 +144,11 @@
   <div class="eyebrow">627 Oyun · Keşif Havuzu</div>
   <h1>Kaptanın Kütüphanesi</h1>
   <p>Steam'deki tüm gemiler tek limanda. Sıradaki "Keşif" yayınının adayını burada ara — her biri bir sonraki bölümün potansiyel kahramanı.</p>
+</div>
+
+<div class="picks" id="picks" hidden>
+  <div class="eyebrow">🔥 Sohbetin seçtikleri</div>
+  <div class="picks-row" id="picksRow"></div>
 </div>
 
 <div class="search-band">
@@ -226,6 +238,24 @@
       empty.textContent = 'Kütüphane şu an yüklenemedi. ⚓';
       empty.classList.add('show');
     });
+
+  // Chat's picks: games voted with 🔥 after !öner on stream (data/seyir.json via obs-overlay/site-export.py).
+  fetch('../data/seyir.json', {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var list = (d && d.wishlist) || [];
+      if(!list.length) return;
+      var row = document.getElementById('picksRow');
+      list.forEach(function(w){
+        var b = document.createElement('button'), n = document.createElement('small');
+        b.type = 'button'; b.className = 'pick'; b.textContent = w.name;
+        n.textContent = '🔥 ' + w.votes; b.append(n);
+        b.addEventListener('click', function(){ searchEl.value = w.name; searchEl.dispatchEvent(new Event('input')); searchEl.scrollIntoView({block:'center'}); });
+        row.append(b);
+      });
+      document.getElementById('picks').hidden = false;
+    })
+    .catch(function(){});
 })();
 </script>
 </body>

@@ -366,6 +366,13 @@
   .deck-card .deck-emoji{font-size:30px;line-height:1;margin-bottom:14px;position:relative;}
   .cmd{font-family:var(--font-mono);font-size:.9em;padding:1px 7px;border-radius:7px;background:var(--c-soft,var(--blue-soft));color:var(--c,var(--blue));white-space:nowrap;}
   .deck-foot{margin-top:30px;text-align:center;color:var(--ink-dim);font-size:14.5px;}
+  /* kaptanın köşesi: filled from data/seyir.json (obs-overlay/site-export.py); hidden when the file is missing */
+  .log-grid{grid-template-columns:repeat(2,1fr);max-width:860px;margin:0 auto;}
+  .log-grid.single{grid-template-columns:1fr;max-width:560px;}
+  .log-card{cursor:default;}
+  .log-note{font-size:17px;line-height:1.5;margin:0 0 12px;position:relative;text-wrap:pretty;}
+  .log-stats{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0;position:relative;font-family:var(--font-mono);font-size:13px;color:var(--ink);}
+  .log-stats b{font-size:20px;font-weight:600;margin-right:4px;}
 
   /* community */
   .comm-row{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
@@ -520,6 +527,28 @@
     </div>
   </section>
 
+  <section id="seyir" hidden>
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Kaptanın Köşesi</div>
+        <h2>Güverteden son haber</h2>
+      </div>
+      <div class="plat-grid log-grid" id="logGrid">
+        <div class="plat-card log-card" id="logNote" hidden style="--c:#ffce54;--c-soft:rgba(255,206,84,.14)">
+          <div class="plat-tag" style="--tagc:#ffce54"><span class="dot"></span>Kaptanın notu</div>
+          <p class="log-note" id="logNoteText"></p>
+          <div class="plat-desc" id="logNoteDate"></div>
+        </div>
+        <div class="plat-card log-card" id="logLast" hidden style="--c:#22aef0;--c-soft:rgba(34,174,240,.14)">
+          <div class="plat-tag" style="--tagc:#22aef0"><span class="dot"></span>Son sefer</div>
+          <div class="plat-name" id="logLastTitle"></div>
+          <div class="log-stats" id="logLastStats"></div>
+          <div class="plat-desc" id="logLastKing"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="limanlar">
     <div class="wrap">
       <div class="sec-head reveal">
@@ -574,7 +603,7 @@
         <div class="plat-card deck-card" style="--c:#22aef0;--c-soft:rgba(34,174,240,.14)">
           <div class="deck-emoji">🎣</div>
           <div class="plat-name">Olta</div>
-          <p class="plat-desc">Denizden ne çıkacağı belli olmaz: hamsiden Kraken dişine dokuz ganimet. Hepsini topla, Balıkçı Reisi ol.</p>
+          <p class="plat-desc">Denizden ne çıkacağı belli olmaz: hamsiden Kraken dişine dokuz ganimet. Hepsini topla, Balıkçı Reisi ol. Olta turnuvası gecelerinde en değerli avı çıkaran kazanır.</p>
           <div class="plat-desc"><span class="cmd">!olta</span> <span class="cmd">!koleksiyon</span></div>
         </div>
         <div class="plat-card deck-card" style="--c:#ff3d7f;--c-soft:rgba(255,61,127,.14)">
@@ -598,8 +627,26 @@
         <div class="plat-card deck-card" style="--c:#9146ff;--c-soft:rgba(145,70,255,.16)">
           <div class="deck-emoji">🎖️</div>
           <div class="plat-name">Rütbeler</div>
-          <p class="plat-desc">Sohbette yazdıkça yükselirsin: Miço, Tayfa, Usta Gemici… ta ki İkinci Kaptan'a kadar.</p>
-          <div class="plat-desc"><span class="cmd">!rütbe</span></div>
+          <p class="plat-desc">Sohbette yazdıkça yükselirsin: Miço → Tayfa → Usta Gemici → Lostromo → Dümenci → İkinci Kaptan. Üst üste gelirsen sadakat ödülü de var; kartın ekranda görünsün istersen !kart.</p>
+          <div class="plat-desc"><span class="cmd">!rütbe</span> <span class="cmd">!kart</span> <span class="cmd">!hafta</span> <span class="cmd">!sezon</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#ff5d4d;--c-soft:rgba(255,93,77,.14)">
+          <div class="deck-emoji">🏴‍☠️</div>
+          <div class="plat-name">Korsan gemisi</div>
+          <p class="plat-desc">Kara yelkenli bir düşman ufukta belirir, dalgalar ekranın altından yükselir. 45 saniyede batır: isabet eden herkese ganimet.</p>
+          <div class="plat-desc"><span class="cmd">!ateş</span></div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#b18cff;--c-soft:rgba(177,140,255,.16)">
+          <div class="deck-emoji">🪢</div>
+          <div class="plat-name">Halat çekme</div>
+          <p class="plat-desc">Twitch ile Kick karşı karşıya. Bir dakika boyunca yazdığın her mesaj halatı kendi limanına çeker; kazanan sohbete ganimet.</p>
+          <div class="plat-desc">Sadece sohbete yaz</div>
+        </div>
+        <div class="plat-card deck-card" style="--c:#7fd3ff;--c-soft:rgba(127,211,255,.14)">
+          <div class="deck-emoji">🔮</div>
+          <div class="plat-name">Tahminler</div>
+          <p class="plat-desc">Maçı kazanır mıyım? Kaç kez ölürüm? Tahminini yaz, istersen ganimetini ortaya koy: bilenler kasayı paylaşır.</p>
+          <div class="plat-desc"><span class="cmd">!tahmin G 50</span> <span class="cmd">!tahmin 5</span></div>
         </div>
         <div class="plat-card deck-card" style="--c:#53fc18;--c-soft:rgba(83,252,24,.12)">
           <div class="deck-emoji">🎮</div>
@@ -748,6 +795,31 @@
     } else {
       pillText.textContent = 'Bugün YouTube günü — haftanın en iyileri kanalda';
     }
+    // Kaptanın köşesi: data/seyir.json from obs-overlay/site-export.py. Each part shows only if it exists.
+    fetch('data/seyir.json', {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if(!d) return;
+      var fmt = function(iso){ return new Date(iso + 'T12:00').toLocaleDateString('tr-TR', {day:'numeric', month:'long', weekday:'long'}); };
+      var shown = 0;
+      if(d.note && d.note.text){
+        document.getElementById('logNoteText').textContent = '“' + d.note.text + '”';
+        document.getElementById('logNoteDate').textContent = '— Kaptan Qedy · ' + fmt(d.note.date);
+        document.getElementById('logNote').hidden = false; shown++;
+      }
+      var n = d.last;
+      if(n && n.date){
+        document.getElementById('logLastTitle').textContent = fmt(n.date) + (n.game ? ' · ' + n.game : '');
+        var stats = document.getElementById('logLastStats');
+        [[n.chat, 'mesaj'], [n.follows, 'yeni tayfa'], [n.wins + n.losses ? n.wins + '-' + n.losses : null, 'maç'], [n.casts, 'olta'], [n.krakenWon, 'Kraken']].forEach(function(x){
+          if(!x[0]) return;
+          var s = document.createElement('span'), b = document.createElement('b');
+          b.textContent = x[0]; s.append(b, document.createTextNode(x[1])); stats.append(s);
+        });
+        document.getElementById('logLastKing').textContent = n.king ? '👑 Gecenin ganimet kralı: ' + n.king : '';
+        document.getElementById('logLast').hidden = false; shown++;
+      }
+      if(shown){ document.getElementById('logGrid').classList.toggle('single', shown === 1); document.getElementById('seyir').hidden = false; }
+    }).catch(function(){});
+
     // Live now? decapi.me answers "<name> is offline" or the uptime; if it's down the pill just stays as is.
     var plannedText = pillText.textContent;
     pill.addEventListener('click', function(){ if(pill.classList.contains('live')) document.querySelector('[data-watch-live]').click(); });
