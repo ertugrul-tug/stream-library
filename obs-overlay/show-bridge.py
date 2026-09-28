@@ -1989,7 +1989,10 @@ def _spotify_sync(method, path, params=None):
                                  data=b"" if method in ("POST", "PUT") else None)
     with urllib.request.urlopen(req, timeout=8) as r:
         raw = r.read()
-    return json.loads(raw) if raw.strip() else {}
+    try:
+        return json.loads(raw) if raw.strip() else {}
+    except ValueError:
+        return {}  # some player endpoints answer 200 with a non-JSON body: the call still worked
 
 
 async def spotify(method, path, params=None):

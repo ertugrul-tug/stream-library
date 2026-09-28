@@ -221,7 +221,11 @@ class SpotifyHandler(http.server.BaseHTTPRequestHandler):
             return self._json({"access_token": "fake", "expires_in": 3600})
         if path == "/v1/me/player/queue":
             SPOTIFY["queue"].append(urllib.parse.parse_qs(query)["uri"][0])
-            return self._json(None)
+            self.send_response(200)  # the real API answers queue adds with a 200 and a non-JSON body
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"ok")
+            return
         self._json(None)
 
     do_PUT = do_POST
