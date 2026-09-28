@@ -70,6 +70,7 @@ Ayrıntılar `obs-overlay/README.md`'de. Kısaca:
 - [x] ~~ffmpeg kur~~ — ev bilgisayarında kurulu
 - [ ] Kumanda → Mini oyunlar → "🏴‍☠️ Korsan gemisi"ne bir kez bas, OBS'te bak: dalgalar alttan yükseliyor mu, gemi görünüyor mu, kamerayı çok mu kapatıyor (bitince "Korsanları kaçır")
 - [ ] Sohbete kendin `!kart` ve (tahmin açıkken) `!tahmin G 10` yaz → kart ekrana çıkıyor mu, kasa tahmin kartında görünüyor mu
+- [ ] 28 Eylül öğleden sonra eklenenler (hepsi `obs-overlay/README.md`'de): 🪢 halat çekme, 🏆 olta turnuvası, 🔢 sayı tahmini (`!tahmin 5`), 🌧️ emote yağmuru, 🌤️ maç havası, 💰 efsane av, 🎙️ misafir kaptan, 🎬 LoL'de otomatik sahne → OBS'te `?sample=tug` / `rain` / `guest` ile bir bak; otomatik sahne istemezsen Maç serisi kartından kapat
 - [ ] İsteğe bağlı: Streamer.bot → Voice Control ile sesli komut ("klip", "mola"); vakit yoksa sonraki yayına
 - [x] ~~OBS kaydı~~ — ev bilgisayarında kayıt `C:\Users\pc\Videos`'a yazıyor, ffmpeg kurulu. OBS'te "yayında otomatik kaydet" kapalı ama köprü artık yayın açılınca kaydı kendisi başlatıyor (kumandada "⏺ kayıt" görünmeli)
 - [ ] Kick bio'yu işle (`planning/comeback-plan.md` Bölüm 9'daki metin)
