@@ -97,7 +97,7 @@ Telefonda bölümler alttaki sekmelere ayrılır: 🎬 Canlı (klip, maç serisi
 - **🌧️ Emote yağmuru:** Aynı emote 10 sn içinde 3+ kişiden 4+ kez gelirse ekrana yağar (emote başına dakikada bir). Önizleme: `overlay.html?sample=rain`.
 - **🌤️ Maç havası:** 3+ galibiyet serisinde köşeden sıcak bir güneş ışığı, 2+ mağlubiyette koyu fırtına gökyüzü ve ara sıra şimşek (oyun ve sohbet sahnesi).
 - **💰 Efsane av:** Olta'da 40+ puanlık av ekranın ortasında büyük bir "EFSANE AV!" anı olarak çıkar.
-- **🎙️ Misafir kaptan:** Canlı → "Misafir kaptan"a adı yaz → kameranın altında isim bandı çıkar, bot hoş geldin der. "Kaldır" ile gider. Önizleme: `overlay.html?sample=guest`.
+- **🎙️ Misafir kaptan:** Canlı → "Misafir kaptan"a adı yaz → sohbet kutusunun en üstünde isim bandı çıkar, bot hoş geldin der. "Kaldır" ile gider. Önizleme: `overlay.html?sample=guest`.
 - **🎬 Otomatik sahne (LoL):** Maç başlayınca sohbet sahnesindeysen oyun sahnesine, maç bitince 12 sn sonra sohbet sahnesine geçer. Mola/başlıyor ekranındayken dokunmaz. Kapatmak: Maç serisi kartında "Otomatik sahne".
 - **🪪 !kart:** İzleyicinin mürettebat kartı (rütbe, ganimet, sefer sayısı, seri, ilk geldiği gün, en iyi av) 8 sn ekranda çıkar; kişi başı dakikada bir, tüm sohbet için 12 sn'de bir. Önizleme: `overlay.html?sample=card`.
 - **💰 Tahmine ganimet yatırma:** `!tahmin G 50` yatırılan ganimeti bakiyeden düşer (en fazla bakiye ve `games.stakeMax`, varsayılan 500). Bilenler yatırdıklarını geri alır ve bilemeyenlerin kasasını yatırdıkları oranda paylaşır. Tahmin gizlenir/yeniden açılırsa iade; maç geri alınırsa ödeme de geri alınır.

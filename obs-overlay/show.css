@@ -192,6 +192,6 @@
 .fish-reveal[data-platform="twitch"] .fr-name{color:#e2d2ff}.fish-reveal[data-platform="kick"] .fr-name{color:#c9ffb0}
 @keyframes frLife{0%{opacity:0}8%,85%{opacity:1}100%{opacity:0}}@keyframes frSpin{to{transform:rotate(360deg)}}@keyframes frPop{from{transform:scale(.2) rotate(-20deg)}to{transform:none}}
 @media(prefers-reduced-motion:reduce){.fish-reveal,.fish-reveal *{animation:none!important}}
-.show-guest{left:4%;top:auto;bottom:11%;width:15%;padding:.7vw 1vw;display:none;border-color:rgba(255,206,84,.6)}.show-guest.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}.show-guest .show-label{color:#ffce54}
-.show-guest .rank-name{font-family:var(--font-display,'Unbounded',sans-serif);font-size:1vw;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-scene .show-guest{top:auto;bottom:24%;left:5%;width:22%}
+.show-guest{display:none;flex:none;padding:.55vw .9vw;border-bottom:1px solid rgba(255,206,84,.35);background:linear-gradient(90deg,rgba(255,206,84,.18),rgba(255,206,84,.04))}.show-guest.active{display:block;animation:showIn .45s cubic-bezier(.2,1.2,.3,1) both}
+.show-guest .guest-label{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.55vw;font-weight:700;letter-spacing:.16em;color:#ffce54}.show-guest .guest-name{margin-top:.15vw;font-family:var(--font-display,'Unbounded',sans-serif);font-size:.95vw;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-panel .show-guest{padding:.8vw 1.2vw}.chat-panel .show-guest .guest-label{font-size:.7vw}.chat-panel .show-guest .guest-name{font-size:1.25vw}

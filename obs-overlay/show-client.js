@@ -18,7 +18,10 @@
   const predict = kind === 'overlay' ? card('show-predict','MAÇ TAHMİNİ') : null;
   let predictDoneSig = null, predictDoneAt = 0;
   const rankUp = kind === 'overlay' ? card('show-rankup','RÜTBE ATLADI') : null;
-  const guest = kind === 'overlay' || kind === 'chat' ? card('show-guest','MİSAFİR KAPTAN') : null;
+  // Guest captain: a strip at the top of the chat box (game scene .chat, chat scene .chat-panel).
+  const chatBox = document.querySelector('.chat,.chat-panel');
+  const guest = chatBox ? Object.assign(document.createElement('div'), { className: 'show-guest' }) : null;
+  if (guest) chatBox.prepend(guest);
   let rankUpShown = 0, idCardShown = 0;
   // Mini games (game scene only): one centered event lane under the segment strip, rank-up toast at its end.
   let games = null;
@@ -474,7 +477,7 @@
       hc.querySelectorAll('.hype-line').forEach(n => n.remove());
       if (hy) div(hc, 'hype-line', hy.status === 'ended' ? `🚂 Seviye ${hy.level}'de durdu · teşekkürler! 💜` : `🚂 Seviye ${hy.level} · abone ve bitlerle vagonları doldurun!`);
     }
-    if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderPirate(s.pirate); renderTug(s.tug); renderCup(s.fishCup); renderGuess(s.guess); watchEmotes(s.chat); if (guest) { guest.classList.toggle('active', !!s.guest); guest.querySelectorAll('.rank-name').forEach(n => n.remove()); if (s.guest) div(guest, 'rank-name', '🎙️ ' + s.guest); } if (mood) { const t = tally(s.matches); mood.dataset.mood = t.last === 'W' && t.streak >= 3 ? 'sun' : t.last === 'L' && t.streak >= 2 ? 'storm' : ''; } renderRace(s.race); renderFish(s.catches); }
+    if (games) { renderRaid(s.raid); renderKraken(s.kraken); renderPirate(s.pirate); renderTug(s.tug); renderCup(s.fishCup); renderGuess(s.guess); watchEmotes(s.chat); if (guest) { guest.classList.toggle('active', !!s.guest); guest.replaceChildren(); if (s.guest) { div(guest, 'guest-label', '🎙️ MİSAFİR KAPTAN'); div(guest, 'guest-name', s.guest); } } if (mood) { const t = tally(s.matches); mood.dataset.mood = t.last === 'W' && t.streak >= 3 ? 'sun' : t.last === 'L' && t.streak >= 2 ? 'storm' : ''; } renderRace(s.race); renderFish(s.catches); }
     if (crew) {
       crew.querySelectorAll('.crew-list,.show-small').forEach(n=>n.remove());
       const list=div(crew,'crew-list','');
