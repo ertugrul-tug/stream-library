@@ -9,3 +9,4 @@ __pycache__/
 show-config.local.json
 .bridge.log
 .bridge.old.log
+.deaths.json

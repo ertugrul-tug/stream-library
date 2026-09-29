@@ -235,7 +235,7 @@ def defaults():
         "predictionHistory": [],
         "lolAuto": True, "lolScenes": True, "lolGame": None, "title": "", "botChat": True,
         "catches": [], "kraken": None, "race": None, "pirate": None, "tug": None, "fishCup": None, "guess": None, "guest": None, "krakenRandom": True, "sfx": True,
-        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True, "kickChat": None, "wheel": None, "wheelLast": None,
+        "night": {"casts": 0, "krakenWon": 0, "krakenLost": 0, "races": 0, "loot": {}, "raids": []}, "health": None, "raid": None, "questions": [], "scene": "", "effects": [], "market": True, "goal": {"target": 0, "reached": False}, "playQueue": [], "playQueueOpen": False, "playCalled": None, "firstTimers": [], "countdown": None, "cdAutoScene": True, "autoClip": False, "adUntil": None, "hype": None, "wishlist": [], "alerts": True, "weekAwarded": None, "weekChamps": None, "testNotes": [], "music": None, "musicRequests": [], "musicOpen": False, "musicVisible": True, "musicAuto": False, "musicExplicit": True, "kickChat": None, "wheel": None, "wheelLast": None, "deaths": 0, "deathAt": 0, "deathsVisible": True,
         "crew": [], "chat": [], "spotlight": None, "highlights": [],
         "votes": {}, "stats": {"twitch": {"chat": 0, "follow": 0, "sub": 0, "bits": 0},
                              "kick": {"chat": 0, "follow": 0, "sub": 0, "kicks": 0}},
@@ -266,6 +266,7 @@ def snapshot():
     result["activeChatters"] = recent_chatters()
     result["broadcasters"] = sorted(BROADCASTERS)  # the on-screen chat boxes hide the captain's own messages
     result["nextShow"] = schedule_text(next_only=True)
+    result["deathTotal"] = death_total()
     result["crew"] = [{**c, "rank": crew_rank(c["platform"], c["name"]),
                        "streak": (crew_db.get(f"{c['platform']}:{c['name'].casefold()}") or {}).get("streak", 0)} for c in state["crew"]]
     viewers = [e for e in crew_db.values() if e["platform"] in ("twitch", "kick")]
@@ -406,7 +407,7 @@ def reset_show():
     archive_night()
     backup_data("yeni-yayin")
     prev_show = state["started"]
-    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit", "kickChat", "wheelLast")}
+    keep = {k: state[k] for k in ("game", "title", "returnMessage", "routes", "connection", "obsConnection", "lolAuto", "lolScenes", "lolGame", "botChat", "krakenRandom", "sfx", "health", "scene", "market", "goal", "playQueue", "playQueueOpen", "cdAutoScene", "autoClip", "wishlist", "alerts", "weekAwarded", "weekChamps", "testNotes", "music", "musicOpen", "musicVisible", "musicAuto", "musicExplicit", "kickChat", "wheelLast", "deathsVisible")}
     state.clear()
     state.update(defaults())  # new "started" = new show id, so everyone's first-message bonus is available again
     state.update(keep)
@@ -422,7 +423,7 @@ def reset_show():
 SAY_ACTIONS = {"twitch": "QedySayTwitch", "kick": "QedySayKick"}
 CHAT_LINKS = {k.casefold(): str(v) for k, v in (CONFIG.get("chatLinks") or {}).items() if v}
 HELP_TEXT = ("⚓ Komutlar · 🎣 Oyun: !olta !koleksiyon !ganimet !market !düello !hafta !sezon"
-             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !çark !program !şarkı · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
+             " · 🗣️ Sohbet: !soru !kehanet !rütbe !kart !oyna !klip !süre !skor !hedef !lurk !öner !çark !ölüm !program !şarkı · 🎯 Yayında: !tahmin G/M/sayı !rota 1-3 !saldır !katıl !ateş · 🔗 !site")
 _said, _cmd_last, _say_warned, _bot_tasks = {}, {}, set(), set()
 _rehearsing = [False]  # the pre-show rehearsal plays on screen only
 
@@ -952,6 +953,8 @@ async def streamer_bot():
                                 say(uptime_text(), platform)
                             elif command in ("!program", "!takvim") and cooldown("schedule", 30):
                                 say(schedule_text(), platform)
+                            elif command in ("!ölüm", "!olum", "!ölümler", "!deaths") and cooldown("deaths", 20):
+                                say(deaths_text(), platform)
                             elif command in ("!çark", "!cark") and cooldown("wheel", 20):
                                 last = state.get("wheelLast")
                                 say(f"🎡 Çarkın son seçimi: {last}" if last else "🎡 Kütüphane çarkı bu akşam henüz dönmedi · kaptan çevirince burada!", platform)
@@ -2262,6 +2265,110 @@ async def sb_log_watch():
             await publish()
 
 
+# ----------------------------------------------------------- death counter --
+# 💀 for the hard-mode runs: tonight's count on screen plus a per-game total across shows (.deaths.json).
+# +1 from the panel, chat can ask with !ölüm, and a global hotkey (default Ctrl+Alt+D) so the captain
+# never has to leave the game.
+DEATHS_FILE = DATA_DIR / ".deaths.json"
+try:
+    DEATH_TOTALS = json.loads(DEATHS_FILE.read_text(encoding="utf-8"))
+except (OSError, ValueError):
+    DEATH_TOTALS = {}
+DEATH_LINES = {
+    1: "💀 İlk ölüm geldi! Isınma turu sayılır ⚓",
+    10: "💀 10 ölüm! En zor zorlukta bu kadar olur, değil mi? 😅",
+    25: "💀 25 ölüm! Mezarlık güverteden kalabalık oldu.",
+    50: "💀 50 ölüm! Kaptan artık ölümle kanka.",
+    100: "💀 100 ÖLÜM! Efsane seviyesi, alkışlar mürettebata değil ölümlere 👏",
+}
+
+
+def death_total():
+    return int(DEATH_TOTALS.get(state["game"] or "?", 0))
+
+
+def add_death(delta):
+    delta = 1 if delta > 0 else -1
+    if delta < 0 and state["deaths"] <= 0:
+        return
+    state["deaths"] += delta
+    game = state["game"] or "?"
+    DEATH_TOTALS[game] = max(0, int(DEATH_TOTALS.get(game, 0)) + delta)
+    try:
+        DEATHS_FILE.write_text(json.dumps(DEATH_TOTALS, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    if delta > 0:
+        state["deathAt"] = int(time.time() * 1000)
+        line = DEATH_LINES.get(state["deaths"])
+        if line and cooldown(f"death:{state['deaths']}", 60):
+            say(line)
+
+
+def deaths_text():
+    n, total = state["deaths"], death_total()
+    if not n and not total:
+        return "💀 Bu akşam henüz ölüm yok, kaptan ayakta! ⚓"
+    game = state["game"] or "bu oyun"
+    return f"💀 Bu akşam {n} ölüm" + (f" · {game} toplamı {total}" if total > n else "")
+
+
+VK_NAMES = {"space": 0x20, "pause": 0x13, "insert": 0x2D, "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22}
+
+
+def parse_hotkey(spec):
+    mods, vk = 0x4000, None  # MOD_NOREPEAT
+    for part in str(spec).lower().replace(" ", "").split("+"):
+        if part in ("alt",):
+            mods |= 0x1
+        elif part in ("ctrl", "control"):
+            mods |= 0x2
+        elif part == "shift":
+            mods |= 0x4
+        elif part == "win":
+            mods |= 0x8
+        elif re.fullmatch(r"f([1-9]|1[0-9]|2[0-4])", part):
+            vk = 0x6F + int(part[1:])
+        elif re.fullmatch(r"num[0-9]", part):
+            vk = 0x60 + int(part[3])
+        elif len(part) == 1 and part.isalnum():
+            vk = ord(part.upper())
+        elif part in VK_NAMES:
+            vk = VK_NAMES[part]
+    return mods, vk
+
+
+def start_hotkeys(loop):
+    """Global Windows hotkey for +1 death, even while the game has focus (RegisterHotKey, no extra packages)."""
+    spec = CONFIG.get("deathHotkey", "ctrl+alt+d")
+    if os.name != "nt" or not spec or os.environ.get("QEDY_HOTKEYS") == "0":
+        return
+    mods, vk = parse_hotkey(spec)
+    if vk is None:
+        print(f"Ölüm kısayolu anlaşılamadı: {spec}", flush=True)
+        return
+
+    def run():
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        if not user32.RegisterHotKey(None, 1, mods, vk):
+            print(f"⚠ Ölüm kısayolu ({spec}) kaydedilemedi: başka bir program kullanıyor olabilir", flush=True)
+            return
+        print(f"  Ölüm sayacı kısayolu: {spec}", flush=True)
+        msg = wintypes.MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            if msg.message == 0x0312:  # WM_HOTKEY
+                loop.call_soon_threadsafe(_death_from_hotkey)
+
+    threading.Thread(target=run, daemon=True, name="hotkeys").start()
+
+
+def _death_from_hotkey():
+    add_death(1)
+    _spawn(publish())
+
+
 def recent_chatters(minutes=10):
     cutoff = time.time() - minutes * 60
     return sum(1 for t in _active.values() if t >= cutoff)
@@ -2937,6 +3044,12 @@ async def client(ws):
                                           if action == "musicAdd" else "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
                     elif action == "musicAdd":
                         await send_notice(ws, True, "🎵 Sıraya eklendi")
+                elif action == "death":
+                    add_death(int(msg.get("delta") or 1))
+                elif action == "deathReset":
+                    state["deaths"] = 0
+                elif action == "toggleDeathsVisible":
+                    state["deathsVisible"] = not state["deathsVisible"]
                 elif action == "streamInfo":
                     # Mid-show game switch: title/category on Twitch + Kick without resetting the show.
                     game = clean(msg.get("game"), 80) or state["game"]
@@ -3118,6 +3231,7 @@ async def supervised(name, loop_fn):
 
 async def main():
     start_static_server()
+    start_hotkeys(asyncio.get_running_loop())
     backup_data("acilis")
     async with serve(client, "0.0.0.0", WS_PORT, max_size=2**22):  # room for a backup upload
         ip = lan_ip()

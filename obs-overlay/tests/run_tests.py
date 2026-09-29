@@ -699,6 +699,18 @@ async def run(sb, obs, tmp):
               and state()["game"] == "The Witcher 3: Wild Hunt", str(info))
         await p.act("setDetails", game=before["game"], returnMessage=before["returnMessage"])  # later checks expect the show's own game
         await p.act("setRoutes", routes=before["routes"])
+        n9 = len(sb.said)
+        for _ in range(3):
+            await p.act("death", delta=1)
+        await p.act("death", delta=-1)
+        await sb.chat("twitch", "Ali", "!ölüm")
+        await p.drain()
+        said9 = sb.said_since(n9)
+        totals = json.loads((tmp / ".deaths.json").read_text(encoding="utf-8"))
+        check("ölüm sayacı: +3 −1 = 2, ilk ölüm şakası, !ölüm cevabı, seri toplamı kaydedildi", state()["deaths"] == 2 and state()["deathTotal"] == 2
+              and any("İlk ölüm" in t for t in said9) and any("Bu akşam 2 ölüm" in t for t in said9) and totals.get(state()["game"]) == 2, str(said9) + str(totals))
+        await p.act("deathReset")
+        check("gece sıfırlandı, seri toplamı kaldı", state()["deaths"] == 0 and state()["deathTotal"] == 2)
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
         n5 = len(sb.said)
         await sb.chat("twitch", "Ali", "!program")
@@ -915,7 +927,7 @@ async def main():
     serve_http(LOL, LolHandler)
     serve_http(HOOK, HookHandler)
     serve_http(SPOT, SpotifyHandler)
-    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1", "QEDY_WHEEL_MS": "600", "QEDY_SB_LOGS": str(tmp / "sblogs"), "QEDY_SB_LOG_SEC": "1",
+    env = {**os.environ, "QEDY_DATA_DIR": str(tmp), "QEDY_SUGGEST_SEC": "2", "QEDY_SPOTIFY_SEC": "1", "QEDY_WHEEL_MS": "600", "QEDY_HOTKEYS": "0", "QEDY_SB_LOGS": str(tmp / "sblogs"), "QEDY_SB_LOG_SEC": "1",
            "QEDY_SPOTIFY_ACCOUNTS": f"http://127.0.0.1:{SPOT}", "QEDY_SPOTIFY_API": f"http://127.0.0.1:{SPOT}/v1", "QEDY_CONFIG": str(tmp / "show-config.json"),
            "QEDY_SB_URL": f"ws://127.0.0.1:{SB}/", "QEDY_WS_PORT": str(WS), "QEDY_HTTP_PORT": str(HTTP), "PYTHONIOENCODING": "utf-8"}
     log = open(tmp / "bridge.log", "w", encoding="utf-8")
