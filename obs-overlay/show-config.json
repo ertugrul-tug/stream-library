@@ -18,7 +18,7 @@
   },
   "titleTemplates": {
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
-    "The Witcher 3: Wild Hunt": "🐺 The Witcher 3 Remastered · Hikayeli Salı · Kaptan Qedy güvertede!",
+    "The Witcher 3: Wild Hunt": "🐺 Witcher 3 Remastered ilk bakış · Hikayeli Salı · Kaptan Qedy",
     "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
   },
   "chatLinks": {
