@@ -2937,6 +2937,17 @@ async def client(ws):
                                           if action == "musicAdd" else "Spotify isteği olmadı · Spotify açık ve bir cihazda çalıyor mu?")
                     elif action == "musicAdd":
                         await send_notice(ws, True, "🎵 Sıraya eklendi")
+                elif action == "streamInfo":
+                    # Mid-show game switch: title/category on Twitch + Kick without resetting the show.
+                    game = clean(msg.get("game"), 80) or state["game"]
+                    title = clean(msg.get("title"), 140)
+                    if not game or not title:
+                        continue
+                    state["game"], state["title"] = game, title
+                    await publish()
+                    result = await sb_do_action("QedyStreamInfo", {"title": title, "game": game})
+                    await send_notice(ws, result == "ok", sb_action_notice("QedyStreamInfo", result, f"{game} · Twitch/Kick başlık ve kategori güncellendi ✓"))
+                    continue
                 elif action == "wheelSpin":
                     if (state.get("wheel") or {}).get("status") == "spinning":
                         continue

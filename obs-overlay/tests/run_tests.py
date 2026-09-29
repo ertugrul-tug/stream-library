@@ -692,6 +692,11 @@ async def run(sb, obs, tmp):
               and len(info) == 1 and info[0][1].get("game") == wh.get("winner"), str(info))
         await p.act("wheelClose")
         check("çark ekrandan kaldırıldı", state().get("wheel") is None)
+        calls_before = len([c for c in sb.calls if c[0] == "QedyStreamInfo"])
+        await p.act("streamInfo", game="The Witcher 3: Wild Hunt", title="🐺 Witcher gecesi")
+        info = [c for c in sb.calls if c[0] == "QedyStreamInfo"][calls_before:]
+        check("yayın ortasında Twitch/Kick başlık ve kategori güncellendi", len(info) == 1 and info[0][1] == {"title": "🐺 Witcher gecesi", "game": "The Witcher 3: Wild Hunt"}
+              and state()["game"] == "The Witcher 3: Wild Hunt", str(info))
         await p.act("setDetails", game=before["game"], returnMessage=before["returnMessage"])  # later checks expect the show's own game
         await p.act("setRoutes", routes=before["routes"])
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
