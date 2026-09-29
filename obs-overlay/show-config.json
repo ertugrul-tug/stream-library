@@ -13,10 +13,12 @@
     "League of Legends": ["Ranked'e devam", "ARAM ile ısınalım", "Şampiyonu sohbet seçsin"],
     "Teamfight Tactics": ["Ranked'e devam", "Double Up", "Kompu sohbet seçsin"],
     "Minecraft": ["Madene inelim", "Üssü büyütelim", "Nether'a sefer"],
+    "The Witcher 3: Wild Hunt": ["Ana hikayeye devam", "Sözleşme avı (yan görev)", "Kararı sohbet versin"],
     "Baldur's Gate 3": ["Ana göreve devam", "Yan görev keşfi", "Kararı sohbet versin"]
   },
   "titleTemplates": {
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
+    "The Witcher 3: Wild Hunt": "🐺 The Witcher 3 Remastered · Hikayeli Salı · Kaptan Qedy güvertede!",
     "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
   },
   "chatLinks": {
@@ -53,7 +55,7 @@
   "weekly": {
     "days": [0, 1, 2, 3, 4],
     "time": "20:30",
-    "themes": {"0": "Serbest", "1": "Hikayeli · Baldur's Gate 3", "2": "Competitive · League of Legends", "3": "Survival · Minecraft", "4": "Toplu Ekip · LoL özel oda"}
+    "themes": {"0": "Serbest", "1": "Hikayeli · The Witcher 3", "2": "Competitive · League of Legends", "3": "Survival · Minecraft", "4": "Toplu Ekip · LoL özel oda"}
   },
 
   "schedule": {
