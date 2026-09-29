@@ -2515,6 +2515,57 @@ def _lol_get(path):
         return json.loads(r.read().decode("utf-8"))
 
 
+# The League client (not the game) has its own local API; its port and password are in the lockfile
+# ("LeagueClient:pid:port:password:https") while the client is open. Used only to open the prediction
+# at champion select, a few minutes before the game (and the Live Client Data API above) exists.
+LCU_LOCKFILE = Path(LOL_CONFIG.get("lockfile") or "C:/Riot Games/League of Legends/lockfile")
+LCU_SKIP_MODES = {"TFT", "PRACTICETOOL", "TUTORIAL"}
+
+
+def _lcu_get(path):
+    _, _, port, password, protocol = LCU_LOCKFILE.read_text(encoding="utf-8").strip().split(":")
+    req = urllib.request.Request(f"{protocol}://127.0.0.1:{port}{path}", headers={
+        "Authorization": "Basic " + base64.b64encode(f"riot:{password}".encode()).decode()})
+    with urllib.request.urlopen(req, timeout=1.5, context=_lol_ssl) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+async def lcu_watcher():
+    """Champion select opens the match prediction; a dodge (back to lobby before the game) cancels it with refunds."""
+    phase, opened = None, False
+    while True:
+        await asyncio.sleep(2)
+        if not state["lolAuto"] or not LCU_LOCKFILE.exists():
+            phase, opened = None, False
+            continue
+        try:
+            now = await asyncio.to_thread(_lcu_get, "/lol-gameflow/v1/gameflow-phase")
+        except Exception:
+            continue  # client starting/closing, or the lockfile is stale
+        if now == phase:
+            continue
+        before, phase = phase, now
+        if now == "ChampSelect" and state["prediction"]["status"] in ("off", "done"):
+            try:
+                mode = str(((await asyncio.to_thread(_lcu_get, "/lol-gameflow/v1/session")).get("gameData") or {})
+                           .get("queue", {}).get("gameMode") or "")
+            except Exception:
+                mode = ""
+            if mode not in LCU_SKIP_MODES:
+                predict_open()
+                opened = True
+                await publish()
+        elif before == "ChampSelect" and now in ("None", "Lobby", "Matchmaking", "ReadyCheck") and opened:
+            opened = False
+            if state["prediction"]["status"] == "open":
+                refund_stakes()
+                state["prediction"]["status"] = "off"
+                say("🔮 Şampiyon seçimi dağıldı, tahminler iade edildi. Sıradaki maçta tekrar açılır.")
+                await publish()
+        elif now in ("GameStart", "InProgress"):
+            opened = False  # the game is on: lol_watcher locks the prediction at lockAfterSec as before
+
+
 async def lol_watcher():
     game = None  # the game currently loaded in the client, or None
     while True:
@@ -3032,7 +3083,7 @@ async def main():
         print(f"  Telefon PIN'i   : {PIN}   (show-config.local.json > pin ile değiştirilebilir)", flush=True)
         if not DISCORD_WEBHOOK:
             print("  Discord webhook ayarlı değil (show-config.json > discordWebhook)", flush=True)
-        loops = {"Streamer.bot": streamer_bot, "OBS": obs_client, "LoL": lol_watcher, "Kraken": kraken_random,
+        loops = {"Streamer.bot": streamer_bot, "OBS": obs_client, "LoL": lol_watcher, "LoL istemci": lcu_watcher, "Kraken": kraken_random,
                  "İpuçları": tips_loop, "Sağlık": obs_health, "Sessiz güverte": quiet_deck, "Spotify": spotify_loop, "SB günlüğü": sb_log_watch}
         await asyncio.gather(*(supervised(name, fn) for name, fn in loops.items()))
 

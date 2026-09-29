@@ -136,4 +136,4 @@ Kaptan seçti; gerçek sohbet verisi gelince ayarları ona göre yapılacak.
 - **Fırtına havasındaki şimşek** ekranı beyaz yanıp söndürüyordu: kaldırıldı.
 - **Olay alanları doğrulandı:** reklam `length_seconds`, Twitch takip `targetUser`, Kick takip `user`, kanal puanı `reward.title` — köprünün okuduklarıyla aynı.
 - **Klip kırpma:** kayıt 1920×1080; oyun sahnesine göre `show-config.local.json > clips` ayarlandı (kamera sol altta). Sohbet sahnesindeki anlarda kamera büyük olduğu için kırpma o anlarda iyi olmayabilir.
-- **LoL tahmini** maç yüklenince açılıyor, şampiyon seçiminde değil (Riot'un oyun içi verisi o zaman yok). İstenirse LoL istemcisinin yerel arayüzüyle (lockfile) şampiyon seçiminde açılabilir.
+- ~~**LoL tahmini** maç yüklenince açılıyordu~~ → 29 Eylül: artık şampiyon seçiminde açılıyor (LoL istemcisinin lockfile arayüzü), dodge olursa kapanıp iade ediyor. Lockfile farklı yerdeyse `show-config.json > lolAuto.lockfile`. İlk LoL yayınında dene.

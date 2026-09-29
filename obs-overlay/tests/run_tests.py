@@ -9,6 +9,7 @@ Run:  python obs-overlay/tests/run_tests.py
 """
 import asyncio
 import http.server
+import base64
 import json
 import os
 from datetime import datetime
@@ -142,7 +143,7 @@ def serve_http(port, handler_cls):
     return server
 
 
-LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC"}
+LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC", "phase": "None"}
 HOOK_POSTS = []
 
 
@@ -158,6 +159,12 @@ class LolHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path.startswith("/lol-gameflow/"):  # the League client API (lockfile), not the in-game one
+            if self.headers.get("Authorization") != "Basic " + base64.b64encode(b"riot:testpass").decode():
+                return self._send(401, {})
+            if self.path.endswith("gameflow-phase"):
+                return self._send(200, LOL_STATE["phase"])
+            return self._send(200, {"gameData": {"queue": {"gameMode": LOL_STATE["mode"]}}})
         if not LOL_STATE["up"]:
             return self._send(404, {"errorCode": "RESOURCE_NOT_FOUND"})
         path = self.path.rsplit("/", 1)[-1]
@@ -745,10 +752,19 @@ async def run(sb, obs, tmp):
         matches = len(state()["matches"])
         async def scene_is(name):
             return obs.scene == name
+        n = len(sb.said)
+        LOL_STATE["phase"] = "ChampSelect"
+        check("LoL: şampiyon seçiminde tahmin açıldı", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8))
+        LOL_STATE["phase"] = "Lobby"
+        check("LoL: seçim dağılınca (dodge) tahmin kapandı ve duyuruldu", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "off"), 8)
+              and any("iade" in t for t in sb.said_since(n)), str(sb.said_since(n))[-200:])
+        LOL_STATE["phase"] = "ChampSelect"
+        await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8)
+        LOL_STATE["phase"] = "InProgress"
         await obs.set_scene("Sohbet Güvertesi")
         await p.drain()
         LOL_STATE.update(up=True, time=5.0, end=None)
-        check("LoL: maç başında tahmin açıldı", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8))
+        check("LoL: maç başında tahmin açık", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "open"), 8))
         check("LoL: maç başlayınca sohbetten oyun sahnesine geçildi", await wait_until(lambda: scene_is("Sahne"), 4), obs.scene)
         LOL_STATE["time"] = 190.0
         check("LoL: 3. dakikada kilitlendi", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "locked"), 8))
@@ -852,7 +868,8 @@ async def main():
     tmp = Path(tempfile.mkdtemp(prefix="qedy-test-"))
     config = json.loads((OVERLAY / "show-config.json").read_text(encoding="utf-8"))
     config["obs"] = {"url": f"ws://127.0.0.1:{OBS}/", "password": ""}
-    config["lolAuto"] = {"url": f"http://127.0.0.1:{LOL}/liveclientdata/", "lockAfterSec": 180}
+    (tmp / "lockfile").write_text(f"LeagueClient:1234:{LOL}:testpass:http", encoding="utf-8")
+    config["lolAuto"] = {"url": f"http://127.0.0.1:{LOL}/liveclientdata/", "lockAfterSec": 180, "lockfile": str(tmp / "lockfile")}
     config["games"] = {"fishCooldownSec": 60, "kraken": {"durationSec": 60, "randomMinMinutes": 999, "randomMaxMinutes": 999, "raidMinViewers": 99},
                        "race": {"joinSec": 2, "maxBoats": 8}, "pirate": {"durationSec": 60, "hitChance": 1}, "tug": {"durationSec": 6}}
     config["tips"] = {"everyMinutes": 999}
