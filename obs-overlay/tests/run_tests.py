@@ -206,6 +206,10 @@ class SpotifyHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         path, _, query = self.path.partition("?")
         SPOTIFY["calls"].append(("GET", path, query))
+        if SPOTIFY.get("revoke"):
+            return self._json({"error": "revoked"}, 401)
+        if SPOTIFY.get("down") and path == "/v1/me/player/currently-playing":
+            return self._json({"error": "down"}, 503)
         if path == "/v1/search":
             q = urllib.parse.parse_qs(query).get("q", [""])[0]
             if "yok" in q:
@@ -225,6 +229,8 @@ class SpotifyHandler(http.server.BaseHTTPRequestHandler):
         self.rfile.read(length)
         SPOTIFY["calls"].append(("POST", path, query))
         if path == "/api/token":
+            if SPOTIFY.get("revoke"):
+                return self._json({"error": "invalid_grant"}, 400)
             return self._json({"access_token": "fake", "expires_in": 3600})
         if path == "/v1/me/player/queue":
             SPOTIFY["queue"].append(urllib.parse.parse_qs(query)["uri"][0])
@@ -720,6 +726,13 @@ async def run(sb, obs, tmp):
         await sb.chat("twitch", "Mert", "!şarkı yine sert şarkı")
         await p.drain(1)
         check("küfürlü şarkı filtresi kapalıyken istek kabul edildi", len(state()["musicRequests"]) == 2, str(state()["musicRequests"]))
+        await sb.chat("twitch", "Deniz", "!şarkı birinci")
+        await sb.chat("twitch", "Deniz", "!şarkı ikinci")  # same instant: both searches run in parallel
+        await p.drain(1)
+        deniz = [r for r in state()["musicRequests"] if r["name"] == "Deniz"]
+        check("aynı anda iki !şarkı: sadece biri listeye girdi", len(deniz) == 1, str(deniz))
+        for r in deniz:
+            await p.act("musicReject", id=r["id"])
         await p.act("musicReject", id=state()["musicRequests"][-1]["id"])
         await p.act("musicApprove", id=reqs[0]["id"])
         check("onaylanan şarkı Spotify sırasına girdi", SPOTIFY["queue"] == [reqs[0]["uri"]] and not state()["musicRequests"], str(SPOTIFY["queue"]))
@@ -737,6 +750,17 @@ async def run(sb, obs, tmp):
         check("kumandadan yazılan şarkı sıraya eklendi", len(SPOTIFY["queue"]) == 3, str(SPOTIFY["queue"]))
         await p.act("musicNext")
         check("kumandadan ⏭ Spotify'a gitti", any(c[:2] == ("POST", "/v1/me/player/next") for c in SPOTIFY["calls"]))
+        SPOTIFY["down"] = True
+        check("Spotify cevap vermeyince eski şarkı ekranda çalıyor görünmüyor",
+              await wait_until(lambda: _state_is(p, lambda s: s["music"]["linked"] and not s["music"]["playing"]), 8), str(state().get("music")))
+        SPOTIFY["down"] = False
+        await wait_until(lambda: _state_is(p, lambda s: s["music"]["playing"]), 6)
+        SPOTIFY["revoke"] = True
+        check("Spotify bağlantısı reddedilince bağlantı düştü, kumandada bağlan çıkar",
+              await wait_until(lambda: _state_is(p, lambda s: s["music"] == {"linked": False}), 8) and not (tmp / ".spotify.json").exists(),
+              str(state().get("music")))
+        SPOTIFY["revoke"] = False
+        (tmp / ".spotify.json").write_text(json.dumps({"refresh_token": "fake-refresh"}), encoding="utf-8")
         await p.act("toggleMusicOpen")
         check("!lurk bir kez cevaplandı, !hedef çalıştı", sum("ambara indi" in t for t in said2) == 1 and any("🎯" in t for t in said2), str(said2))
         n3 = len(sb.said)

@@ -1991,6 +1991,8 @@ SPOTIFY_REDIRECT = f"http://127.0.0.1:{HTTP_PORT}/spotify-callback"
 SPOTIFY_SCOPES = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
 SONG_MAX_MS = 7 * 60 * 1000
 _spotify_verifier, _spotify_token, _requested = {}, {}, {}  # PKCE by state key · access token · track uri → requester
+_spotify_lock = threading.Lock()  # token refreshes (loop, chat and panel calls run in threads)
+_spotify_fails = [0]  # now-playing reads failed in a row
 
 
 def spotify_login_url():
@@ -2015,8 +2017,34 @@ def _spotify_token_request(fields):
 def _spotify_keep(tok):
     if tok.get("refresh_token"):
         SPOTIFY_FILE.write_text(json.dumps({"refresh_token": tok["refresh_token"]}), encoding="utf-8")
-    _spotify_token.clear()
+    # update() swaps both keys at once, so a call in another thread never sees the token half-cleared
     _spotify_token.update(access_token=tok["access_token"], expires_at=time.time() + int(tok.get("expires_in") or 3600) - 60)
+
+
+def _spotify_valid():
+    return bool(_spotify_token.get("access_token")) and time.time() < _spotify_token.get("expires_at", 0)
+
+
+def _spotify_renew():
+    """One refresh at a time: Spotify may rotate the refresh token, so a second parallel refresh with the old one
+    would be refused. A refused refresh (revoked, password changed) unlinks, so the panel shows 'bağlan' again."""
+    with _spotify_lock:
+        if _spotify_valid():
+            return True  # another thread renewed it while we waited
+        try:
+            saved = json.loads(SPOTIFY_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+        try:
+            _spotify_keep(_spotify_token_request({"grant_type": "refresh_token", "refresh_token": saved["refresh_token"]}))
+        except urllib.error.HTTPError as exc:
+            if exc.code in (400, 401):
+                SPOTIFY_FILE.unlink(missing_ok=True)
+                _spotify_token.clear()
+                print("Spotify bağlantısı reddedildi · kumandadan 🔗 Spotify'a bağlan", flush=True)
+                return False
+            raise
+        return True
 
 
 def spotify_callback(query):
@@ -2032,14 +2060,13 @@ def spotify_callback(query):
 
 
 def _spotify_sync(method, path, params=None):
-    if not (_spotify_token.get("access_token") and time.time() < _spotify_token.get("expires_at", 0)):
-        try:
-            saved = json.loads(SPOTIFY_FILE.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return None
-        _spotify_keep(_spotify_token_request({"grant_type": "refresh_token", "refresh_token": saved["refresh_token"]}))
+    if not _spotify_valid() and not _spotify_renew():
+        return None
+    token = _spotify_token.get("access_token")
+    if not token:
+        return None
     url = SPOTIFY_API + path + ("?" + urllib.parse.urlencode(params) if params else "")
-    req = urllib.request.Request(url, method=method, headers={"Authorization": f"Bearer {_spotify_token['access_token']}"},
+    req = urllib.request.Request(url, method=method, headers={"Authorization": f"Bearer {token}"},
                                  data=b"" if method in ("POST", "PUT") else None)
     with urllib.request.urlopen(req, timeout=8) as r:
         raw = r.read()
@@ -2077,14 +2104,22 @@ def track_info(t):
 async def spotify_refresh():
     data = await spotify("GET", "/me/player/currently-playing")
     if data is None:
+        # 3 failed reads in a row (~15 s): the song on screen is probably stale, so stop showing it as playing
+        _spotify_fails[0] += 1
+        m = state.get("music") or {}
+        if _spotify_fails[0] >= 3 and m.get("playing"):
+            state["music"] = {**m, "playing": False}
+            await publish()
         return
+    _spotify_fails[0] = 0
     item = data.get("item") if isinstance(data, dict) else None
     now = {"linked": True, "playing": bool(data.get("is_playing")) and bool(item), **(track_info(item) if item else {"title": ""})}
-    now["by"] = _requested.get(now.get("uri"))
     upcoming = await spotify("GET", "/me/player/queue")
+    old = state.get("music") or {}  # read after the last await: nothing below yields, so parallel refreshes can't interleave
+    # A request is credited while it plays, then forgotten, so the same song from a playlist later isn't "istek: X" again.
+    now["by"] = old.get("by") if now.get("uri") and now.get("uri") == old.get("uri") else _requested.pop(now.get("uri"), None)
     now["next"] = [{**{k: v for k, v in track_info(t).items() if k in ("title", "artist")}, "by": (_requested.get(t.get("uri")) or {}).get("name")}
                    for t in ((upcoming or {}).get("queue") or [])[:5] if t]
-    old = state.get("music") or {}
     if now.get("uri") and now["uri"] != old.get("uri") and now["by"] and now["playing"]:
         say(f"🎵 Şimdi çalıyor: {now['title']} — {now['artist']} · istek: {now['by']['name']}")
     if now != old:
@@ -2124,24 +2159,22 @@ async def song_request(platform, name, query):
             say("🎵 İstek listesi dolu, kaptan biraz eritsin!", platform)
         return
     key = f"song:{platform}:{name.casefold()}"
-    if _cmd_last.get(key, 0) > time.time() - 300:
+    # Claimed before the search: requests run as parallel tasks, so two quick !şarkı would both pass a later check.
+    # Every "didn't take" answer below gives the claim back.
+    if not cooldown(key, 300):
         return
     found = await spotify("GET", "/search", {"q": query[:100], "type": "track", "limit": 1})
     items = ((found or {}).get("tracks") or {}).get("items") or []
-    if not items:
-        say(f"🎵 @{name} bulamadım, sanatçıyla birlikte yazmayı dene.", platform)
+    t = track_info(items[0]) if items else None
+    reason = (f"🎵 @{name} bulamadım, sanatçıyla birlikte yazmayı dene." if not t else
+              f"🎵 @{name} küfürlü şarkılar şu an kapalı, başka bir tane dene." if t["explicit"] and not state["musicExplicit"] else
+              f"🎵 @{name} 7 dakikadan uzun şarkılar alınmıyor." if t["ms"] > SONG_MAX_MS else
+              f"🎵 {t['title']} zaten listede." if any(r["uri"] == t["uri"] for r in state["musicRequests"]) else
+              "🎵 İstek listesi dolu, kaptan biraz eritsin!" if len(state["musicRequests"]) >= 10 else None)
+    if reason:
+        _cmd_last.pop(key, None)
+        say(reason, platform)
         return
-    t = track_info(items[0])
-    if t["explicit"] and not state["musicExplicit"]:
-        say(f"🎵 @{name} küfürlü şarkılar şu an kapalı, başka bir tane dene.", platform)
-        return
-    if t["ms"] > SONG_MAX_MS:
-        say(f"🎵 @{name} 7 dakikadan uzun şarkılar alınmıyor.", platform)
-        return
-    if any(r["uri"] == t["uri"] for r in state["musicRequests"]):
-        say(f"🎵 {t['title']} zaten listede.", platform)
-        return
-    cooldown(key, 300)
     req = {**t, "id": f"s{time.time()}", "platform": platform, "name": name}
     if state["musicAuto"]:
         if await queue_track(req):
