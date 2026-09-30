@@ -2775,6 +2775,9 @@ async def lol_watcher():
             if end and not game["done"]:
                 game["done"] = True
                 result = {"Win": "W", "Lose": "L"}.get(end.get("Result"))
+                kda = game.get("kda") or {}
+                print(f"LoL maç bitti: {end.get('Result')} · K/D/A {kda.get('kills', '?')}/{kda.get('deaths', '?')}/{kda.get('assists', '?')}"
+                      f" · 💀 sayacı bu gece {state['deaths']}", flush=True)
                 if result and len(state["matches"]) == game["matchCount"]:  # skip if entered by hand already
                     add_match(result)
                 _spawn(lol_scene_later(game_scene(), chat_scene(), 12))  # a moment on the end screen first
@@ -2848,6 +2851,7 @@ def lol_players(game, players):
     if not mine:
         return False
     game["team"] = mine.get("team")
+    game["kda"] = {k: int((mine.get("scores") or {}).get(k) or 0) for k in ("kills", "deaths", "assists")}
     deaths = int((mine.get("scores") or {}).get("deaths") or 0)
     if game["deaths"] is None:
         game["deaths"] = deaths  # joined mid-game: count only from here
