@@ -2276,7 +2276,7 @@ except (OSError, ValueError):
     DEATH_TOTALS = {}
 DEATH_LINES = {
     1: "💀 İlk ölüm geldi! Isınma turu sayılır ⚓",
-    10: "💀 10 ölüm! En zor zorlukta bu kadar olur, değil mi? 😅",
+    10: "💀 10 ölüm! Kaptan ölümden korkmuyor 😅",
     25: "💀 25 ölüm! Mezarlık güverteden kalabalık oldu.",
     50: "💀 50 ölüm! Kaptan artık ölümle kanka.",
     100: "💀 100 ÖLÜM! Efsane seviyesi, alkışlar mürettebata değil ölümlere 👏",
@@ -2737,12 +2737,20 @@ async def lol_watcher():
                 continue  # may just not be ready yet during load; decide once the game is clearly running
             # Spectator/replay has no active player; practice tool isn't a real match.
             game = {"skip": not player or mode in LOL_SKIP_MODES, "matchCount": len(state["matches"]),
-                    "done": False, "locked": gtime >= LOL_LOCK_AFTER}
+                    "done": False, "locked": gtime >= LOL_LOCK_AFTER, "me": {_lol_name(player)} if player else set(),
+                    "teams": {}, "team": None, "deaths": 0 if gtime < 30 else None,
+                    "seen": max((int(e.get("EventID", -1)) for e in events), default=-1) if gtime >= 30 else -1}
             if not game["skip"] and gtime < LOL_LOCK_AFTER and state["prediction"]["status"] in ("off", "done"):
                 predict_open()
             if not game["skip"]:
                 await lol_scene("sohbet", game_scene())
             changed = True
+        if not game["skip"] and not game["done"]:
+            try:
+                changed = lol_players(game, await asyncio.to_thread(_lol_get, "playerlist")) or changed
+            except Exception:
+                pass
+            changed = lol_events(game, events) or changed
         if not game["skip"]:
             end = next((e for e in events if e.get("EventName") == "GameEnd"), None)
             if end and not game["done"]:
@@ -2762,6 +2770,73 @@ async def lol_watcher():
         if changed:
             await publish()
 
+
+
+# LoL moments from the Live Client event feed: first blood, multikills, aces and objectives our team
+# takes (or steals) become on-screen banners, clip markers and, for the big ones, a chat shout.
+MULTIKILL = {2: "DOUBLE KILL", 3: "TRIPLE KILL", 4: "QUADRA KILL", 5: "PENTAKILL"}
+OBJECTIVES = {"DragonKill": "EJDER", "BaronKill": "BARON", "HeraldKill": "HERALD"}
+
+
+def _lol_name(name):
+    return str(name or "").split("#")[0].strip().casefold()
+
+
+def lol_moment(text, big=False, marker=False, shout=False):
+    state["effects"] = (state["effects"] + [{"id": f"l{time.time()}{random.random()}", "type": "lol", "name": text, "big": big, "platform": ""}])[-10:]
+    if marker:
+        auto_marker(text)
+    if shout and cooldown(f"lolshout:{text}", 20):
+        say(f"{text} 🔥")
+
+
+def lol_events(game, events):
+    """Handle only events newer than the last one seen (a bridge restart mid-game doesn't replay old ones)."""
+    new = [e for e in events if int(e.get("EventID", -1)) > game["seen"]]
+    if not new:
+        return False
+    game["seen"] = max(int(e.get("EventID", -1)) for e in new)
+    me, teams, team = game["me"], game["teams"], game.get("team")
+    best_multi = max((int(e.get("KillStreak") or 0) for e in new
+                      if e.get("EventName") == "Multikill" and _lol_name(e.get("KillerName")) in me), default=0)
+    if best_multi in MULTIKILL:
+        label = MULTIKILL[best_multi]
+        lol_moment(f"⚔️ {label}!", big=best_multi >= 4, marker=best_multi >= 3, shout=best_multi >= 3)
+    for e in new:
+        kind = e.get("EventName")
+        if kind == "FirstBlood" and _lol_name(e.get("Recipient")) in me:
+            lol_moment("🩸 İLK KAN!")
+        elif kind == "Ace" and team and e.get("AcingTeam") == team:
+            lol_moment("💥 ACE!", marker=True)
+        elif kind in OBJECTIVES and team and teams.get(_lol_name(e.get("KillerName"))) == team:
+            what = "YAŞLI EJDER" if kind == "DragonKill" and e.get("DragonType") == "Elder" else OBJECTIVES[kind]
+            if str(e.get("Stolen")).lower() == "true":
+                lol_moment(f"🐉 {what} ÇALINDI!", big=True, marker=True, shout=True)
+            elif kind == "BaronKill" or what == "YAŞLI EJDER":
+                lol_moment(f"👑 {what} BİZİM!")
+    return True
+
+
+def lol_players(game, players):
+    """Team map from the player list, and our deaths into the 💀 counter (no Ctrl+Alt+D needed in LoL)."""
+    mine = None
+    for p in players or []:
+        for key in ("riotId", "riotIdGameName", "summonerName"):
+            if p.get(key):
+                game["teams"][_lol_name(p[key])] = p.get("team")
+        if any(_lol_name(p.get(k)) in game["me"] for k in ("riotId", "riotIdGameName", "summonerName")):
+            mine = p
+    if not mine:
+        return False
+    game["team"] = mine.get("team")
+    deaths = int((mine.get("scores") or {}).get("deaths") or 0)
+    if game["deaths"] is None:
+        game["deaths"] = deaths  # joined mid-game: count only from here
+    changed = deaths > game["deaths"]
+    for _ in range(max(0, deaths - game["deaths"])):
+        add_death(1)
+    game["deaths"] = max(game["deaths"], deaths)
+    return changed
 
 
 def chat_scene():

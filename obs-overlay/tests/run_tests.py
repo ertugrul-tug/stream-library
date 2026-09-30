@@ -143,7 +143,7 @@ def serve_http(port, handler_cls):
     return server
 
 
-LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC", "phase": "None"}
+LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC", "phase": "None", "events": [], "deaths": 0}
 HOOK_POSTS = []
 
 
@@ -172,7 +172,12 @@ class LolHandler(http.server.BaseHTTPRequestHandler):
             return self._send(200, {"gameMode": LOL_STATE["mode"], "gameTime": LOL_STATE["time"]})
         if path == "activeplayername":
             return self._send(200, "Qedy#TR1")
-        events = [{"EventName": "GameStart"}] + ([{"EventName": "GameEnd", "Result": LOL_STATE["end"]}] if LOL_STATE["end"] else [])
+        if path == "playerlist":
+            return self._send(200, [{"riotId": "Qedy#TR1", "riotIdGameName": "Qedy", "team": "ORDER", "scores": {"deaths": LOL_STATE["deaths"]}},
+                                    {"riotId": "Dost#TR1", "riotIdGameName": "Dost", "team": "ORDER", "scores": {"deaths": 0}},
+                                    {"riotId": "Rakip#EUW", "riotIdGameName": "Rakip", "team": "CHAOS", "scores": {"deaths": 3}}])
+        events = [{"EventID": 0, "EventName": "GameStart"}] + LOL_STATE["events"] \
+            + ([{"EventID": 99, "EventName": "GameEnd", "Result": LOL_STATE["end"]}] if LOL_STATE["end"] else [])
         return self._send(200, {"Events": events})
 
 
@@ -809,9 +814,22 @@ async def run(sb, obs, tmp):
         check("LoL: maç başlayınca sohbetten oyun sahnesine geçildi", await wait_until(lambda: scene_is("Sahne"), 4), obs.scene)
         LOL_STATE["time"] = 190.0
         check("LoL: 3. dakikada kilitlendi", await wait_until(lambda: _state_is(p, lambda s: s["prediction"]["status"] == "locked"), 8))
+        deaths_before = state()["deaths"]
+        LOL_STATE["events"] = [{"EventID": 1, "EventName": "FirstBlood", "Recipient": "Qedy"},
+                               {"EventID": 2, "EventName": "Multikill", "KillerName": "Qedy", "KillStreak": 2},
+                               {"EventID": 3, "EventName": "Multikill", "KillerName": "Qedy", "KillStreak": 3},
+                               {"EventID": 4, "EventName": "DragonKill", "KillerName": "Dost", "DragonType": "Fire", "Stolen": "True"},
+                               {"EventID": 5, "EventName": "BaronKill", "KillerName": "Rakip", "Stolen": "False"}]
+        LOL_STATE["deaths"] = 2
+        moments = await wait_until(lambda: _state_is(p, lambda s: sum(e["type"] == "lol" for e in s["effects"]) >= 3 and s["deaths"] >= deaths_before + 2), 8)
+        names = [e["name"] for e in state()["effects"] if e["type"] == "lol"]
+        check("LoL anları: ilk kan, triple kill (tek bant), çalınan ejder; rakip Baron sayılmadı; ölümler otomatik", moments
+              and "🩸 İLK KAN!" in names and "⚔️ TRIPLE KILL!" in names and "⚔️ DOUBLE KILL!" not in names
+              and "🐉 EJDER ÇALINDI!" in names and not any("BARON" in n for n in names) and state()["deaths"] == deaths_before + 2, str(names))
         LOL_STATE["end"] = "Win"
         check("LoL: galibiyet kendiliğinden girildi", await wait_until(lambda: _state_is(p, lambda s: len(s["matches"]) == matches + 1 and s["matches"][-1] == "W"), 8))
         LOL_STATE["up"] = False
+        LOL_STATE.update(events=[], deaths=0)
         check("LoL: maç bitince sohbet sahnesine dönüldü", await wait_until(lambda: scene_is("Sohbet Güvertesi"), 16), obs.scene)
         await obs.set_scene("Sahne")
         await p.drain()

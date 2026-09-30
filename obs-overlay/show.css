@@ -220,3 +220,5 @@
 .show-deaths .death-total{font-family:var(--font-mono,'JetBrains Mono',monospace);font-size:.55vw;letter-spacing:.08em;color:#ffb3b8;margin-top:.2vw}
 .show-deaths.bump{animation:deathBump .6s cubic-bezier(.2,1.6,.3,1)}
 @keyframes deathBump{0%{transform:scale(1)}30%{transform:scale(1.18);box-shadow:0 0 2vw rgba(220,60,70,.6)}100%{transform:scale(1)}}
+.fx-banner.lol{font-size:1.4vw;padding:.8vw 2vw;border-color:rgba(255,120,80,.85);color:#fff2e0;box-shadow:0 0 2vw rgba(255,110,60,.35)}
+.fx-banner.lol.big{font-size:2.2vw;padding:1vw 2.6vw;border-color:#ffce54;color:#ffe29a;box-shadow:0 0 3vw rgba(255,206,84,.55)}
