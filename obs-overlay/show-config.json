@@ -19,7 +19,7 @@
   "titleTemplates": {
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
     "The Witcher 3: Wild Hunt": "🐺 Witcher 3 Remastered ilk bakış · Hikayeli Salı · Kaptan Qedy",
-    "League of Legends": "🔴 LoL gecesi · Ranked, tahminler ve sohbet · Kaptan Qedy"
+    "League of Legends": "🔴 Competitive Çarşamba · LoL Ranked · !tahmin ile ganimet kazan · Kaptan Qedy"
   },
   "chatLinks": {
     "!site": "⚓ Kaptan Qedy'nin limanı: https://ertugrul-tug.github.io/stream-library/",

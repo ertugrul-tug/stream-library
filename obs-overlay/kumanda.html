@@ -271,7 +271,6 @@ $('newShow').onclick=()=>{const g=state?.game||'',favs=Object.keys(presets);
   sel.add(new Option('➕ Başka oyun…',OTHER));
   sel.value=g||favs[0]||OTHER;
   nsRoutes.forEach((r,i)=>{r.value=(state?.routes||[])[i]||''});pickGame();
-  if(g&&sel.value===g&&state?.title)$('nsTitle').value=state.title;
   $('nsNote').value='';$('nsAnnounce').checked=true;$('nsUpdateInfo').checked=true;dlg.showModal();sel.focus()};
 $('nsCancel').onclick=()=>dlg.close();
 $('nsGame').addEventListener('change',fillPreset);
