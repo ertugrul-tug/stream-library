@@ -791,18 +791,37 @@ def _post_discord_sync(url, content, allowed_mentions=None):
                  "User-Agent": "DiscordBot (https://github.com/ertugrul-tug/stream-library, 1.0)"},
         method="POST",
     )
-    urllib.request.urlopen(req, timeout=6).close()
+    urllib.request.urlopen(req, timeout=15).close()
+
+
+def _discord_retry_after(exc):
+    """Seconds to wait before another try, or None when retrying could double-post or can't help."""
+    if isinstance(exc, urllib.error.HTTPError):
+        if exc.code == 429:
+            try:
+                return min(10.0, float(json.loads(exc.read() or b"{}").get("retry_after") or 2))
+            except (ValueError, OSError):
+                return 2.0
+        return 2.0 if exc.code >= 500 else None
+    if isinstance(exc, urllib.error.URLError) and not isinstance(getattr(exc, "reason", None), TimeoutError):
+        return 2.0  # never connected (DNS, refused, network blip): nothing was posted
+    return None  # a timeout after sending may still have posted: don't risk a double announcement
 
 
 async def post_discord(text, allowed_mentions=None):
     if not DISCORD_WEBHOOK or not text:
         return False
-    try:
-        await asyncio.to_thread(_post_discord_sync, DISCORD_WEBHOOK, text, allowed_mentions)
-        return True
-    except Exception as exc:
-        print(f"Discord webhook hatası: {type(exc).__name__} {getattr(exc, 'code', '')}", flush=True)
-        return False
+    for attempt in range(3):
+        try:
+            await asyncio.to_thread(_post_discord_sync, DISCORD_WEBHOOK, text, allowed_mentions)
+            return True
+        except Exception as exc:
+            print(f"Discord webhook hatası: {type(exc).__name__} {getattr(exc, 'code', '')} (deneme {attempt + 1}/3)", flush=True)
+            wait = _discord_retry_after(exc)
+            if wait is None or attempt == 2:
+                return False
+            await asyncio.sleep(wait)
+    return False
 
 
 async def notify_discord(ws, ok, what):

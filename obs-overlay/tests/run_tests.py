@@ -145,6 +145,7 @@ def serve_http(port, handler_cls):
 
 LOL_STATE = {"up": False, "time": 5.0, "end": None, "mode": "CLASSIC", "phase": "None", "events": [], "deaths": 0}
 HOOK_POSTS = []
+HOOK_FAIL = [0]  # answer this many posts with a 503 first
 
 
 class LolHandler(http.server.BaseHTTPRequestHandler):
@@ -186,7 +187,13 @@ class HookHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        HOOK_POSTS.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if HOOK_FAIL[0] > 0:
+            HOOK_FAIL[0] -= 1
+            self.send_response(503)
+            self.end_headers()
+            return
+        HOOK_POSTS.append(body)
         self.send_response(204)
         self.end_headers()
 
@@ -867,7 +874,10 @@ async def run(sb, obs, tmp):
         del sb.actions["ModBanKick"]
         await p.act("modAction", platform="kick", name="Troll", type="ban")
         check("eksik moderasyon action'ı bildirildi", p.notices and "ModBanKick" in p.notices[-1], p.notices[-1:])
-        await p.act("discordSummary", wait=1.5)
+        HOOK_FAIL[0] = 1  # Discord hiccups once: the summary must still arrive, exactly once
+        posts_before = len(HOOK_POSTS)
+        await p.act("discordSummary", wait=4)
+        check("Discord bir kez 503 verince tekrar denendi, özet tek sefer gitti", len(HOOK_POSTS) == posts_before + 1 and HOOK_FAIL[0] == 0, str(len(HOOK_POSTS) - posts_before))
         summary = HOOK_POSTS[-1]["content"] if HOOK_POSTS else ""
         await p.act("startShow", wait=1, game="League of Legends", routes=[], announce=False, updateInfo=False)
         nights = state().get("nights") or []
