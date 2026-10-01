@@ -14,11 +14,13 @@
     "Teamfight Tactics": ["Ranked'e devam", "Double Up", "Kompu sohbet seçsin"],
     "Minecraft": ["Madene inelim", "Üssü büyütelim", "Nether'a sefer"],
     "The Witcher 3: Wild Hunt": ["Ana hikayeye devam", "Sözleşme avı (yan görev)", "Kararı sohbet versin"],
-    "Baldur's Gate 3": ["Ana göreve devam", "Yan görev keşfi", "Kararı sohbet versin"]
+    "Baldur's Gate 3": ["Ana göreve devam", "Yan görev keşfi", "Kararı sohbet versin"],
+    "Valheim": ["Boss avına çıkalım", "Üssü büyütelim", "Yeni biyoma sefer"]
   },
   "titleTemplates": {
     "*": "🔴 {game} · Kaptan Qedy güvertede!",
     "The Witcher 3: Wild Hunt": "🐺 Witcher 3 Remastered ilk bakış · Hikayeli Salı · Kaptan Qedy",
+    "Valheim": "⚔️ Valheim · Mürettebatla Valhalla seferi · Kaptan Qedy",
     "League of Legends": "🔴 Competitive Çarşamba · LoL Ranked · !tahmin ile ganimet kazan · Kaptan Qedy"
   },
   "chatLinks": {
@@ -42,6 +44,8 @@
     "kraken": { "durationSec": 90, "randomMinMinutes": 25, "randomMaxMinutes": 50, "raidMinViewers": 3 },
     "race": { "joinSec": 45, "maxBoats": 8 }
   },
+  "deathExclude": ["League of Legends", "Teamfight Tactics"],
+  "deathStart": {"The Witcher 3: Wild Hunt": 17},
   "lolAuto": {
     "lockAfterSec": 180
   },

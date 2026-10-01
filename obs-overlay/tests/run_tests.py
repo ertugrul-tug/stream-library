@@ -712,6 +712,11 @@ async def run(sb, obs, tmp):
         await p.act("setDetails", game=before["game"], returnMessage=before["returnMessage"])  # later checks expect the show's own game
         await p.act("setRoutes", routes=before["routes"])
         n9 = len(sb.said)
+        await p.act("setDetails", game="League of Legends", returnMessage=before["returnMessage"])
+        await p.act("death", delta=1)
+        check("rekabetçi oyunda (LoL) ölüm sayılmaz", state()["deaths"] == 0 and state()["deathTotal"] == 0, str((state()["game"], state()["deaths"], state()["deathTotal"])))
+        await p.act("setDetails", game="The Witcher 3: Wild Hunt", returnMessage=before["returnMessage"])
+        check("Witcher 3 toplamı 17'den başlar", state()["deathTotal"] == 17, str(state()["deathTotal"]))
         for _ in range(3):
             await p.act("death", delta=1)
         await p.act("death", delta=-1)
@@ -719,10 +724,11 @@ async def run(sb, obs, tmp):
         await p.drain()
         said9 = sb.said_since(n9)
         totals = json.loads((tmp / ".deaths.json").read_text(encoding="utf-8"))
-        check("ölüm sayacı: +3 −1 = 2, ilk ölüm şakası, !ölüm cevabı, seri toplamı kaydedildi", state()["deaths"] == 2 and state()["deathTotal"] == 2
-              and any("İlk ölüm" in t for t in said9) and any("Bu akşam 2 ölüm" in t for t in said9) and totals.get(state()["game"]) == 2, str(said9) + str(totals))
+        check("ölüm sayacı: +3 −1 = 2, ilk ölüm şakası, !ölüm cevabı, seri toplamı kaydedildi", state()["deaths"] == 2 and state()["deathTotal"] == 19
+              and any("İlk ölüm" in t for t in said9) and any("Bu akşam 2 ölüm" in t for t in said9) and totals.get(state()["game"]) == 19, str(said9) + str(totals))
         await p.act("deathReset")
-        check("gece sıfırlandı, seri toplamı kaldı", state()["deaths"] == 0 and state()["deathTotal"] == 2)
+        check("gece sıfırlandı, seri toplamı kaldı", state()["deaths"] == 0 and state()["deathTotal"] == 19)
+        await p.act("setDetails", game=before["game"], returnMessage=before["returnMessage"])
         check("kumandada aktif sohbetçi sayısı var", (state().get("activeChatters") or 0) >= 2, str(state().get("activeChatters")))
         n5 = len(sb.said)
         await sb.chat("twitch", "Ali", "!program")

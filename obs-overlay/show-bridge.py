@@ -706,6 +706,7 @@ _save_warned = [False]
 
 
 async def publish():
+    deaths_sync()
     try:
         STATE_FILE.write_text(json.dumps({k: v for k, v in state.items() if k not in ("connection", "obsConnection", "lolGame", "kraken", "race", "pirate", "tug", "fishCup", "health", "scene")}, ensure_ascii=False, indent=2), encoding="utf-8")
         _save_warned[0] = False
@@ -2286,13 +2287,20 @@ async def sb_log_watch():
 
 # ----------------------------------------------------------- death counter --
 # 💀 for the hard-mode runs: tonight's count on screen plus a per-game total across shows (.deaths.json).
-# +1 from the panel, chat can ask with !ölüm, and a global hotkey (default Ctrl+Alt+D) so the captain
+# +1 from the panel, chat can ask with !ölüm, and a global chord (default AltGr + . + ,) so the captain
 # never has to leave the game.
 DEATHS_FILE = DATA_DIR / ".deaths.json"
 try:
     DEATH_TOTALS = json.loads(DEATHS_FILE.read_text(encoding="utf-8"))
 except (OSError, ValueError):
     DEATH_TOTALS = {}
+# competitive games never count; deathStart seeds a game's total once (e.g. the run so far)
+DEATH_EXCLUDE = set(CONFIG.get("deathExclude") or [])
+for _g in DEATH_EXCLUDE:
+    DEATH_TOTALS.pop(_g, None)
+for _g, _n in (CONFIG.get("deathStart") or {}).items():
+    DEATH_TOTALS.setdefault(_g, int(_n))
+_deaths_game = [None]
 DEATH_LINES = {
     1: "💀 İlk ölüm geldi! Isınma turu sayılır ⚓",
     10: "💀 10 ölüm! Kaptan ölümden korkmuyor 😅",
@@ -2302,11 +2310,25 @@ DEATH_LINES = {
 }
 
 
+def deaths_sync():
+    """Tonight's count belongs to one game: switching games starts that game's night at 0."""
+    if _deaths_game[0] not in (None, state["game"]):
+        state["deaths"] = 0
+    _deaths_game[0] = state["game"]
+
+
+def death_counts():
+    return (state["game"] or "?") not in DEATH_EXCLUDE
+
+
 def death_total():
     return int(DEATH_TOTALS.get(state["game"] or "?", 0))
 
 
 def add_death(delta):
+    deaths_sync()
+    if not death_counts():
+        return
     delta = 1 if delta > 0 else -1
     if delta < 0 and state["deaths"] <= 0:
         return
@@ -2325,6 +2347,9 @@ def add_death(delta):
 
 
 def deaths_text():
+    deaths_sync()
+    if not death_counts():
+        return "💀 Bu oyunda ölüm sayılmıyor, rekabetçi gece ⚔️"
     n, total = state["deaths"], death_total()
     if not n and not total:
         return "💀 Bu akşam henüz ölüm yok, kaptan ayakta! ⚓"
@@ -2332,53 +2357,32 @@ def deaths_text():
     return f"💀 Bu akşam {n} ölüm" + (f" · {game} toplamı {total}" if total > n else "")
 
 
-VK_NAMES = {"space": 0x20, "pause": 0x13, "insert": 0x2D, "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22}
-
-
-def parse_hotkey(spec):
-    mods, vk = 0x4000, None  # MOD_NOREPEAT
-    for part in str(spec).lower().replace(" ", "").split("+"):
-        if part in ("alt",):
-            mods |= 0x1
-        elif part in ("ctrl", "control"):
-            mods |= 0x2
-        elif part == "shift":
-            mods |= 0x4
-        elif part == "win":
-            mods |= 0x8
-        elif re.fullmatch(r"f([1-9]|1[0-9]|2[0-4])", part):
-            vk = 0x6F + int(part[1:])
-        elif re.fullmatch(r"num[0-9]", part):
-            vk = 0x60 + int(part[3])
-        elif len(part) == 1 and part.isalnum():
-            vk = ord(part.upper())
-        elif part in VK_NAMES:
-            vk = VK_NAMES[part]
-    return mods, vk
-
-
 def start_hotkeys(loop):
-    """Global Windows hotkey for +1 death, even while the game has focus (RegisterHotKey, no extra packages)."""
-    spec = CONFIG.get("deathHotkey", "ctrl+alt+d")
+    """Global chord for +1 death while the game has focus: AltGr + . + , by default (polled, no extra packages).
+    Keys are resolved from the active keyboard layout, so the chord follows the printed characters."""
+    spec = CONFIG.get("deathHotkey", "altgr+.+,")
     if os.name != "nt" or not spec or os.environ.get("QEDY_HOTKEYS") == "0":
         return
-    mods, vk = parse_hotkey(spec)
-    if vk is None:
-        print(f"Ölüm kısayolu anlaşılamadı: {spec}", flush=True)
-        return
+    parts = [x for x in str(spec).lower().replace(" ", "").replace("++", "+plus").split("+") if x]
+    chars = [("+" if x == "plus" else x) for x in parts if len(x) == 1 or x == "plus"]
+    altgr = "altgr" in parts
 
     def run():
         import ctypes
-        from ctypes import wintypes
         user32 = ctypes.windll.user32
-        if not user32.RegisterHotKey(None, 1, mods, vk):
-            print(f"⚠ Ölüm kısayolu ({spec}) kaydedilemedi: başka bir program kullanıyor olabilir", flush=True)
+        vks = [user32.VkKeyScanW(ord(c)) & 0xFF for c in chars]
+        if not vks or 0xFF in vks:
+            print(f"Ölüm kısayolu anlaşılamadı: {spec}", flush=True)
             return
         print(f"  Ölüm sayacı kısayolu: {spec}", flush=True)
-        msg = wintypes.MSG()
-        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
-            if msg.message == 0x0312:  # WM_HOTKEY
+        down = lambda vk: user32.GetAsyncKeyState(vk) & 0x8000
+        held = False
+        while True:
+            now = (not altgr or (down(0xA5) or (down(0xA2) and down(0xA4)))) and all(down(vk) for vk in vks)
+            if now and not held:
                 loop.call_soon_threadsafe(_death_from_hotkey)
+            held = now
+            time.sleep(0.03)
 
     threading.Thread(target=run, daemon=True, name="hotkeys").start()
 
@@ -2840,7 +2844,7 @@ def lol_events(game, events):
 
 
 def lol_players(game, players):
-    """Team map from the player list, and our deaths into the 💀 counter (no Ctrl+Alt+D needed in LoL)."""
+    """Team map from the player list, and our deaths into the 💀 counter (no hotkey needed in LoL)."""
     mine = None
     for p in players or []:
         for key in ("riotId", "riotIdGameName", "summonerName"):

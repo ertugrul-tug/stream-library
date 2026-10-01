@@ -4,7 +4,7 @@ Haftalık tema sabit, oyunlar kaptanın 28 Eylül seçimi. Özel gece şimdilik 
 
 | Tarih | Gün | Saat | Tema | Oyun |
 |---|---|---|---|---|
-| 1 Ekim | Perşembe | 20:30 | Survival | Minecraft |
+| 1 Ekim | Perşembe | 20:30 | Survival | Valheim · mürettebatla |
 | 2 Ekim | Cuma | 20:30 | Toplu Ekip | LoL özel oda · mürettebatla aynı lobide (!oyna) |
 | 3 Ekim | Cumartesi | — | Dinlenme | — |
 | 4 Ekim | Pazar | — | YouTube | Hafta 40 özeti: `make-clips.py --week` + `social/thumbnail.html?hafta=40` |
