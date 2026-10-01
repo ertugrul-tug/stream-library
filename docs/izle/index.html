@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kaptan Qedy · Canlı İzle</title>
+<meta name="description" content="Kaptan Qedy canlı yayını: Twitch ya da Kick oynatıcısı, iki sohbet yan yana.">
+<link rel="icon" href="../assets/logo_cat.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#07090d; --surface:#0f131a; --surface-2:#151b24;
+    --line:rgba(245,247,250,.09); --line-strong:rgba(245,247,250,.18);
+    --ink:#f4f7fa; --ink-dim:#9aa7b6; --ink-faint:#5f6b79;
+    --twitch:#9146ff; --kick:#53fc18; --pink:#ff3d7f;
+    --font-display:'Unbounded',system-ui,sans-serif;
+    --font-body:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'JetBrains Mono',Consolas,monospace;
+    --head:56px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font-body)}
+  a{color:inherit}
+  header{height:var(--head);display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(7,9,13,.92)}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-weight:800;font-size:14px;letter-spacing:.08em;white-space:nowrap}
+  .brand img{width:30px;height:30px;border-radius:50%}
+  .live{display:none;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--pink)}
+  .live.on{display:inline-flex}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 10px var(--pink);animation:blink 1.6s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .spacer{flex:1}
+  .switch{display:flex;border:1px solid var(--line-strong);border-radius:999px;overflow:hidden}
+  .switch button{border:0;background:transparent;color:var(--ink-dim);font:700 12px var(--font-body);padding:8px 14px;cursor:pointer}
+  .switch button[aria-pressed="true"][data-p="twitch"]{background:var(--twitch);color:#fff}
+  .switch button[aria-pressed="true"][data-p="kick"]{background:var(--kick);color:#0b1200}
+  .home{font-size:13px;color:var(--ink-dim);text-decoration:none;white-space:nowrap}
+  .home:hover{color:var(--ink)}
+
+  main{display:grid;grid-template-columns:minmax(260px,340px) 1fr minmax(260px,340px);height:calc(100dvh - var(--head))}
+  .chat{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-right:1px solid var(--line)}
+  .chat.twitch{border-right:0;border-left:1px solid var(--line)}
+  .chat-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;color:var(--ink-dim)}
+  .chat-head b{width:8px;height:8px;border-radius:50%}
+  .chat.kick b{background:var(--kick)} .chat.twitch b{background:var(--twitch)}
+  .chat-head a{margin-left:auto;text-decoration:none;color:var(--ink-faint);letter-spacing:0;font-size:12px}
+  .chat-head a:hover{color:var(--ink)}
+  .chat iframe{flex:1;width:100%;border:0;min-height:0;background:var(--surface)}
+  .stage{display:flex;flex-direction:column;min-width:0;min-height:0;padding:16px;gap:12px;overflow:auto}
+  .player{position:relative;width:100%;aspect-ratio:16/9;max-height:calc(100dvh - var(--head) - 90px);margin:0 auto;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#000}
+  .player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .note{font-size:13px;color:var(--ink-dim);text-align:center;line-height:1.6}
+  .note a{color:var(--ink)}
+  .tabs{display:none}
+
+  @media (max-width: 900px){
+    :root{--head:52px}
+    header{gap:8px;padding:0 12px}
+    .brand span{display:none}
+    main{display:flex;flex-direction:column;height:auto;min-height:calc(100dvh - var(--head))}
+    .stage{padding:0;gap:0;overflow:visible}
+    .player{border-radius:0;border-left:0;border-right:0;max-height:none}
+    .note{display:none}
+    .tabs{display:flex;border-bottom:1px solid var(--line)}
+    .tabs button{flex:1;border:0;background:var(--surface);color:var(--ink-dim);font:700 13px var(--font-body);padding:11px 0;cursor:pointer;border-bottom:2px solid transparent}
+    .tabs button[aria-selected="true"][data-c="kick"]{color:var(--ink);border-bottom-color:var(--kick)}
+    .tabs button[aria-selected="true"][data-c="twitch"]{color:var(--ink);border-bottom-color:var(--twitch)}
+    .chat{order:3;height:calc(100dvh - var(--head) - 56.25vw - 44px);min-height:360px;border:0}
+    .chat.twitch{border-left:0}
+    .chat:not(.shown){display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../"><img src="../assets/logo_cat.png" alt=""><span>KAPTAN&nbsp;QEDY</span></a>
+  <span class="live" id="live"><i></i>CANLI</span>
+  <span class="spacer"></span>
+  <div class="switch" role="group" aria-label="Yayın">
+    <button type="button" data-p="twitch" aria-pressed="true">Twitch</button>
+    <button type="button" data-p="kick" aria-pressed="false">Kick</button>
+  </div>
+  <a class="home" href="../">← Site</a>
+</header>
+<main>
+  <section class="chat kick shown" id="chatKick">
+    <div class="chat-head"><b></b>KICK SOHBETİ<a href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick'te aç ↗</a></div>
+    <iframe title="Kick sohbeti" data-src="https://kick.com/popout/kaptanqedy/chat"></iframe>
+  </section>
+  <section class="stage">
+    <div class="player" id="player"></div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-c="kick" aria-selected="true">Kick sohbeti</button>
+      <button type="button" role="tab" data-c="twitch" aria-selected="false">Twitch sohbeti</button>
+    </div>
+    <p class="note">Yayın iki platformda aynı anda. Yazmak için sohbetlerde kendi hesabınla giriş yapman yeterli · <a href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch</a> · <a href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick</a></p>
+  </section>
+  <section class="chat twitch" id="chatTwitch">
+    <div class="chat-head"><b></b>TWITCH SOHBETİ<a href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch'te aç ↗</a></div>
+    <iframe title="Twitch sohbeti" data-src="twitch-chat"></iframe>
+  </section>
+</main>
+<script>
+(function(){
+  'use strict';
+  var CH = 'kaptanqedy';
+  // Twitch only allows its embeds on the domains named in "parent"
+  var host = location.hostname || 'ertugrul-tug.github.io';
+  var SRC = {
+    twitch: 'https://player.twitch.tv/?channel=' + CH + '&parent=' + host + '&autoplay=true',
+    kick: 'https://player.kick.com/' + CH + '?autoplay=true'
+  };
+  var player = document.getElementById('player');
+  function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  function pick(p){
+    var frame = document.createElement('iframe');
+    frame.src = SRC[p]; frame.title = (p === 'twitch' ? 'Twitch' : 'Kick') + ' yayını';
+    frame.allow = 'autoplay; fullscreen; picture-in-picture'; frame.allowFullscreen = true;
+    player.replaceChildren(frame);
+    document.querySelectorAll('.switch button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.p === p)); });
+    store('qedy-izle-player', p);
+  }
+  document.querySelectorAll('.switch button').forEach(function(b){ b.addEventListener('click', function(){ pick(b.dataset.p); }); });
+  pick(store('qedy-izle-player') === 'kick' ? 'kick' : 'twitch');
+
+  document.querySelectorAll('.chat iframe').forEach(function(f){
+    f.src = f.dataset.src === 'twitch-chat'
+      ? 'https://www.twitch.tv/embed/' + CH + '/chat?parent=' + host + '&darkpopout'
+      : f.dataset.src;
+  });
+
+  // phones: one chat at a time
+  function showChat(c){
+    document.getElementById('chatKick').classList.toggle('shown', c === 'kick');
+    document.getElementById('chatTwitch').classList.toggle('shown', c === 'twitch');
+    document.querySelectorAll('.tabs button').forEach(function(b){ b.setAttribute('aria-selected', String(b.dataset.c === c)); });
+  }
+  document.querySelectorAll('.tabs button').forEach(function(b){ b.addEventListener('click', function(){ showChat(b.dataset.c); }); });
+
+  // live dot (same check as the home page)
+  function checkLive(){
+    fetch('https://decapi.me/twitch/uptime/' + CH, { cache: 'no-store' }).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
+      document.getElementById('live').classList.toggle('on', !!t && !/offline|error|not found/i.test(t));
+    }).catch(function(){});
+  }
+  checkLive(); setInterval(function(){ if (!document.hidden) checkLive(); }, 60000);
+})();
+</script>
+</body>
+</html>
