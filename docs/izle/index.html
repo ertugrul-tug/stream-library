@@ -139,6 +139,7 @@
   var KICK_PUSHER = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false';
   // Twitch app (dev.twitch.tv · public client, redirect = this page). Empty = writing via Twitch stays off.
   var TWITCH_CLIENT_ID = 'jbfsymcho9cziqpi1cd1vhoowkfql8';
+  var SCOPES = ['chat:read', 'chat:edit'];
   var host = location.hostname || 'ertugrul-tug.github.io';
   // must equal the OAuth Redirect URL registered for the Twitch app
   var REDIRECT = /github\.io$/.test(host) ? 'https://ertugrul-tug.github.io/stream-library/izle/' : location.origin + location.pathname;
@@ -338,8 +339,9 @@
     fetch('https://id.twitch.tv/oauth2/validate', { headers: { Authorization: 'OAuth ' + token } })
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(v){
-        if (v && v.user_id) me = { id: v.user_id, login: v.login, token: token };
-        else { store('qedy-twitch-token', null); me = null; }
+        var ok = v && v.user_id && SCOPES.every(function(sc){ return (v.scopes || []).indexOf(sc) >= 0; });
+        if (ok) { me = { id: v.user_id, login: v.login, token: token }; writerConnect(); }
+        else { store('qedy-twitch-token', null); me = null; if (v && v.user_id) status('Yazma izni güncellendi, bir kez tekrar "Twitch ile yaz"a bas.'); }
         showLogin();
       }).catch(showLogin);
   }
@@ -347,30 +349,57 @@
     var st = Math.random().toString(36).slice(2) + Date.now().toString(36);
     try { sessionStorage.setItem('qedy-oauth-state', st); } catch (e) {}
     location.href = 'https://id.twitch.tv/oauth2/authorize?' + new URLSearchParams({
-      client_id: TWITCH_CLIENT_ID, redirect_uri: REDIRECT, response_type: 'token', scope: 'user:write:chat', state: st
+      client_id: TWITCH_CLIENT_ID, redirect_uri: REDIRECT, response_type: 'token', scope: SCOPES.join(' '), state: st, force_verify: 'false'
     });
   });
   $('logout').addEventListener('click', function(){
     if (me) fetch('https://id.twitch.tv/oauth2/revoke', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: TWITCH_CLIENT_ID, token: me.token }) }).catch(function(){});
-    store('qedy-twitch-token', null); me = null; showLogin(); status('');
+    store('qedy-twitch-token', null); me = null; if (writer) writer.ws.close(); showLogin(); status('');
   });
+  // The viewer's own IRC connection, used only for sending (reading stays on the anonymous one).
+  var writer = null;
+  var NOTICES = {
+    msg_followersonly: 'Sohbet takipçi modunda: önce kanalı takip etmelisin.',
+    msg_followersonly_followed: 'Takipçi modunda yazabilmek için biraz daha beklemelisin.',
+    msg_subsonly: 'Sohbet abone modunda.',
+    msg_emoteonly: 'Sohbet yalnızca emote modunda.',
+    msg_slowmode: 'Yavaş mod açık, biraz bekleyip tekrar dene.',
+    msg_duplicate: 'Aynı mesajı az önce gönderdin.',
+    msg_ratelimit: 'Çok hızlı yazıyorsun, birkaç saniye bekle.',
+    msg_banned: 'Bu kanalda yazman engellenmiş.',
+    msg_timedout: 'Şu an susturulmuşsun.',
+    msg_verified_email: 'Yazmak için Twitch hesabında e-posta doğrulaması gerekiyor.',
+    msg_requires_verified_phone_number: 'Yazmak için Twitch hesabında telefon doğrulaması gerekiyor.'
+  };
+  function writerConnect(){
+    if (!me || writer) return;
+    var ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'), w = { ws: ws, ready: false };
+    writer = w;
+    ws.onopen = function(){
+      ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+      ws.send('PASS oauth:' + me.token); ws.send('NICK ' + me.login); ws.send('JOIN #' + TWITCH_LOGIN);
+    };
+    ws.onmessage = function(ev){
+      String(ev.data).split('\r\n').forEach(function(line){
+        if (!line) return;
+        if (line.indexOf('PING') === 0) { ws.send('PONG :tmi.twitch.tv'); return; }
+        if (/ 366 /.test(line)) { w.ready = true; $('send').disabled = false; return; }
+        if (/NOTICE \* :Login (authentication failed|unsuccessful)/.test(line) || /Improperly formatted auth/.test(line)) {
+          store('qedy-twitch-token', null); me = null; showLogin(); status('Twitch oturumu geçersiz, tekrar giriş yap.', true); ws.close(); return;
+        }
+        var p = parseIrc(line);
+        if (p.cmd === 'NOTICE') status(NOTICES[p.tags['msg-id']] || p.text, true);
+      });
+    };
+    ws.onclose = function(){ if (writer === w) writer = null; if (me) setTimeout(writerConnect, 3000); };
+  }
   function send(){
-    var input = $('text'), text = input.value.trim();
+    var input = $('text'), text = input.value.replace(/[\r\n]+/g, ' ').trim();
     if (!me || !text) return;
-    $('send').disabled = true; status('');
-    fetch('https://api.twitch.tv/helix/chat/messages', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + me.token, 'Client-Id': TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ broadcaster_id: TWITCH_ID, sender_id: me.id, message: text })
-    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, status: r.status, j: j }; }); })
-      .then(function(res){
-        var d = res.j && res.j.data && res.j.data[0];
-        if (res.ok && d && d.is_sent) { input.value = ''; return; }
-        if (res.status === 401) { store('qedy-twitch-token', null); me = null; showLogin(); status('Oturum süresi doldu, tekrar giriş yap.', true); return; }
-        status('Mesaj gönderilemedi' + (d && d.drop_reason ? ': ' + d.drop_reason.message : (res.j && res.j.message ? ': ' + res.j.message : '')), true);
-      }).catch(function(){ status('Bağlantı hatası, tekrar dene.', true); })
-      .then(function(){ $('send').disabled = false; input.focus(); });
+    if (!writer || !writer.ready) { status('Twitch sohbetine bağlanıyor, bir saniye…'); writerConnect(); return; }
+    writer.ws.send('PRIVMSG #' + TWITCH_LOGIN + ' :' + text);
+    input.value = ''; status(''); input.focus();
   }
   $('send').addEventListener('click', send);
   $('text').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); send(); } });
