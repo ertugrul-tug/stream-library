@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kaptan Qedy · Canlı İzle</title>
-<meta name="description" content="Kaptan Qedy canlı yayını: Twitch ya da Kick oynatıcısı, iki sohbet yan yana.">
+<meta name="description" content="Kaptan Qedy canlı yayını: Twitch ya da Kick oynatıcısı ve iki platformun ortak sohbeti.">
 <link rel="icon" href="../assets/logo_cat.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -14,7 +14,7 @@
     --bg:#07090d; --surface:#0f131a; --surface-2:#151b24;
     --line:rgba(245,247,250,.09); --line-strong:rgba(245,247,250,.18);
     --ink:#f4f7fa; --ink-dim:#9aa7b6; --ink-faint:#5f6b79;
-    --twitch:#9146ff; --kick:#53fc18; --pink:#ff3d7f;
+    --twitch:#9146ff; --kick:#53fc18; --pink:#ff3d7f; --blue:#22aef0;
     --font-display:'Unbounded',system-ui,sans-serif;
     --font-body:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     --font-mono:'JetBrains Mono',Consolas,monospace;
@@ -23,6 +23,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font-body)}
   a{color:inherit}
+  button{font-family:inherit}
   header{height:var(--head);display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(7,9,13,.92)}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-weight:800;font-size:14px;letter-spacing:.08em;white-space:nowrap}
   .brand img{width:30px;height:30px;border-radius:50%}
@@ -30,45 +31,66 @@
   .live.on{display:inline-flex}
   .live i{width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 10px var(--pink);animation:blink 1.6s ease-in-out infinite}
   @keyframes blink{50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){.live i{animation:none}}
   .spacer{flex:1}
   .switch{display:flex;border:1px solid var(--line-strong);border-radius:999px;overflow:hidden}
-  .switch button{border:0;background:transparent;color:var(--ink-dim);font:700 12px var(--font-body);padding:8px 14px;cursor:pointer}
+  .switch button{border:0;background:transparent;color:var(--ink-dim);font-weight:700;font-size:12px;padding:8px 14px;cursor:pointer}
   .switch button[aria-pressed="true"][data-p="twitch"]{background:var(--twitch);color:#fff}
   .switch button[aria-pressed="true"][data-p="kick"]{background:var(--kick);color:#0b1200}
   .home{font-size:13px;color:var(--ink-dim);text-decoration:none;white-space:nowrap}
   .home:hover{color:var(--ink)}
 
-  main{display:grid;grid-template-columns:minmax(260px,340px) 1fr minmax(260px,340px);height:calc(100dvh - var(--head))}
-  .chat{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-right:1px solid var(--line)}
-  .chat.twitch{border-right:0;border-left:1px solid var(--line)}
-  .chat-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;color:var(--ink-dim)}
-  .chat-head b{width:8px;height:8px;border-radius:50%}
-  .chat.kick b{background:var(--kick)} .chat.twitch b{background:var(--twitch)}
-  .chat-head a{margin-left:auto;text-decoration:none;color:var(--ink-faint);letter-spacing:0;font-size:12px}
-  .chat-head a:hover{color:var(--ink)}
-  .chat iframe{flex:1;width:100%;border:0;min-height:0;background:var(--surface)}
-  .stage{display:flex;flex-direction:column;min-width:0;min-height:0;padding:16px;gap:12px;overflow:auto}
-  .player{position:relative;width:100%;aspect-ratio:16/9;max-height:calc(100dvh - var(--head) - 90px);margin:0 auto;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#000}
+  main{display:grid;grid-template-columns:1fr minmax(300px,380px);height:calc(100dvh - var(--head))}
+  .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:0;padding:16px;gap:12px}
+  .player{position:relative;width:100%;max-width:calc((100dvh - var(--head) - 80px) * 16 / 9);aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#000}
   .player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .note{font-size:13px;color:var(--ink-dim);text-align:center;line-height:1.6}
-  .note a{color:var(--ink)}
-  .tabs{display:none}
+  .note{font-size:13px;color:var(--ink-dim);text-align:center;line-height:1.6;margin:0}
+
+  .chat{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-left:1px solid var(--line)}
+  .chat-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;color:var(--ink-dim)}
+  .conn{margin-left:auto;display:flex;gap:6px}
+  .conn span{display:inline-flex;align-items:center;gap:5px;letter-spacing:.06em;font-size:10px;color:var(--ink-faint)}
+  .conn span::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--ink-faint)}
+  .conn span.on.t::before{background:var(--twitch)} .conn span.on.k::before{background:var(--kick)}
+  .conn span.on{color:var(--ink-dim)}
+  .msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 12px 12px;overscroll-behavior:contain}
+  .msg{padding:5px 2px;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+  .msg .pf{display:inline-block;width:16px;height:16px;border-radius:4px;vertical-align:-3px;margin-right:6px;font:800 10px/16px var(--font-mono);text-align:center}
+  .msg .pf.twitch{background:var(--twitch);color:#fff} .msg .pf.kick{background:var(--kick);color:#0b1200}
+  .msg .who{font-weight:700}
+  .msg .cap{font-size:10px;font-weight:800;letter-spacing:.06em;color:#0b1200;background:var(--blue);border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+  .msg img.emote{height:24px;vertical-align:-7px;margin:0 1px}
+  .msg.mine{background:rgba(145,70,255,.08);border-radius:6px;padding-left:6px}
+  .empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:24px 8px;line-height:1.6}
+  .jump{display:none;margin:0 12px 8px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+  .jump.on{display:block}
+
+  .compose{border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+  .send-row{display:flex;gap:8px}
+  .send-row input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line-strong);border-radius:10px;color:var(--ink);font:500 14px var(--font-body);padding:10px 12px}
+  .send-row input:focus{outline:2px solid var(--twitch);outline-offset:0;border-color:transparent}
+  .btn{border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;text-align:center;white-space:nowrap}
+  .btn.twitch{background:var(--twitch);border-color:var(--twitch);color:#fff}
+  .btn.kick{background:transparent;border-color:var(--kick);color:var(--kick)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .login-row{display:flex;gap:8px}
+  .login-row .btn{flex:1}
+  .who-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-dim)}
+  .who-row b{color:var(--ink)}
+  .who-row button{margin-left:auto;background:none;border:0;color:var(--ink-faint);font-size:12px;cursor:pointer;text-decoration:underline}
+  .status{font-size:12px;color:var(--ink-dim);min-height:0}
+  .status.err{color:#ff8a93}
+  [hidden]{display:none!important}
 
   @media (max-width: 900px){
     :root{--head:52px}
     header{gap:8px;padding:0 12px}
     .brand span{display:none}
-    main{display:flex;flex-direction:column;height:auto;min-height:calc(100dvh - var(--head))}
-    .stage{padding:0;gap:0;overflow:visible}
-    .player{border-radius:0;border-left:0;border-right:0;max-height:none}
+    main{display:flex;flex-direction:column;height:calc(100dvh - var(--head))}
+    .stage{padding:0;gap:0;flex:none}
+    .player{border-radius:0;border-left:0;border-right:0;max-width:none}
     .note{display:none}
-    .tabs{display:flex;border-bottom:1px solid var(--line)}
-    .tabs button{flex:1;border:0;background:var(--surface);color:var(--ink-dim);font:700 13px var(--font-body);padding:11px 0;cursor:pointer;border-bottom:2px solid transparent}
-    .tabs button[aria-selected="true"][data-c="kick"]{color:var(--ink);border-bottom-color:var(--kick)}
-    .tabs button[aria-selected="true"][data-c="twitch"]{color:var(--ink);border-bottom-color:var(--twitch)}
-    .chat{order:3;height:calc(100dvh - var(--head) - 56.25vw - 44px);min-height:360px;border:0}
-    .chat.twitch{border-left:0}
-    .chat:not(.shown){display:none}
+    .chat{flex:1;border-left:0}
   }
 </style>
 </head>
@@ -84,67 +106,272 @@
   <a class="home" href="../">← Site</a>
 </header>
 <main>
-  <section class="chat kick shown" id="chatKick">
-    <div class="chat-head"><b></b>KICK SOHBETİ<a href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick'te aç ↗</a></div>
-    <iframe title="Kick sohbeti" data-src="https://kick.com/popout/kaptanqedy/chat"></iframe>
-  </section>
   <section class="stage">
     <div class="player" id="player"></div>
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" data-c="kick" aria-selected="true">Kick sohbeti</button>
-      <button type="button" role="tab" data-c="twitch" aria-selected="false">Twitch sohbeti</button>
-    </div>
-    <p class="note">Yayın iki platformda aynı anda. Yazmak için sohbetlerde kendi hesabınla giriş yapman yeterli · <a href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch</a> · <a href="https://kick.com/kaptanqedy" target="_blank" rel="noopener">Kick</a></p>
+    <p class="note">Yayın Twitch ve Kick'te aynı anda · sağdaki sohbet ikisinin ortak akışı</p>
   </section>
-  <section class="chat twitch" id="chatTwitch">
-    <div class="chat-head"><b></b>TWITCH SOHBETİ<a href="https://www.twitch.tv/kaptanqedy" target="_blank" rel="noopener">Twitch'te aç ↗</a></div>
-    <iframe title="Twitch sohbeti" data-src="twitch-chat"></iframe>
+  <section class="chat" aria-label="Ortak sohbet">
+    <div class="chat-head">ORTAK SOHBET
+      <div class="conn"><span class="t" id="connT">TWITCH</span><span class="k" id="connK">KICK</span></div>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"><p class="empty" id="empty">Twitch ve Kick sohbeti burada birleşiyor. İlk mesaj bekleniyor…</p></div>
+    <button type="button" class="jump" id="jump">↓ Yeni mesajlar</button>
+    <div class="compose">
+      <div class="who-row" id="whoRow" hidden><span>Twitch olarak yazıyorsun: <b id="whoName"></b></span><button type="button" id="logout">Çıkış</button></div>
+      <div class="send-row" id="sendRow" hidden>
+        <input id="text" maxlength="450" autocomplete="off" placeholder="Mesajını yaz…" aria-label="Mesaj">
+        <button type="button" class="btn twitch" id="send">Gönder</button>
+      </div>
+      <div class="login-row" id="loginRow">
+        <button type="button" class="btn twitch" id="login" hidden>Twitch ile yaz</button>
+        <a class="btn kick" href="https://kick.com/popout/kaptanqedy/chat" target="kickchat" rel="noopener" id="kickWrite">Kick'te yaz ↗</a>
+      </div>
+      <div class="status" id="status" role="status"></div>
+    </div>
   </section>
 </main>
 <script>
 (function(){
   'use strict';
-  var CH = 'kaptanqedy';
-  // Twitch only allows its embeds on the domains named in "parent"
+  // ---- channel facts -------------------------------------------------------
+  var TWITCH_LOGIN = 'kaptanqedy', TWITCH_ID = '146047709';
+  var KICK_SLUG = 'kaptanqedy', KICK_CHATROOM = 2435281;
+  var KICK_PUSHER = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false';
+  // Twitch app (dev.twitch.tv · public client, redirect = this page). Empty = writing via Twitch stays off.
+  var TWITCH_CLIENT_ID = '';
   var host = location.hostname || 'ertugrul-tug.github.io';
-  var SRC = {
-    twitch: 'https://player.twitch.tv/?channel=' + CH + '&parent=' + host + '&autoplay=true',
-    kick: 'https://player.kick.com/' + CH + '?autoplay=true'
-  };
-  var player = document.getElementById('player');
-  function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var REDIRECT = location.origin + location.pathname;
 
+  function $(id){ return document.getElementById(id); }
+  function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  // ---- player --------------------------------------------------------------
+  var SRC = {
+    twitch: 'https://player.twitch.tv/?channel=' + TWITCH_LOGIN + '&parent=' + host + '&autoplay=true',
+    kick: 'https://player.kick.com/' + KICK_SLUG + '?autoplay=true'
+  };
   function pick(p){
-    var frame = document.createElement('iframe');
-    frame.src = SRC[p]; frame.title = (p === 'twitch' ? 'Twitch' : 'Kick') + ' yayını';
-    frame.allow = 'autoplay; fullscreen; picture-in-picture'; frame.allowFullscreen = true;
-    player.replaceChildren(frame);
+    var f = document.createElement('iframe');
+    f.src = SRC[p]; f.title = (p === 'twitch' ? 'Twitch' : 'Kick') + ' yayını';
+    f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true;
+    $('player').replaceChildren(f);
     document.querySelectorAll('.switch button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.p === p)); });
     store('qedy-izle-player', p);
   }
   document.querySelectorAll('.switch button').forEach(function(b){ b.addEventListener('click', function(){ pick(b.dataset.p); }); });
   pick(store('qedy-izle-player') === 'kick' ? 'kick' : 'twitch');
 
-  document.querySelectorAll('.chat iframe').forEach(function(f){
-    f.src = f.dataset.src === 'twitch-chat'
-      ? 'https://www.twitch.tv/embed/' + CH + '/chat?parent=' + host + '&darkpopout'
-      : f.dataset.src;
+  // ---- unified chat --------------------------------------------------------
+  var box = $('msgs'), MAX = 200, stick = true;
+  box.addEventListener('scroll', function(){
+    stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    if (stick) $('jump').classList.remove('on');
+  });
+  $('jump').addEventListener('click', function(){ box.scrollTop = box.scrollHeight; });
+
+  // The captain's account (and the bot speaking through it) posts the same line to both chats:
+  // show the Twitch copy, drop the Kick copy if Twitch said the same within 20 s.
+  var capTwitch = [], capKickWaiting = [];
+  function norm(t){ return String(t || '').replace(/\[emote:\d+:[^\]]*\]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  function isCaptain(name){ return String(name || '').toLowerCase() === TWITCH_LOGIN; }
+  function seenOnTwitch(text){
+    var now = Date.now(), n = norm(text);
+    capTwitch = capTwitch.filter(function(x){ return now - x.at < 20000; });
+    return capTwitch.some(function(x){ return x.text === n; });
+  }
+
+  function add(m){
+    if ($('empty')) $('empty').remove();
+    var row = document.createElement('div');
+    row.className = 'msg' + (m.mine ? ' mine' : '');
+    row.dataset.platform = m.platform; row.dataset.user = (m.name || '').toLowerCase();
+    if (m.id) row.dataset.id = m.id;
+    var pf = document.createElement('span'); pf.className = 'pf ' + m.platform; pf.textContent = m.platform === 'twitch' ? 'T' : 'K';
+    pf.title = m.platform === 'twitch' ? 'Twitch' : 'Kick';
+    var who = document.createElement('span'); who.className = 'who'; who.textContent = m.name; who.style.color = m.color || (m.platform === 'twitch' ? '#bf94ff' : '#7dff57');
+    row.append(pf, who);
+    if (isCaptain(m.name)) { var cap = document.createElement('span'); cap.className = 'cap'; cap.textContent = 'KAPTAN'; row.append(cap); }
+    row.append(document.createTextNode(': '));
+    m.parts.forEach(function(p){
+      if (p.img) { var i = document.createElement('img'); i.className = 'emote'; i.src = p.img; i.alt = p.text; i.title = p.text; i.loading = 'lazy'; row.append(i); }
+      else row.append(document.createTextNode(p.text));
+    });
+    box.append(row);
+    while (box.children.length > MAX) box.firstElementChild.remove();
+    if (stick) box.scrollTop = box.scrollHeight; else $('jump').classList.add('on');
+  }
+  function removeWhere(fn){ Array.prototype.slice.call(box.children).forEach(function(r){ if (r.classList.contains('msg') && fn(r)) r.remove(); }); }
+
+  // Twitch: anonymous IRC over WebSocket (read-only, no login)
+  function twitchParts(text, emotes){
+    var chars = Array.from(text), marks = [];
+    (emotes || '').split('/').forEach(function(e){
+      if (!e) return; var bits = e.split(':'), id = bits[0];
+      (bits[1] || '').split(',').forEach(function(r){ var ab = r.split('-'); marks.push({ a: +ab[0], b: +ab[1], id: id }); });
+    });
+    marks.sort(function(x, y){ return x.a - y.a; });
+    var parts = [], pos = 0;
+    marks.forEach(function(k){
+      if (k.a > pos) parts.push({ text: chars.slice(pos, k.a).join('') });
+      parts.push({ text: chars.slice(k.a, k.b + 1).join(''), img: 'https://static-cdn.jtvnw.net/emoticons/v2/' + k.id + '/default/dark/2.0' });
+      pos = k.b + 1;
+    });
+    if (pos < chars.length) parts.push({ text: chars.slice(pos).join('') });
+    return parts;
+  }
+  function parseTags(s){ var o = {}; s.split(';').forEach(function(kv){ var i = kv.indexOf('='); o[kv.slice(0, i)] = kv.slice(i + 1).replace(/\\s/g, ' ').replace(/\\:/g, ';').replace(/\\\\/g, '\\'); }); return o; }
+  var twitchDelay = 1000;
+  function twitchConnect(){
+    var ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+    ws.onopen = function(){
+      ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands'); ws.send('PASS SCHMOOPIIE');
+      ws.send('NICK justinfan' + (10000 + Math.floor(Math.random() * 80000))); ws.send('JOIN #' + TWITCH_LOGIN);
+    };
+    ws.onmessage = function(ev){
+      String(ev.data).split('\r\n').forEach(function(line){
+        if (!line) return;
+        if (line.indexOf('PING') === 0) { ws.send('PONG :tmi.twitch.tv'); return; }
+        var tags = {}, rest = line;
+        if (rest[0] === '@') { var sp = rest.indexOf(' '); tags = parseTags(rest.slice(1, sp)); rest = rest.slice(sp + 1); }
+        var m = rest.match(/^:(\S+?)(?:!\S+)? (\S+) #\S+(?: :(.*))?$/);
+        if (!m) { if (/ 366 /.test(rest)) { $('connT').classList.add('on'); twitchDelay = 1000; } return; }
+        var cmd = m[2], text = m[3] || '';
+        if (cmd === 'PRIVMSG') {
+          var name = tags['display-name'] || m[1].split('!')[0];
+          if (/^\u0001ACTION /.test(text)) text = text.replace(/^\u0001ACTION /, '').replace(/\u0001$/, '');
+          if (isCaptain(name)) capTwitch.push({ text: norm(text), at: Date.now() }), flushKickWaiting();
+          add({ platform: 'twitch', id: tags.id, name: name, color: tags.color, parts: twitchParts(text, tags.emotes), mine: me && tags['user-id'] === me.id });
+        } else if (cmd === 'CLEARMSG') {
+          removeWhere(function(r){ return r.dataset.id === tags['target-msg-id']; });
+        } else if (cmd === 'CLEARCHAT' && text) {
+          var user = text.toLowerCase(); removeWhere(function(r){ return r.dataset.platform === 'twitch' && r.dataset.user === user; });
+        }
+      });
+    };
+    ws.onclose = function(){ $('connT').classList.remove('on'); setTimeout(twitchConnect, twitchDelay); twitchDelay = Math.min(30000, twitchDelay * 2); };
+  }
+
+  // Kick: public chat feed (Pusher), read-only
+  function kickParts(text){
+    var parts = [], re = /\[emote:(\d+):([^\]]*)\]/g, last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parts.push({ text: text.slice(last, m.index) });
+      parts.push({ text: m[2], img: 'https://files.kick.com/emotes/' + m[1] + '/fullsize' });
+      last = re.lastIndex;
+    }
+    if (last < text.length) parts.push({ text: text.slice(last) });
+    return parts;
+  }
+  function kickShow(d){
+    var s = d.sender || {}, color = (s.identity || {}).color;
+    add({ platform: 'kick', id: d.id, name: s.username || 'kick', color: color, parts: kickParts(String(d.content || '')) });
+  }
+  function flushKickWaiting(){
+    capKickWaiting = capKickWaiting.filter(function(w){ if (seenOnTwitch(w.d.content)) { clearTimeout(w.timer); return false; } return true; });
+  }
+  var kickDelay = 1000, kickSeen = {};
+  function kickConnect(){
+    var ws = new WebSocket(KICK_PUSHER);
+    ws.onmessage = function(ev){
+      var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.event === 'pusher:connection_established') {
+        ['chatrooms.' + KICK_CHATROOM + '.v2', 'chatroom_' + KICK_CHATROOM].forEach(function(ch){
+          ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { auth: '', channel: ch } }));
+        });
+        $('connK').classList.add('on'); kickDelay = 1000; return;
+      }
+      if (m.event === 'pusher:ping') { ws.send(JSON.stringify({ event: 'pusher:pong', data: {} })); return; }
+      var d; try { d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data; } catch (e) { return; }
+      if (/ChatMessage/.test(m.event || '')) {
+        if (!d || !d.id || kickSeen[d.id]) return;  // both subscriptions can deliver the same message
+        kickSeen[d.id] = 1;
+        if (isCaptain((d.sender || {}).username)) {
+          if (seenOnTwitch(d.content)) return;
+          var w = { d: d }; w.timer = setTimeout(function(){ capKickWaiting = capKickWaiting.filter(function(x){ return x !== w; }); kickShow(d); }, 4000);
+          capKickWaiting.push(w); return;
+        }
+        kickShow(d);
+      } else if (/MessageDeleted/.test(m.event || '') && d && d.message) {
+        removeWhere(function(r){ return r.dataset.id === String(d.message.id); });
+      } else if (/UserBanned/.test(m.event || '') && d && d.user) {
+        var u = String(d.user.username || '').toLowerCase(); removeWhere(function(r){ return r.dataset.platform === 'kick' && r.dataset.user === u; });
+      }
+    };
+    ws.onclose = function(){ $('connK').classList.remove('on'); setTimeout(kickConnect, kickDelay); kickDelay = Math.min(30000, kickDelay * 2); };
+  }
+
+  // ---- writing via Twitch (viewer's own account, implicit OAuth) ----------
+  var me = null;
+  function status(text, err){ var s = $('status'); s.textContent = text || ''; s.classList.toggle('err', !!err); }
+  function showLogin(){
+    $('whoRow').hidden = !me; $('sendRow').hidden = !me;
+    $('login').hidden = !!me || !TWITCH_CLIENT_ID;
+    $('loginRow').hidden = false;
+    if (me) $('whoName').textContent = me.login;
+  }
+  function takeToken(){
+    if (!location.hash || location.hash.indexOf('access_token=') < 0) return;
+    var q = new URLSearchParams(location.hash.slice(1));
+    var expected = null; try { expected = sessionStorage.getItem('qedy-oauth-state'); } catch (e) {}
+    history.replaceState(null, '', location.pathname + location.search);
+    if (!expected || q.get('state') !== expected) { status('Giriş doğrulanamadı, tekrar dene.', true); return; }
+    store('qedy-twitch-token', q.get('access_token'));
+  }
+  function validate(){
+    var token = store('qedy-twitch-token');
+    if (!token || !TWITCH_CLIENT_ID) { showLogin(); return; }
+    fetch('https://id.twitch.tv/oauth2/validate', { headers: { Authorization: 'OAuth ' + token } })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(v){
+        if (v && v.user_id) me = { id: v.user_id, login: v.login, token: token };
+        else { store('qedy-twitch-token', null); me = null; }
+        showLogin();
+      }).catch(showLogin);
+  }
+  $('login').addEventListener('click', function(){
+    var st = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { sessionStorage.setItem('qedy-oauth-state', st); } catch (e) {}
+    location.href = 'https://id.twitch.tv/oauth2/authorize?' + new URLSearchParams({
+      client_id: TWITCH_CLIENT_ID, redirect_uri: REDIRECT, response_type: 'token', scope: 'user:write:chat', state: st
+    });
+  });
+  $('logout').addEventListener('click', function(){
+    if (me) fetch('https://id.twitch.tv/oauth2/revoke', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: TWITCH_CLIENT_ID, token: me.token }) }).catch(function(){});
+    store('qedy-twitch-token', null); me = null; showLogin(); status('');
+  });
+  function send(){
+    var input = $('text'), text = input.value.trim();
+    if (!me || !text) return;
+    $('send').disabled = true; status('');
+    fetch('https://api.twitch.tv/helix/chat/messages', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + me.token, 'Client-Id': TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ broadcaster_id: TWITCH_ID, sender_id: me.id, message: text })
+    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function(res){
+        var d = res.j && res.j.data && res.j.data[0];
+        if (res.ok && d && d.is_sent) { input.value = ''; return; }
+        if (res.status === 401) { store('qedy-twitch-token', null); me = null; showLogin(); status('Oturum süresi doldu, tekrar giriş yap.', true); return; }
+        status('Mesaj gönderilemedi' + (d && d.drop_reason ? ': ' + d.drop_reason.message : (res.j && res.j.message ? ': ' + res.j.message : '')), true);
+      }).catch(function(){ status('Bağlantı hatası, tekrar dene.', true); })
+      .then(function(){ $('send').disabled = false; input.focus(); });
+  }
+  $('send').addEventListener('click', send);
+  $('text').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); send(); } });
+  $('kickWrite').addEventListener('click', function(e){
+    e.preventDefault(); window.open(this.href, 'kickchat', 'width=420,height=680');
   });
 
-  // phones: one chat at a time
-  function showChat(c){
-    document.getElementById('chatKick').classList.toggle('shown', c === 'kick');
-    document.getElementById('chatTwitch').classList.toggle('shown', c === 'twitch');
-    document.querySelectorAll('.tabs button').forEach(function(b){ b.setAttribute('aria-selected', String(b.dataset.c === c)); });
-  }
-  document.querySelectorAll('.tabs button').forEach(function(b){ b.addEventListener('click', function(){ showChat(b.dataset.c); }); });
-
-  // live dot (same check as the home page)
+  // ---- live dot --------------------------------------------------------------
   function checkLive(){
-    fetch('https://decapi.me/twitch/uptime/' + CH, { cache: 'no-store' }).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
-      document.getElementById('live').classList.toggle('on', !!t && !/offline|error|not found/i.test(t));
+    fetch('https://decapi.me/twitch/uptime/' + TWITCH_LOGIN, { cache: 'no-store' }).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
+      $('live').classList.toggle('on', !!t && !/offline|error|not found/i.test(t));
     }).catch(function(){});
   }
+
+  takeToken(); validate();
+  twitchConnect(); kickConnect();
   checkLive(); setInterval(function(){ if (!document.hidden) checkLive(); }, 60000);
 })();
 </script>
