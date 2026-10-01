@@ -135,12 +135,13 @@
   'use strict';
   // ---- channel facts -------------------------------------------------------
   var TWITCH_LOGIN = 'kaptanqedy', TWITCH_ID = '146047709';
-  var KICK_SLUG = 'kaptanqedy', KICK_CHATROOM = 2435281;
+  var KICK_SLUG = 'kaptanqedy', KICK_CHATROOM = 2435281, KICK_CHANNEL = 2442803;
   var KICK_PUSHER = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false';
   // Twitch app (dev.twitch.tv · public client, redirect = this page). Empty = writing via Twitch stays off.
-  var TWITCH_CLIENT_ID = '';
+  var TWITCH_CLIENT_ID = 'jbfsymcho9cziqpi1cd1vhoowkfql8';
   var host = location.hostname || 'ertugrul-tug.github.io';
-  var REDIRECT = location.origin + location.pathname;
+  // must equal the OAuth Redirect URL registered for the Twitch app
+  var REDIRECT = /github\.io$/.test(host) ? 'https://ertugrul-tug.github.io/stream-library/izle/' : location.origin + location.pathname;
 
   function $(id){ return document.getElementById(id); }
   function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -220,6 +221,21 @@
     return parts;
   }
   function parseTags(s){ var o = {}; s.split(';').forEach(function(kv){ var i = kv.indexOf('='); o[kv.slice(0, i)] = kv.slice(i + 1).replace(/\\s/g, ' ').replace(/\\:/g, ';').replace(/\\\\/g, '\\'); }); return o; }
+  function parseIrc(line){
+    var tags = {}, rest = line;
+    if (rest[0] === '@') { var sp = rest.indexOf(' '); tags = parseTags(rest.slice(1, sp)); rest = rest.slice(sp + 1); }
+    var m = rest.match(/^:(\S+?)(?:!\S+)? (\S+) #\S+(?: :(.*))?$/);
+    if (!m) return { raw: rest };
+    var text = m[3] || '';
+    if (/^\u0001ACTION /.test(text)) text = text.replace(/^\u0001ACTION /, '').replace(/\u0001$/, '');
+    return { tags: tags, nick: m[1], cmd: m[2], text: text };
+  }
+  function twitchMsg(p){
+    var name = p.tags['display-name'] || p.nick;
+    return { platform: 'twitch', id: p.tags.id, name: name, color: p.tags.color, text: p.text, at: +p.tags['tmi-sent-ts'] || Date.now(),
+             parts: twitchParts(p.text, p.tags.emotes), mine: !!(me && p.tags['user-id'] === me.id) };
+  }
+  var twitchSeen = {};
   var twitchDelay = 1000;
   function twitchConnect(){
     var ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
@@ -231,16 +247,15 @@
       String(ev.data).split('\r\n').forEach(function(line){
         if (!line) return;
         if (line.indexOf('PING') === 0) { ws.send('PONG :tmi.twitch.tv'); return; }
-        var tags = {}, rest = line;
-        if (rest[0] === '@') { var sp = rest.indexOf(' '); tags = parseTags(rest.slice(1, sp)); rest = rest.slice(sp + 1); }
-        var m = rest.match(/^:(\S+?)(?:!\S+)? (\S+) #\S+(?: :(.*))?$/);
-        if (!m) { if (/ 366 /.test(rest)) { $('connT').classList.add('on'); twitchDelay = 1000; } return; }
-        var cmd = m[2], text = m[3] || '';
+        var p = parseIrc(line);
+        if (!p.cmd) { if (/ 366 /.test(p.raw)) { $('connT').classList.add('on'); twitchDelay = 1000; } return; }
+        var tags = p.tags, cmd = p.cmd, text = p.text;
         if (cmd === 'PRIVMSG') {
-          var name = tags['display-name'] || m[1].split('!')[0];
-          if (/^\u0001ACTION /.test(text)) text = text.replace(/^\u0001ACTION /, '').replace(/\u0001$/, '');
-          if (isCaptain(name)) capTwitch.push({ text: norm(text), at: Date.now() }), flushKickWaiting();
-          add({ platform: 'twitch', id: tags.id, name: name, color: tags.color, parts: twitchParts(text, tags.emotes), mine: me && tags['user-id'] === me.id });
+          var tm = twitchMsg(p);
+          if (tm.id && twitchSeen[tm.id]) return;
+          if (tm.id) twitchSeen[tm.id] = 1;
+          if (isCaptain(tm.name)) capTwitch.push({ text: norm(text), at: Date.now() }), flushKickWaiting();
+          add(tm);
         } else if (cmd === 'CLEARMSG') {
           removeWhere(function(r){ return r.dataset.id === tags['target-msg-id']; });
         } else if (cmd === 'CLEARCHAT' && text) {
@@ -370,8 +385,33 @@
     }).catch(function(){});
   }
 
+  // ---- history: the page never opens empty --------------------------------
+  function timeout(ms){ return new Promise(function(res){ setTimeout(function(){ res(null); }, ms); }); }
+  function loadHistory(){
+    var tw = Promise.race([fetch('https://recent-messages.robotty.de/api/v2/recent-messages/' + TWITCH_LOGIN + '?limit=40')
+      .then(function(r){ return r.json(); }), timeout(4000)]).then(function(j){
+        return ((j && j.messages) || []).map(parseIrc).filter(function(p){ return p.cmd === 'PRIVMSG'; }).map(twitchMsg);
+      }).catch(function(){ return []; });
+    var kk = Promise.race([fetch('https://kick.com/api/v2/channels/' + KICK_CHANNEL + '/messages')
+      .then(function(r){ return r.json(); }), timeout(4000)]).then(function(j){
+        return (((j && j.data) || {}).messages || []).filter(function(d){ return d.type === 'message'; })
+          .map(function(d){ return { platform: 'kick', d: d, at: Date.parse(d.created_at) || 0 }; });
+      }).catch(function(){ return []; });
+    return Promise.all([tw, kk]).then(function(res){
+      var t = res[0], k = res[1];
+      var caps = t.filter(function(m){ return isCaptain(m.name); }).map(function(m){ return { text: norm(m.text), at: m.at }; });
+      k = k.filter(function(x){
+        return !(isCaptain((x.d.sender || {}).username) && caps.some(function(c){ return c.text === norm(x.d.content) && Math.abs(c.at - x.at) < 20000; }));
+      });
+      t.concat(k).sort(function(a, b){ return a.at - b.at; }).slice(-60).forEach(function(x){
+        if (x.platform === 'kick') { kickSeen[x.d.id] = 1; kickShow(x.d); }
+        else { if (x.id) twitchSeen[x.id] = 1; add(x); }
+      });
+    });
+  }
+
   takeToken(); validate();
-  twitchConnect(); kickConnect();
+  loadHistory().then(function(){ twitchConnect(); kickConnect(); });
   checkLive(); setInterval(function(){ if (!document.hidden) checkLive(); }, 60000);
 })();
 </script>
