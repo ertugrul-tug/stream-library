@@ -80,6 +80,18 @@
   .who-row button{margin-left:auto;background:none;border:0;color:var(--ink-faint);font-size:12px;cursor:pointer;text-decoration:underline}
   .status{font-size:12px;color:var(--ink-dim);min-height:0}
   .status.err{color:#ff8a93}
+  .msg .av{width:22px;height:22px;border-radius:50%;vertical-align:-6px;margin-right:6px;background:var(--surface-2);object-fit:cover}
+  .msg .pf{margin-right:4px}
+  .emote-btn{flex:none;width:42px;padding:0;font-size:18px}
+  .picker{border:1px solid var(--line-strong);background:var(--surface-2);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;max-height:260px}
+  .picker input{background:var(--bg);border:1px solid var(--line-strong);border-radius:8px;color:var(--ink);font:500 13px var(--font-body);padding:7px 10px}
+  .picker .grid{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0}
+  .picker h4{margin:2px 0 0;font:500 10px var(--font-mono);letter-spacing:.12em;color:var(--ink-faint)}
+  .picker .set{display:flex;flex-wrap:wrap;gap:2px}
+  .picker .set button{width:36px;height:36px;border:0;border-radius:6px;background:transparent;cursor:pointer;padding:3px}
+  .picker .set button:hover,.picker .set button:focus-visible{background:rgba(145,70,255,.25);outline:none}
+  .picker .set img{width:28px;height:28px;object-fit:contain}
+  .picker .hint{font-size:12px;color:var(--ink-faint);text-align:center;padding:10px}
   [hidden]{display:none!important}
 
   @media (max-width: 900px){
@@ -118,7 +130,12 @@
     <button type="button" class="jump" id="jump">↓ Yeni mesajlar</button>
     <div class="compose">
       <div class="who-row" id="whoRow" hidden><span>Twitch olarak yazıyorsun: <b id="whoName"></b></span><button type="button" id="logout">Çıkış</button></div>
+      <div class="picker" id="picker" hidden>
+        <input id="emoteSearch" placeholder="Emote ara…" aria-label="Emote ara" autocomplete="off">
+        <div class="grid" id="emoteGrid"></div>
+      </div>
       <div class="send-row" id="sendRow" hidden>
+        <button type="button" class="btn emote-btn" id="emoteBtn" aria-label="Emote seç" title="Emote seç">😀</button>
         <input id="text" maxlength="450" autocomplete="off" placeholder="Mesajını yaz…" aria-label="Mesaj">
         <button type="button" class="btn twitch" id="send">Gönder</button>
       </div>
@@ -139,7 +156,7 @@
   var KICK_PUSHER = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false';
   // Twitch app (dev.twitch.tv · public client, redirect = this page). Empty = writing via Twitch stays off.
   var TWITCH_CLIENT_ID = 'jbfsymcho9cziqpi1cd1vhoowkfql8';
-  var SCOPES = ['chat:read', 'chat:edit'];
+  var SCOPES = ['chat:read', 'chat:edit'], OPTIONAL_SCOPES = ['user:read:emotes'];
   var host = location.hostname || 'ertugrul-tug.github.io';
   // must equal the OAuth Redirect URL registered for the Twitch app
   var REDIRECT = /github\.io$/.test(host) ? 'https://ertugrul-tug.github.io/stream-library/izle/' : location.origin + location.pathname;
@@ -188,6 +205,10 @@
     row.className = 'msg' + (m.mine ? ' mine' : '');
     row.dataset.platform = m.platform; row.dataset.user = (m.name || '').toLowerCase();
     if (m.id) row.dataset.id = m.id;
+    var av = document.createElement('img'); av.className = 'av'; av.alt = ''; av.hidden = true;
+    av.onload = function(){ av.hidden = false; }; av.onerror = function(){ av.remove(); };
+    avatar(m.platform, m.name, m.slug).then(function(url){ if (url) av.src = url; else av.remove(); });
+    row.append(av);
     var pf = document.createElement('span'); pf.className = 'pf ' + m.platform; pf.textContent = m.platform === 'twitch' ? 'T' : 'K';
     pf.title = m.platform === 'twitch' ? 'Twitch' : 'Kick';
     var who = document.createElement('span'); who.className = 'who'; who.textContent = m.name; who.style.color = m.color || (m.platform === 'twitch' ? '#bf94ff' : '#7dff57');
@@ -280,7 +301,7 @@
   }
   function kickShow(d){
     var s = d.sender || {}, color = (s.identity || {}).color;
-    add({ platform: 'kick', id: d.id, name: s.username || 'kick', color: color, parts: kickParts(String(d.content || '')) });
+    add({ platform: 'kick', id: d.id, name: s.username || 'kick', slug: s.slug, color: color, parts: kickParts(String(d.content || '')) });
   }
   function flushKickWaiting(){
     capKickWaiting = capKickWaiting.filter(function(w){ if (seenOnTwitch(w.d.content)) { clearTimeout(w.timer); return false; } return true; });
@@ -340,7 +361,7 @@
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(v){
         var ok = v && v.user_id && SCOPES.every(function(sc){ return (v.scopes || []).indexOf(sc) >= 0; });
-        if (ok) { me = { id: v.user_id, login: v.login, token: token }; writerConnect(); }
+        if (ok) { me = { id: v.user_id, login: v.login, token: token, scopes: v.scopes || [] }; writerConnect(); flushTwitchAvatars(); }
         else { store('qedy-twitch-token', null); me = null; if (v && v.user_id) status('Yazma izni güncellendi, bir kez tekrar "Twitch ile yaz"a bas.'); }
         showLogin();
       }).catch(showLogin);
@@ -349,7 +370,7 @@
     var st = Math.random().toString(36).slice(2) + Date.now().toString(36);
     try { sessionStorage.setItem('qedy-oauth-state', st); } catch (e) {}
     location.href = 'https://id.twitch.tv/oauth2/authorize?' + new URLSearchParams({
-      client_id: TWITCH_CLIENT_ID, redirect_uri: REDIRECT, response_type: 'token', scope: SCOPES.join(' '), state: st, force_verify: 'false'
+      client_id: TWITCH_CLIENT_ID, redirect_uri: REDIRECT, response_type: 'token', scope: SCOPES.concat(OPTIONAL_SCOPES).join(' '), state: st, force_verify: 'false'
     });
   });
   $('logout').addEventListener('click', function(){
@@ -405,6 +426,132 @@
   $('text').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); send(); } });
   $('kickWrite').addEventListener('click', function(e){
     e.preventDefault(); window.open(this.href, 'kickchat', 'width=420,height=680');
+  });
+
+
+  // ---- profile pictures (cached a day per user in this browser) ----------------
+  var AV_KEY = 'qedy-avatars', avCache = {}, avPending = {}, twitchQueue = {};
+  try { avCache = JSON.parse(store(AV_KEY) || '{}') || {}; } catch (e) { avCache = {}; }
+  function avSave(){
+    var keys = Object.keys(avCache);
+    if (keys.length > 400) keys.sort(function(a, b){ return avCache[a][1] - avCache[b][1]; }).slice(0, keys.length - 400).forEach(function(k){ delete avCache[k]; });
+    store(AV_KEY, JSON.stringify(avCache));
+  }
+  function avatar(platform, name, slug){
+    var key = platform + ':' + String(name || '').toLowerCase();
+    var hit = avCache[key];
+    if (hit && Date.now() - hit[1] < 86400000) return Promise.resolve(hit[0]);
+    if (avPending[key]) return avPending[key];
+    var job;
+    if (platform === 'kick') {
+      job = fetch('https://kick.com/api/v2/channels/' + encodeURIComponent(slug || String(name).toLowerCase()))
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){ return (j && j.user && j.user.profile_pic) || ''; });
+    } else {
+      job = new Promise(function(res){ (twitchQueue[String(name).toLowerCase()] = twitchQueue[String(name).toLowerCase()] || []).push(res); scheduleTwitchAvatars(); });
+    }
+    avPending[key] = job.catch(function(){ return ''; }).then(function(url){
+      delete avPending[key]; avCache[key] = [url, Date.now()]; avSave(); return url;
+    });
+    return avPending[key];
+  }
+  var twitchTimer = null;
+  function scheduleTwitchAvatars(){ if (!twitchTimer) twitchTimer = setTimeout(flushTwitchAvatars, 400); }
+  function flushTwitchAvatars(){
+    twitchTimer = null;
+    var logins = Object.keys(twitchQueue);
+    if (!logins.length) return;
+    var batch = logins.slice(0, 100), waiting = {};
+    batch.forEach(function(l){ waiting[l] = twitchQueue[l]; delete twitchQueue[l]; });
+    var answer = function(map){ batch.forEach(function(l){ waiting[l].forEach(function(res){ res(map[l] || ''); }); }); };
+    if (me && TWITCH_CLIENT_ID) {
+      // logged in: one Helix call for up to 100 users
+      fetch('https://api.twitch.tv/helix/users?' + batch.map(function(l){ return 'login=' + encodeURIComponent(l); }).join('&'),
+        { headers: { Authorization: 'Bearer ' + me.token, 'Client-Id': TWITCH_CLIENT_ID } })
+        .then(function(r){ return r.ok ? r.json() : { data: [] }; })
+        .then(function(j){ var map = {}; (j.data || []).forEach(function(u){ map[u.login] = u.profile_image_url; }); answer(map); })
+        .catch(function(){ answer({}); });
+    } else {
+      // anonymous: a public lookup per user
+      Promise.all(batch.map(function(l){
+        return fetch('https://decapi.me/twitch/avatar/' + encodeURIComponent(l)).then(function(r){ return r.ok ? r.text() : ''; })
+          .then(function(t){ return [l, /^https:\/\//.test(t.trim()) ? t.trim() : '']; }).catch(function(){ return [l, '']; });
+      })).then(function(pairs){ var map = {}; pairs.forEach(function(p){ map[p[0]] = p[1]; }); answer(map); });
+    }
+    if (Object.keys(twitchQueue).length) scheduleTwitchAvatars();
+  }
+
+  // ---- emote picker (Twitch emotes the viewer can use) -----------------------
+  var emoteSets = null;
+  function helix(path){
+    return fetch('https://api.twitch.tv/helix/' + path, { headers: { Authorization: 'Bearer ' + me.token, 'Client-Id': TWITCH_CLIENT_ID } })
+      .then(function(r){ return r.ok ? r.json() : { data: [] }; });
+  }
+  function emoteImg(e, template){
+    var t = template || 'https://static-cdn.jtvnw.net/emoticons/v2/{{id}}/{{format}}/{{theme_mode}}/{{scale}}';
+    var fmt = (e.format || []).indexOf('animated') >= 0 ? 'animated' : 'static';
+    return t.replace('{{id}}', e.id).replace('{{format}}', fmt).replace('{{theme_mode}}', 'dark').replace('{{scale}}', '1.0');
+  }
+  function loadEmotes(){
+    if (emoteSets) return Promise.resolve(emoteSets);
+    var sets = [];
+    var own = (me.scopes || []).indexOf('user:read:emotes') >= 0;
+    function userPage(cursor, acc){
+      return helix('chat/emotes/user?user_id=' + me.id + (cursor ? '&after=' + cursor : '')).then(function(j){
+        acc = acc.concat((j.data || []).map(function(e){ e.img = emoteImg(e, j.template); return e; }));
+        return j.pagination && j.pagination.cursor && acc.length < 3000 ? userPage(j.pagination.cursor, acc) : acc;
+      });
+    }
+    var job = own
+      ? userPage('', []).then(function(all){
+          var chan = all.filter(function(e){ return e.owner_id === TWITCH_ID; });
+          var glob = all.filter(function(e){ return e.emote_type === 'globals' || e.owner_id === '0'; });
+          var other = all.filter(function(e){ return chan.indexOf(e) < 0 && glob.indexOf(e) < 0; });
+          sets = [['KAPTAN QEDY', chan], ['DİĞER KANALLAR', other], ['TWITCH', glob]];
+        })
+      : Promise.all([helix('chat/emotes?broadcaster_id=' + TWITCH_ID), helix('chat/emotes/global')]).then(function(r){
+          sets = [['KAPTAN QEDY', (r[0].data || []).map(function(e){ e.img = emoteImg(e, r[0].template); return e; })],
+                  ['TWITCH', (r[1].data || []).map(function(e){ e.img = emoteImg(e, r[1].template); return e; })]];
+        });
+    return job.then(function(){ emoteSets = sets.filter(function(x){ return x[1].length; }); return emoteSets; });
+  }
+  function drawEmotes(){
+    var grid = $('emoteGrid'), q = $('emoteSearch').value.trim().toLowerCase();
+    grid.replaceChildren();
+    if (!emoteSets) { var w = document.createElement('p'); w.className = 'hint'; w.textContent = 'Emote\'lar yükleniyor…'; grid.append(w); return; }
+    var shown = 0;
+    emoteSets.forEach(function(set){
+      var list = set[1].filter(function(e){ return !q || e.name.toLowerCase().indexOf(q) >= 0; }).slice(0, 300);
+      if (!list.length) return;
+      var h = document.createElement('h4'); h.textContent = set[0]; grid.append(h);
+      var box = document.createElement('div'); box.className = 'set';
+      list.forEach(function(e){
+        var b = document.createElement('button'); b.type = 'button'; b.title = e.name; b.setAttribute('aria-label', e.name);
+        var i = document.createElement('img'); i.src = e.img; i.alt = e.name; i.loading = 'lazy'; b.append(i);
+        b.addEventListener('click', function(){ insertEmote(e.name); });
+        box.append(b); shown++;
+      });
+      grid.append(box);
+    });
+    if (!shown) { var n = document.createElement('p'); n.className = 'hint'; n.textContent = q ? 'Bu isimde emote yok.' : 'Kullanabileceğin emote bulunamadı.'; grid.append(n); }
+  }
+  function insertEmote(name){
+    var input = $('text'), at = input.selectionStart == null ? input.value.length : input.selectionStart;
+    var before = input.value.slice(0, at), after = input.value.slice(input.selectionEnd || at);
+    var add = (before && !/\s$/.test(before) ? ' ' : '') + name + ' ';
+    input.value = (before + add + after).slice(0, 450);
+    input.focus(); var pos = (before + add).length; input.setSelectionRange(pos, pos);
+  }
+  function togglePicker(open){
+    var pk = $('picker'), show = open === undefined ? pk.hidden : open;
+    pk.hidden = !show;
+    if (show) { drawEmotes(); loadEmotes().then(drawEmotes).catch(function(){ emoteSets = []; drawEmotes(); }); $('emoteSearch').focus(); }
+  }
+  $('emoteBtn').addEventListener('click', function(){ togglePicker(); });
+  $('emoteSearch').addEventListener('input', drawEmotes);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !$('picker').hidden) togglePicker(false); });
+  document.addEventListener('click', function(e){
+    if (!$('picker').hidden && !$('picker').contains(e.target) && e.target !== $('emoteBtn')) togglePicker(false);
   });
 
   // ---- live dot --------------------------------------------------------------
