@@ -503,6 +503,7 @@
     });
     window.qedyRanks = ranks;
     // The captain's own account: the bot talks through it on both platforms, so the chat boxes skip it.
+    window.qedyBotSaid = new Set((s.botSaid || []).map(t => String(t).replace(/\s+/g, '')));
     window.qedyHidden = new Set((s.broadcasters || []).map(n => String(n).toLowerCase()));
     // First-ever chatters: the chat box drew their message before this state arrived, so it marks it now.
     window.qedyFirstTimers = new Set(s.firstTimers || []);

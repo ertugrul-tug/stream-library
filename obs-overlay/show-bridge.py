@@ -264,6 +264,7 @@ def snapshot():
     result["prediction"] = {"status": p["status"], "w": w, "l": l, "result": p["result"], "pot": sum((p.get("stakes") or {}).values())}
     result["summaryText"] = summary_text()
     result["activeChatters"] = recent_chatters()
+    result["botSaid"] = [re.sub(r"\s+", "", t) for t, at in _said.items() if time.time() - at < 60][-20:]  # echoes of our own lines (any account) are hidden on screen
     result["broadcasters"] = sorted(BROADCASTERS)  # the on-screen chat boxes hide the captain's own messages
     result["nextShow"] = schedule_text(next_only=True)
     result["deathTotal"] = death_total()
@@ -440,6 +441,7 @@ def say(text, platform=None):
         return
     text = text[:450]
     _said[clean(text, 300)] = time.time()
+    _spawn(publish())  # the chat boxes learn the line before its echo arrives
     for p in ([platform] if platform else SAY_ACTIONS):
         task = asyncio.get_running_loop().create_task(_say(p, text))
         _bot_tasks.add(task)

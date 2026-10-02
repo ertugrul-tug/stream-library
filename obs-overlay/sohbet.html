@@ -75,6 +75,7 @@ html,body{background:transparent}
     const platform=String(payload.event.source || '').toLowerCase();
     const data=payload.data || {};
     if (window.qedyHidden?.has(String(data.user?.name || data.user?.login || '').toLowerCase())) return;
+    if (window.qedyBotSaid?.has(String(data.text || '').replace(/\s+/g, ''))) return;
     add(platform,data.user?.name || data.user?.login,data.text,qedyEmotes.parse(data));
   }
   function connect() {
